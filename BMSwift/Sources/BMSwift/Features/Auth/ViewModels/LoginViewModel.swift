@@ -36,7 +36,7 @@ public final class LoginViewModel: ObservableObject {
                 isLoggedIn = true
                 
                 // Refresh token if needed
-                if try await tokenManager.refreshTokenIfNeeded() {
+                if try await tokenManager.refreshTokenIfNeeded(threshold: 3600) {
                     logInfo("Token refreshed successfully")
                 }
             }
@@ -69,16 +69,13 @@ public final class LoginViewModel: ObservableObject {
             }
             
             logInfo("Attempting login with email: \(email)")
-            // Call login API
-            let response = try await authService.login(email: email, password: password)
+            // Call login API and get raw response
+            let response = try await authService.login(email: email, password: password) as [String: Any]
             
             logInfo("Login successful")
-            logDebug("Token received, expires at: \(response.expiredAt)")
             
-            // Store token securely
-            try tokenManager.saveToken(response.token, expiry: response.expiredAt)
-            
-            isFirstLogin = response.firstLogin
+            // Token is already saved by APIClient
+            isFirstLogin = response["first_login"] as? Bool ?? false
             isLoggedIn = true
             errorMessage = nil
             
@@ -99,18 +96,14 @@ public final class LoginViewModel: ObservableObject {
         isLoading = false
     }
     
-    @MainActor
-    public func logout() async {
-        logInfo("Logging out...")
+    public func logout() {
         do {
             try tokenManager.clearToken()
             isLoggedIn = false
             isFirstLogin = false
             errorMessage = nil
-            logInfo("Logout successful")
         } catch {
-            logError("Failed to logout: \(error.localizedDescription)")
-            errorMessage = "登出失敗"
+            errorMessage = error.localizedDescription
         }
     }
 }

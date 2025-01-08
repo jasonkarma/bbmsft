@@ -1,0 +1,26 @@
+# File options
+--exclude .build/*, Package.swift
+
+# Format options
+--swiftversion 5.9
+--indent 4
+--header strip
+--trimwhitespace always
+--linebreaks lf
+
+# Rules
+--enable blankLinesBetweenScopes
+--enable consecutiveBlankLines
+--enable redundantSelf
+--enable redundantType
+--enable redundantPattern
+--enable unusedArguments
+
+# Exclude force unwrapping rule from certain patterns
+--disable strongOutlets
+--disable redundantNilInit
+
+# File patterns
+--exclude **/*.generated.swift
+--exclude **/Pods/**
+--exclude **/.build/**

@@ -1,3 +1,4 @@
+#if canImport(SwiftUI) && os(iOS)
 import Foundation
 
 public enum AuthError: LocalizedError {
@@ -18,7 +19,7 @@ public enum AuthError: LocalizedError {
 }
 
 public protocol AuthServiceProtocol {
-    func login(email: String, password: String) async throws -> LoginResponse
+    func login(email: String, password: String) async throws -> [String: Any]
 }
 
 public class AuthService: AuthServiceProtocol {
@@ -30,9 +31,10 @@ public class AuthService: AuthServiceProtocol {
         self.apiClient = apiClient
     }
     
-    public func login(email: String, password: String) async throws -> LoginResponse {
+    public func login(email: String, password: String) async throws -> [String: Any] {
         let request = LoginRequest(email: email, password: password)
         let endpoint = APIEndpoints.Auth.login(request: request)
-        return try await apiClient.request(endpoint)
+        return try await apiClient.requestRaw(endpoint)
     }
 }
+#endif

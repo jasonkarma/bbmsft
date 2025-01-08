@@ -29,6 +29,7 @@ public enum APIError: LocalizedError {
 
 public protocol APIClientProtocol {
     func request<T: Decodable>(_ endpoint: APIEndpoint) async throws -> T
+    func requestRaw(_ endpoint: APIEndpoint) async throws -> [String: Any]
 }
 
 public class APIClient: APIClientProtocol {
@@ -36,7 +37,6 @@ public class APIClient: APIClientProtocol {
     
     private let baseURL = "https://wiki.kinglyrobot.com/api"
     private let session: URLSession
-    private let decoder: JSONDecoder
     private let encoder: JSONEncoder
     
     private init() {
@@ -44,9 +44,6 @@ public class APIClient: APIClientProtocol {
         configuration.timeoutIntervalForRequest = 30
         configuration.timeoutIntervalForResource = 300
         self.session = URLSession(configuration: configuration)
-        
-        self.decoder = JSONDecoder()
-        self.decoder.keyDecodingStrategy = .convertFromSnakeCase
         
         self.encoder = JSONEncoder()
         self.encoder.keyEncodingStrategy = .convertToSnakeCase
@@ -82,45 +79,54 @@ public class APIClient: APIClientProtocol {
         return request
     }
     
-    private func handleResponse<T: Decodable>(_ data: Data, _ response: URLResponse) throws -> T {
+    private func handleRawResponse(_ data: Data, _ response: URLResponse) throws -> [String: Any] {
         guard let httpResponse = response as? HTTPURLResponse else {
             print("❌ Invalid response type")
             throw APIError.invalidResponse
         }
         
         print("📥 Response Status Code: \(httpResponse.statusCode)")
-        if let responseString = String(data: data, encoding: .utf8) {
-            print("📥 Response Body: \(responseString)")
+        
+        // Log raw response for debugging
+        if let jsonString = String(data: data, encoding: .utf8) {
+            print("📥 Response Body: \(jsonString)")
         }
         
-        // Handle 404 errors specifically
-        if httpResponse.statusCode == 404 {
-            let errorResponse = try decoder.decode(APIErrorResponse.self, from: data)
-            print("❌ 404 Error: \(errorResponse.error)")
-            throw APIError.serverError(errorResponse.error)
-        }
-        
-        // Handle other error status codes
         guard (200...299).contains(httpResponse.statusCode) else {
             print("❌ Server Error: \(httpResponse.statusCode)")
             throw APIError.serverError("伺服器錯誤: \(httpResponse.statusCode)")
         }
         
         do {
-            let decoded = try decoder.decode(T.self, from: data)
-            print("✅ Successfully decoded response")
-            return decoded
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                throw APIError.invalidResponse
+            }
+            
+            // Check if we have a token and expiry
+            if let token = json["token"] as? String {
+                if let expiresAt = json["expires_at"] as? String {
+                    print("✅ Found token and expiry, saving to TokenManager")
+                    try TokenManager.shared.saveToken(token, expiry: expiresAt)
+                }
+            }
+            
+            return json
         } catch {
-            print("❌ Decoding Error: \(error)")
+            print("❌ JSON Parsing Error: \(error)")
             throw APIError.decodingError(error)
         }
     }
     
     public func request<T: Decodable>(_ endpoint: APIEndpoint) async throws -> T {
+        let json = try await requestRaw(endpoint)
+        return json as! T // We know this is safe for raw dictionary responses
+    }
+    
+    public func requestRaw(_ endpoint: APIEndpoint) async throws -> [String: Any] {
         do {
             let request = try createURLRequest(for: endpoint)
             let (data, response) = try await session.data(for: request)
-            return try handleResponse(data, response)
+            return try handleRawResponse(data, response)
         } catch let error as APIError {
             print("❌ API Error: \(error.localizedDescription)")
             throw error
