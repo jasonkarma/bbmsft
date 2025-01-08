@@ -1,12 +1,6 @@
 #if canImport(SwiftUI) && os(iOS)
 import Foundation
-
-public enum HTTPMethod: String {
-    case get = "GET"
-    case post = "POST"
-    case put = "PUT"
-    case delete = "DELETE"
-}
+import BMSwift
 
 public struct APIRequest<RequestType: Encodable, ResponseType: Decodable> {
     public let endpoint: String

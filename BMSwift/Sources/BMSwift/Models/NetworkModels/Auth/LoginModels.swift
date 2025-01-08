@@ -28,4 +28,12 @@ public struct LoginResponse: Codable {
         self.firstLogin = firstLogin
     }
 }
+
+public struct LoginError: Codable {
+    public let error: String
+    
+    public init(error: String) {
+        self.error = error
+    }
+}
 #endif

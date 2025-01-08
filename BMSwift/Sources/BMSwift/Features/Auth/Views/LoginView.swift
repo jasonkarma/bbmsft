@@ -1,5 +1,6 @@
 #if canImport(SwiftUI) && os(iOS)
 import SwiftUI
+import UIKit
 
 /// BMSwift - Auth Feature
 /// Login view implementation with email and password fields
@@ -13,50 +14,56 @@ public struct LoginView: View {
     public init() {}
     
     public var body: some View {
-        VStack(spacing: 20) {
-            Text("登入")
-                .font(.largeTitle)
-                .padding(.bottom, 30)
-            
-            CustomTextField(
-                text: $viewModel.email,
-                placeholder: "電子郵件",
-                keyboardType: .emailAddress,
-                textInputAutocapitalization: .never
-            )
-            
-            CustomTextField(
-                text: $viewModel.password,
-                placeholder: "密碼",
-                isSecure: true,
-                textInputAutocapitalization: .never
-            )
-            
-            Button(action: {
-                Task {
-                    await viewModel.login()
-                }
-            }) {
+        ScrollView {
+            VStack(spacing: 20) {
                 Text("登入")
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
+                    .font(.largeTitle)
+                    .padding(.top, 50)
+                
+                CustomTextField(
+                    text: $viewModel.email,
+                    placeholder: "電子郵件",
+                    keyboardType: .emailAddress,
+                    autocapitalizationType: .none
+                )
+                
+                CustomTextField(
+                    text: $viewModel.password,
+                    placeholder: "密碼",
+                    isSecure: true,
+                    keyboardType: .default,
+                    autocapitalizationType: .none
+                )
+                
+                if let errorMessage = viewModel.errorMessage {
+                    Text(errorMessage)
+                        .foregroundColor(.red)
+                        .font(.caption)
+                }
+                
+                Button(action: {
+                    Task {
+                        await viewModel.login()
+                    }
+                }) {
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    } else {
+                        Text("登入")
+                            .fontWeight(.semibold)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.blue)
+                .foregroundColor(.white)
+                .cornerRadius(10)
+                .disabled(viewModel.isLoading)
             }
-            .disabled(viewModel.isLoading)
-            
-            if viewModel.isLoading {
-                ProgressView()
-            }
-            
-            if let error = viewModel.error {
-                Text(error)
-                    .foregroundColor(.red)
-                    .padding()
-            }
+            .padding(.horizontal)
         }
-        .padding()
+        .background(Color(.systemBackground))
     }
 }
 

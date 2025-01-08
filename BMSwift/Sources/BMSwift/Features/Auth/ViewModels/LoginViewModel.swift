@@ -6,57 +6,67 @@ public final class LoginViewModel: ObservableObject {
     @Published public var email: String = ""
     @Published public var password: String = ""
     @Published public var isLoading: Bool = false
-    @Published public var error: String?
+    @Published private(set) public var errorMessage: String?
+    @Published private(set) public var isLoggedIn: Bool = false
+    @Published private(set) public var isFirstLogin: Bool = false
     
-    public init() {}
+    private let authService: AuthServiceProtocol
+    
+    public init(authService: AuthServiceProtocol = AuthService.shared) {
+        self.authService = authService
+    }
     
     @MainActor
     public func login() async {
+        print("🔑 Starting login process...")
         isLoading = true
-        error = nil
+        errorMessage = nil
         
         do {
-            // Simulate network delay
-            try await Task.sleep(nanoseconds: 1_000_000_000)
-            
             // Basic validation
             guard !email.isEmpty else {
-                error = "請輸入電子郵件"
+                print("❌ Email is empty")
+                errorMessage = "請輸入電子郵件"
                 isLoading = false
                 return
             }
             
             guard !password.isEmpty else {
-                error = "請輸入密碼"
+                print("❌ Password is empty")
+                errorMessage = "請輸入密碼"
                 isLoading = false
                 return
             }
             
-            // TODO: Implement actual login logic
-            // For now, just simulate success/failure
-            if email.contains("@") {
-                // Success case
-                error = nil
-            } else {
-                // Error case
-                error = "無效的電子郵件格式"
-            }
+            print("📧 Attempting login with email: \(email)")
+            // Call login API
+            let response = try await authService.login(email: email, password: password)
+            
+            print("✅ Login successful")
+            print("🔑 Token received: \(response.token)")
+            print("⏰ Token expires at: \(response.expiredAt)")
+            print("👤 First login: \(response.firstLogin)")
+            
+            // Store token (You might want to move this to a separate TokenManager)
+            UserDefaults.standard.set(response.token, forKey: "userToken")
+            UserDefaults.standard.set(response.expiredAt, forKey: "tokenExpiredAt")
+            
+            isFirstLogin = response.firstLogin
+            isLoggedIn = true
+            errorMessage = nil
+            
+        } catch let authError as AuthError {
+            print("❌ Auth Error: \(authError.localizedDescription)")
+            errorMessage = authError.localizedDescription
+        } catch let apiError as APIError {
+            print("❌ API Error: \(apiError.localizedDescription)")
+            errorMessage = apiError.localizedDescription
         } catch {
-            self.error = error.localizedDescription
+            print("❌ Unexpected Error: \(error.localizedDescription)")
+            errorMessage = error.localizedDescription
         }
         
         isLoading = false
     }
 }
-
-#if DEBUG
-extension LoginViewModel {
-    static var preview: LoginViewModel {
-        let viewModel = LoginViewModel()
-        viewModel.email = "test@example.com"
-        viewModel.password = "password123"
-        return viewModel
-    }
-}
-#endif
 #endif
