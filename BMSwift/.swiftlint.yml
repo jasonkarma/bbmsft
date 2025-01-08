@@ -1,0 +1,41 @@
+included:
+  - Sources
+excluded:
+  - Tests
+  - .build
+
+disabled_rules:
+  - trailing_whitespace
+  - line_length
+  - deployment_target
+
+opt_in_rules:
+  - force_unwrapping
+  - private_action
+  - private_outlet
+
+analyzer_rules:
+  - unused_declaration
+  - unused_import
+
+deployment_target:
+  iOS_deployment_target: 15.0
+
+custom_rules:
+  no_macos_imports:
+    name: "No macOS Imports"
+    regex: "^import.*AppKit.*$"
+    message: "Do not import macOS-specific frameworks"
+    severity: error
+
+  ios_only_code:
+    name: "iOS Only Code"
+    regex: "@available\\([^)]*macOS[^)]*\\)"
+    message: "This code should be iOS only"
+    severity: error
+
+  platform_check:
+    name: "Platform Check"
+    regex: "^((?!#if\\s+(?:os\\(iOS\\)|canImport\\(SwiftUI\\))).)*$"
+    message: "Add platform check using #if os(iOS) or #if canImport(SwiftUI)"
+    severity: warning

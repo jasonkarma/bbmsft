@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:bbmsft}/BMSwift",
+            "name": "Debug BMSwift (BMSwift)",
+            "program": "${workspaceFolder:bbmsft}/BMSwift/.build/debug/BMSwift",
+            "preLaunchTask": "swift: Build Debug BMSwift (BMSwift)"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:bbmsft}/BMSwift",
+            "name": "Release BMSwift (BMSwift)",
+            "program": "${workspaceFolder:bbmsft}/BMSwift/.build/release/BMSwift",
+            "preLaunchTask": "swift: Build Release BMSwift (BMSwift)"
+        }
+    ]
+}

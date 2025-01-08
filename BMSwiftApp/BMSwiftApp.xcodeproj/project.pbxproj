@@ -1,0 +1,436 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 60;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		4689A4BDB0EDC5940CC51C8F /* BMSwiftApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1056F06C73670410B594C55D /* BMSwiftApp.swift */; };
+		6385D1E9C2E0F87EB6DA19DA /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = E795E0750ADF018C6512193E /* SceneDelegate.swift */; };
+		A5DFB13DC348B5239396EE7E /* BMSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 569EF1CE00A459C717B9F015 /* BMSwift */; };
+		B240D811FF6B63075C9EC49D /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98972C3194013BF6FEE1CFDF /* SwiftUI.framework */; };
+		BAE34D02D30C91BEFA1E81A3 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98296A7A5128A4CB5C323E6C /* UIKit.framework */; };
+		BD92BD7033CA057FBB2B7DEE /* BMSwift in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 569EF1CE00A459C717B9F015 /* BMSwift */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		D55A22506AB60AD663123A90 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8D3B1DF5D286D386431CA8D /* AppDelegate.swift */; };
+		E5F8EFE1797987AB2DF0A63C /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AFC62A53C0041AFB96690E6C /* Foundation.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		AB7DEC5BDF79F08F59E59568 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				BD92BD7033CA057FBB2B7DEE /* BMSwift in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		1056F06C73670410B594C55D /* BMSwiftApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BMSwiftApp.swift; sourceTree = "<group>"; };
+		4A77905985D04C2673AE1FA4 /* BMSwiftApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BMSwiftApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		98296A7A5128A4CB5C323E6C /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = UIKit.framework; sourceTree = "<group>"; };
+		98972C3194013BF6FEE1CFDF /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = SwiftUI.framework; sourceTree = "<group>"; };
+		AFC62A53C0041AFB96690E6C /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		E74A819B248D867AC5A36621 /* BMSwift */ = {isa = PBXFileReference; lastKnownFileType = folder; name = BMSwift; path = ../BMSwift; sourceTree = SOURCE_ROOT; };
+		E795E0750ADF018C6512193E /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		EEE92596DB57682D983B600C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		F8D3B1DF5D286D386431CA8D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		DD007D558228297DA976032B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A5DFB13DC348B5239396EE7E /* BMSwift in Frameworks */,
+				BAE34D02D30C91BEFA1E81A3 /* UIKit.framework in Frameworks */,
+				B240D811FF6B63075C9EC49D /* SwiftUI.framework in Frameworks */,
+				E5F8EFE1797987AB2DF0A63C /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1F78F855B10CCC26FEE2393E /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4A77905985D04C2673AE1FA4 /* BMSwiftApp.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		2B3524A485E317EBE3293471 /* App */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		39488944EF01F02B7E0A38CF /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				AFC62A53C0041AFB96690E6C /* Foundation.framework */,
+				98972C3194013BF6FEE1CFDF /* SwiftUI.framework */,
+				98296A7A5128A4CB5C323E6C /* UIKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		425606F8650A49F7B597C65D /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				E74A819B248D867AC5A36621 /* BMSwift */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		692489FB488BB502A31E1CFC = {
+			isa = PBXGroup;
+			children = (
+				CAD5BDF5CAD3617263EA524D /* BMSwiftApp */,
+				425606F8650A49F7B597C65D /* Packages */,
+				39488944EF01F02B7E0A38CF /* Frameworks */,
+				1F78F855B10CCC26FEE2393E /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CAD5BDF5CAD3617263EA524D /* BMSwiftApp */ = {
+			isa = PBXGroup;
+			children = (
+				F8D3B1DF5D286D386431CA8D /* AppDelegate.swift */,
+				1056F06C73670410B594C55D /* BMSwiftApp.swift */,
+				EEE92596DB57682D983B600C /* Info.plist */,
+				E795E0750ADF018C6512193E /* SceneDelegate.swift */,
+				2B3524A485E317EBE3293471 /* App */,
+			);
+			path = BMSwiftApp;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		37EC1AEEE40940BF42E59483 /* BMSwiftApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7189F9CDFE4A644A97B103B3 /* Build configuration list for PBXNativeTarget "BMSwiftApp" */;
+			buildPhases = (
+				A17135F290FA0D54D5EB5E33 /* Run Script */,
+				0ABBED2FFCC1DB0E7BA4C85E /* Sources */,
+				DD007D558228297DA976032B /* Frameworks */,
+				AB7DEC5BDF79F08F59E59568 /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BMSwiftApp;
+			packageProductDependencies = (
+				569EF1CE00A459C717B9F015 /* BMSwift */,
+			);
+			productName = BMSwiftApp;
+			productReference = 4A77905985D04C2673AE1FA4 /* BMSwiftApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		122F3056A5449E7222BBAACF /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					37EC1AEEE40940BF42E59483 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = C53B7127F387A535178E2DFB /* Build configuration list for PBXProject "BMSwiftApp" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 692489FB488BB502A31E1CFC;
+			packageReferences = (
+				431EDA4712C5FDD9017CA1D2 /* XCLocalSwiftPackageReference "../BMSwift" */,
+			);
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				37EC1AEEE40940BF42E59483 /* BMSwiftApp */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		A17135F290FA0D54D5EB5E33 /* Run Script */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Run Script";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ -d \"${DERIVED_DATA_PATH}\" ]; then\n  rm -rf \"${DERIVED_DATA_PATH}\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0ABBED2FFCC1DB0E7BA4C85E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D55A22506AB60AD663123A90 /* AppDelegate.swift in Sources */,
+				4689A4BDB0EDC5940CC51C8F /* BMSwiftApp.swift in Sources */,
+				6385D1E9C2E0F87EB6DA19DA /* SceneDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		0259165CDCAD8A7FFC8A31CC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = JM4Y7GQKZW;
+				ENABLE_PREVIEWS = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SDKROOT)/System/Library/Frameworks",
+					"\".\"",
+				);
+				INFOPLIST_FILE = BMSwiftApp/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_BUNDLE_IDENTIFIER = com.bbmsft.BMSwiftApp;
+				PRODUCT_NAME = BMSwiftApp;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/../BMSwift/Sources";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		558D34B65ECF1C41EBDEB096 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		DFAC8942C73B53CB0D1C6B2C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		ED6D866172C2BC9FF194E3E6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = JM4Y7GQKZW;
+				ENABLE_PREVIEWS = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SDKROOT)/System/Library/Frameworks",
+					"\".\"",
+				);
+				INFOPLIST_FILE = BMSwiftApp/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_BUNDLE_IDENTIFIER = com.bbmsft.BMSwiftApp;
+				PRODUCT_NAME = BMSwiftApp;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/../BMSwift/Sources";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		7189F9CDFE4A644A97B103B3 /* Build configuration list for PBXNativeTarget "BMSwiftApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0259165CDCAD8A7FFC8A31CC /* Debug */,
+				ED6D866172C2BC9FF194E3E6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C53B7127F387A535178E2DFB /* Build configuration list for PBXProject "BMSwiftApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				558D34B65ECF1C41EBDEB096 /* Debug */,
+				DFAC8942C73B53CB0D1C6B2C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		431EDA4712C5FDD9017CA1D2 /* XCLocalSwiftPackageReference "../BMSwift" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../BMSwift;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		569EF1CE00A459C717B9F015 /* BMSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = BMSwift;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 122F3056A5449E7222BBAACF /* Project object */;
+}

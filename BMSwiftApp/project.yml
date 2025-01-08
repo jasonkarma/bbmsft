@@ -1,0 +1,61 @@
+name: BMSwiftApp
+options:
+  bundleIdPrefix: com.bbmsft
+  deploymentTarget:
+    iOS: 15.0
+  xcodeVersion: "15.0"
+  defaultConfig: Debug
+  platform: iOS
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+packages:
+  BMSwift:
+    path: ../BMSwift
+targets:
+  BMSwiftApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: BMSwiftApp
+        excludes:
+          - "*.md"
+          - "*.yml"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bbmsft.BMSwiftApp
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: "Apple Development"
+        DEVELOPMENT_TEAM: ""  # You'll need to set this
+        INFOPLIST_FILE: BMSwiftApp/Info.plist
+        PRODUCT_NAME: BMSwiftApp
+        TARGETED_DEVICE_FAMILY: 1,2
+        SWIFT_VERSION: 5.0
+        ENABLE_PREVIEWS: YES
+        DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
+        ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: YES
+        IPHONEOS_DEPLOYMENT_TARGET: 15.0
+        SDKROOT: iphoneos
+        SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
+        SUPPORTS_MACCATALYST: NO
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+        OTHER_LDFLAGS: [-ObjC]
+        SWIFT_INCLUDE_PATHS: $(SRCROOT)/../BMSwift/Sources
+        FRAMEWORK_SEARCH_PATHS:
+          - $(inherited)
+          - $(SDKROOT)/System/Library/Frameworks
+    dependencies:
+      - package: BMSwift
+        product: BMSwift
+        embed: true
+        link: true
+      - framework: UIKit.framework
+        embed: false
+      - framework: SwiftUI.framework
+        embed: false
+      - sdk: Foundation.framework
+    preBuildScripts:
+      - script: |
+          if [ -d "${DERIVED_DATA_PATH}" ]; then
+            rm -rf "${DERIVED_DATA_PATH}"
+          fi
