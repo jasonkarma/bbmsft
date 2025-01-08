@@ -11,62 +11,107 @@ public final class LoginViewModel: ObservableObject {
     @Published private(set) public var isFirstLogin: Bool = false
     
     private let authService: AuthServiceProtocol
+    private let tokenManager: TokenManagerProtocol
     
-    public init(authService: AuthServiceProtocol = AuthService.shared) {
+    public init(
+        authService: AuthServiceProtocol = AuthService.shared,
+        tokenManager: TokenManagerProtocol = TokenManager.shared
+    ) {
         self.authService = authService
+        self.tokenManager = tokenManager
+        logDebug("LoginViewModel initialized")
+        
+        // Check if user is already logged in
+        Task {
+            await checkLoginStatus()
+        }
+    }
+    
+    @MainActor
+    private func checkLoginStatus() async {
+        do {
+            if tokenManager.isTokenValid {
+                let expiry = try tokenManager.getTokenExpiry()
+                logInfo("Found valid token expiring at \(expiry)")
+                isLoggedIn = true
+                
+                // Refresh token if needed
+                if try await tokenManager.refreshTokenIfNeeded() {
+                    logInfo("Token refreshed successfully")
+                }
+            }
+        } catch {
+            logWarning("No valid token found: \(error.localizedDescription)")
+            isLoggedIn = false
+        }
     }
     
     @MainActor
     public func login() async {
-        print("🔑 Starting login process...")
+        logInfo("Starting login process...")
         isLoading = true
         errorMessage = nil
         
         do {
             // Basic validation
             guard !email.isEmpty else {
-                print("❌ Email is empty")
+                logWarning("Login attempt with empty email")
                 errorMessage = "請輸入電子郵件"
                 isLoading = false
                 return
             }
             
             guard !password.isEmpty else {
-                print("❌ Password is empty")
+                logWarning("Login attempt with empty password")
                 errorMessage = "請輸入密碼"
                 isLoading = false
                 return
             }
             
-            print("📧 Attempting login with email: \(email)")
+            logInfo("Attempting login with email: \(email)")
             // Call login API
             let response = try await authService.login(email: email, password: password)
             
-            print("✅ Login successful")
-            print("🔑 Token received: \(response.token)")
-            print("⏰ Token expires at: \(response.expiredAt)")
-            print("👤 First login: \(response.firstLogin)")
+            logInfo("Login successful")
+            logDebug("Token received, expires at: \(response.expiredAt)")
             
-            // Store token (You might want to move this to a separate TokenManager)
-            UserDefaults.standard.set(response.token, forKey: "userToken")
-            UserDefaults.standard.set(response.expiredAt, forKey: "tokenExpiredAt")
+            // Store token securely
+            try tokenManager.saveToken(response.token, expiry: response.expiredAt)
             
             isFirstLogin = response.firstLogin
             isLoggedIn = true
             errorMessage = nil
             
         } catch let authError as AuthError {
-            print("❌ Auth Error: \(authError.localizedDescription)")
+            logError("Auth Error: \(authError.localizedDescription)")
             errorMessage = authError.localizedDescription
         } catch let apiError as APIError {
-            print("❌ API Error: \(apiError.localizedDescription)")
+            logError("API Error: \(apiError.localizedDescription)")
             errorMessage = apiError.localizedDescription
+        } catch let tokenError as TokenError {
+            logError("Token Error: \(tokenError.localizedDescription)")
+            errorMessage = tokenError.localizedDescription
         } catch {
-            print("❌ Unexpected Error: \(error.localizedDescription)")
+            logError("Unexpected Error: \(error.localizedDescription)")
             errorMessage = error.localizedDescription
         }
         
         isLoading = false
+    }
+    
+    @MainActor
+    public func logout() async {
+        logInfo("Logging out...")
+        do {
+            try tokenManager.clearToken()
+            isLoggedIn = false
+            isFirstLogin = false
+            errorMessage = nil
+            logInfo("Logout successful")
+        } catch {
+            logError("Failed to logout: \(error.localizedDescription)")
+            errorMessage = "登出失敗"
+        }
     }
 }
 #endif

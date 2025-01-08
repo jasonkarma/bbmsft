@@ -14,6 +14,17 @@ public struct LoginView: View {
     public init() {}
     
     public var body: some View {
+        Group {
+            if viewModel.isLoggedIn {
+                loggedInView
+            } else {
+                loginFormView
+            }
+        }
+        .background(Color(.systemBackground))
+    }
+    
+    private var loginFormView: some View {
         ScrollView {
             VStack(spacing: 20) {
                 Text("登入")
@@ -63,7 +74,34 @@ public struct LoginView: View {
             }
             .padding(.horizontal)
         }
-        .background(Color(.systemBackground))
+    }
+    
+    private var loggedInView: some View {
+        VStack(spacing: 20) {
+            Text("已登入")
+                .font(.title)
+            
+            if viewModel.isFirstLogin {
+                Text("歡迎新用戶！")
+                    .font(.headline)
+                    .foregroundColor(.green)
+            }
+            
+            Button(action: {
+                Task {
+                    await viewModel.logout()
+                }
+            }) {
+                Text("登出")
+                    .fontWeight(.semibold)
+            }
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(Color.red)
+            .foregroundColor(.white)
+            .cornerRadius(10)
+        }
+        .padding()
     }
 }
 

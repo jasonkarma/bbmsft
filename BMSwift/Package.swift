@@ -15,11 +15,17 @@ let package = Package(
             type: .dynamic,  // Make it dynamic to avoid linking issues
             targets: ["BMSwift"])
     ],
-    dependencies: [],
+    dependencies: [
+        .package(url: "https://github.com/Quick/Quick.git", from: "7.0.0"),
+        .package(url: "https://github.com/Quick/Nimble.git", from: "13.0.0"),
+        .package(url: "https://github.com/kishikawakatsumi/KeychainAccess.git", from: "4.2.2")
+    ],
     targets: [
         .target(
             name: "BMSwift",
-            dependencies: [],
+            dependencies: [
+                "KeychainAccess"
+            ],
             path: "Sources/BMSwift",
             resources: [
                 .process("Resources")
@@ -30,7 +36,10 @@ let package = Package(
         ),
         .testTarget(
             name: "BMSwiftTests",
-            dependencies: ["BMSwift"])
+            dependencies: [
+                "BMSwift",
+                "Quick",
+                "Nimble"
+            ])
     ]
 )
-
