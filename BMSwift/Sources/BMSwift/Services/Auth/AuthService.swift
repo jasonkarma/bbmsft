@@ -6,6 +6,7 @@ public enum AuthError: LocalizedError {
     case networkError(Error)
     case serverError(String)
     case tokenError(Error)
+    case registrationError([String])
     
     public var errorDescription: String? {
         switch self {
@@ -17,6 +18,8 @@ public enum AuthError: LocalizedError {
             return message
         case .tokenError(let error):
             return "登入憑證錯誤: \(error.localizedDescription)"
+        case .registrationError(let errors):
+            return errors.joined(separator: "\n")
         }
     }
 }
@@ -24,6 +27,7 @@ public enum AuthError: LocalizedError {
 public protocol AuthServiceProtocol {
     func login(email: String, password: String) async throws -> Bool
     func forgotPassword(email: String) async throws -> ForgotPasswordResponse
+    func register(email: String, username: String, password: String) async throws -> RegisterResponse
 }
 
 public class AuthService: AuthServiceProtocol {
@@ -89,6 +93,29 @@ public class AuthService: AuthServiceProtocol {
         } catch {
             print("❌ Unexpected Error: \(error.localizedDescription)")
             throw AuthError.serverError("發送重設密碼郵件失敗")
+        }
+    }
+    
+    public func register(email: String, username: String, password: String) async throws -> RegisterResponse {
+        let request = RegisterRequest(email: email, username: username, password: password)
+        let endpoint = APIEndpoints.Auth.register(request: request)
+        
+        do {
+            let response = try await apiClient.request(endpoint)
+            
+            if let errorArray = response["error"] as? [String] {
+                throw AuthError.registrationError(errorArray)
+            }
+            
+            return RegisterResponse(message: "註冊成功")
+        } catch let error as APIError {
+            print("❌ API Error: \(error.localizedDescription)")
+            throw AuthError.networkError(error)
+        } catch let error as AuthError {
+            throw error
+        } catch {
+            print("❌ Unexpected Error: \(error.localizedDescription)")
+            throw AuthError.serverError("註冊失敗")
         }
     }
 }

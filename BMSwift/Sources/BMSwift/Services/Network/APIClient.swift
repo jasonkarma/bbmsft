@@ -6,6 +6,7 @@ public enum APIError: LocalizedError {
     case invalidResponse
     case networkError(Error)
     case serverError(String)
+    case validationError([String: [String]])
     
     public var errorDescription: String? {
         switch self {
@@ -17,6 +18,16 @@ public enum APIError: LocalizedError {
             return "網路錯誤: \(error.localizedDescription)"
         case .serverError(let message):
             return message
+        case .validationError(let errors):
+            // Convert validation errors to readable format
+            return errors.map { field, messages in
+                if field == "email" {
+                    return "此電子郵件已被使用"
+                } else if field == "username" {
+                    return "此暱稱已被使用"
+                }
+                return messages.joined(separator: ", ")
+            }.joined(separator: "\n")
         }
     }
 }
@@ -69,14 +80,32 @@ public class APIClient: APIClientProtocol {
             print("📥 Response: \(jsonString)")
         }
         
-        // Check status code
-        guard (200...299).contains(httpResponse.statusCode) else {
-            throw APIError.serverError("伺服器錯誤: \(httpResponse.statusCode)")
-        }
-        
         // Parse JSON
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw APIError.invalidResponse
+        }
+        
+        // Check for validation errors (422 status code)
+        if httpResponse.statusCode == 422 {
+            if let errorDict = json["error"] as? [String: Any] {
+                var validationErrors: [String: [String]] = [:]
+                for (field, messages) in errorDict {
+                    if let messageArray = messages as? [String] {
+                        validationErrors[field] = messageArray
+                    } else if let message = messages as? String {
+                        validationErrors[field] = [message]
+                    }
+                }
+                throw APIError.validationError(validationErrors)
+            }
+        }
+        
+        // Check other error status codes
+        guard (200...299).contains(httpResponse.statusCode) else {
+            if let error = json["error"] as? String {
+                throw APIError.serverError(error)
+            }
+            throw APIError.serverError("伺服器錯誤: \(httpResponse.statusCode)")
         }
         
         return json

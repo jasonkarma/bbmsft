@@ -18,6 +18,14 @@ public enum APIEndpoints {
             )
         }
         
+        public static func register(request: RegisterRequest) -> APIEndpoint {
+            APIEndpoint(
+                path: "/register",
+                method: .post,
+                body: request
+            )
+        }
+        
         // Add more auth-related endpoints here
     }
     

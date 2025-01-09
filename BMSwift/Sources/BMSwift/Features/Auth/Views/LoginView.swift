@@ -28,7 +28,11 @@ public struct LoginView: View {
                     loginFormView
                 }
             }
-            .navigationBarHidden(true)
+        }
+        .onTapGesture {
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            isEmailFocused = false
+            isPasswordFocused = false
         }
     }
     
@@ -169,9 +173,8 @@ public struct LoginView: View {
                             .font(.caption)
                     }
                     
-                    // Login button
+                    // Login Button
                     Button(action: {
-                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                         Task {
                             await viewModel.login()
                         }
@@ -181,29 +184,29 @@ public struct LoginView: View {
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         } else {
                             Text("登入")
-                                .font(.system(size: 17, weight: .semibold))
+                                .frame(maxWidth: .infinity)
                         }
                     }
-                    .primaryButtonStyle(isEnabled: viewModel.isPasswordValid)
-                    .disabled(viewModel.isLoading)
+                    .primaryButtonStyle(isEnabled: !viewModel.email.isEmpty && !viewModel.password.isEmpty)
+                    .disabled(viewModel.email.isEmpty || viewModel.password.isEmpty || viewModel.isLoading)
                     .padding(.top, 20)
                     
-                    // Sign up button
+                    // Register button
                     Button(action: {
                         viewModel.shouldNavigateToSignup = true
                     }) {
                         Text("註冊")
-                            .font(.system(size: 17, weight: .semibold))
+                            .frame(maxWidth: .infinity)
                     }
                     .primaryButtonStyle(isPrimary: false)
+                    .padding(.top, 8)
+                    
+                    NavigationLink(destination: RegisterView(), isActive: $viewModel.shouldNavigateToSignup) {
+                        EmptyView()
+                    }
                 }
                 .padding(.horizontal, 30)
             }
-        }
-        .onTapGesture {
-            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-            isEmailFocused = false
-            isPasswordFocused = false
         }
     }
     
