@@ -28,7 +28,7 @@ let package = Package(
             ],
             path: "Sources/BMSwift",
             resources: [
-                .process("Resources")
+                .process("Resources")  // This will include Resources/Assets.xcassets
             ],
             swiftSettings: [
                 .define("ENABLE_PREVIEWS", .when(configuration: .debug))

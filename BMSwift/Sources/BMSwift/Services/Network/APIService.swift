@@ -6,7 +6,6 @@ public struct APIResponse<T: Codable>: Codable {
     public let error: String?
 }
 
-// MARK: - Auth Models
 public struct LoginRequest: Codable {
     public let email: String
     public let password: String
@@ -19,7 +18,7 @@ public struct LoginResponse: Codable {
     
     private enum CodingKeys: String, CodingKey {
         case token
-        case expiredAt = "expired_at"
+        case expiredAt = "expires_at"
         case firstLogin = "first_login"
     }
 }
@@ -46,6 +45,10 @@ public struct ForgotPasswordRequest: Codable {
 
 public struct ForgotPasswordResponse: Codable {
     public let message: String
+}
+
+public struct ErrorResponse: Codable {
+    public let error: String
 }
 
 // MARK: - Network Error
@@ -97,7 +100,14 @@ public class APIService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         if let body = body {
-            request.httpBody = try? JSONEncoder().encode(body)
+            do {
+                let jsonData = try JSONEncoder().encode(body)
+                print("Request body: \(String(data: jsonData, encoding: .utf8) ?? "")")  // Debug print
+                request.httpBody = jsonData
+            } catch {
+                print("Encoding error: \(error)")  // Debug print
+                throw APIError.decodingError
+            }
         }
         
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -106,18 +116,29 @@ public class APIService {
             throw APIError.invalidResponse
         }
         
+        // Debug print
+        print("Response status code: \(httpResponse.statusCode)")
+        print("Response data: \(String(data: data, encoding: .utf8) ?? "")")
+        
         switch httpResponse.statusCode {
         case 200:
             do {
-                return try JSONDecoder().decode(T.self, from: data)
+                let decoder = JSONDecoder()
+                return try decoder.decode(T.self, from: data)
             } catch {
+                print("Decoding error: \(error)")  // Debug print
                 throw APIError.decodingError
             }
         case 401:
             throw APIError.unauthorized
         case 404:
-            let errorResponse = try? JSONDecoder().decode(APIResponse<String>.self, from: data)
-            throw APIError.customError(errorResponse?.error ?? "未知錯誤")
+            do {
+                let errorResponse = try JSONDecoder().decode(ErrorResponse.self, from: data)
+                throw APIError.customError(errorResponse.error)
+            } catch {
+                print("Error response decoding error: \(error)")  // Debug print
+                throw APIError.customError("未知錯誤")
+            }
         default:
             throw APIError.serverError(httpResponse.statusCode)
         }
@@ -137,8 +158,11 @@ extension APIService {
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         do {
-            urlRequest.httpBody = try JSONEncoder().encode(request)
+            let jsonData = try JSONEncoder().encode(request)
+            print("Request body: \(String(data: jsonData, encoding: .utf8) ?? "")")  // Debug print
+            urlRequest.httpBody = jsonData
         } catch {
+            print("Encoding error: \(error)")  // Debug print
             throw APIError.decodingError
         }
         
@@ -148,18 +172,25 @@ extension APIService {
             throw APIError.invalidResponse
         }
         
+        // Debug print
+        print("Response status code: \(httpResponse.statusCode)")
+        print("Response data: \(String(data: data, encoding: .utf8) ?? "")")
+        
         switch httpResponse.statusCode {
         case 200:
             do {
-                return try JSONDecoder().decode(LoginResponse.self, from: data)
+                let decoder = JSONDecoder()
+                return try decoder.decode(LoginResponse.self, from: data)
             } catch {
+                print("Decoding error: \(error)")  // Debug print
                 throw APIError.decodingError
             }
         case 404:
             do {
-                let errorResponse = try JSONDecoder().decode(APIResponse<String>.self, from: data)
-                throw APIError.invalidCredentials(message: errorResponse.error ?? "帳號/密碼輸入錯誤。")
+                let errorResponse = try JSONDecoder().decode(ErrorResponse.self, from: data)
+                throw APIError.invalidCredentials(message: errorResponse.error)
             } catch {
+                print("Error response decoding error: \(error)")  // Debug print
                 throw APIError.invalidCredentials(message: "帳號/密碼輸入錯誤。")
             }
         default:

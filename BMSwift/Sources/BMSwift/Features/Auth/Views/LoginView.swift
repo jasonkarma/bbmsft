@@ -45,6 +45,7 @@ public struct LoginView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: 120, height: 120)
+                        .padding(.bottom, 20)
                     
                     // Email Input
                     VStack(alignment: .leading, spacing: 4) {
