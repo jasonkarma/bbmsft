@@ -3,27 +3,22 @@ import Foundation
 import SwiftUI
 
 @available(iOS 13.0, *)
+@MainActor
 public class ForgotPasswordViewModel: ObservableObject {
+    @Published public var email = ""
+    @Published public var isLoading = false
+    @Published public var errorMessage: String?
+    @Published public var successMessage: String?
+    
     private let authService: AuthServiceProtocol
     
-    @Published var email: String = ""
-    @Published var isLoading: Bool = false
-    @Published var errorMessage: String?
-    @Published var successMessage: String?
-    
-    public init(authService: AuthServiceProtocol = AuthService.shared) {
+    public init(authService: AuthServiceProtocol = AuthService()) {
         self.authService = authService
     }
     
-    @MainActor
     public func sendResetEmail() async {
         guard !email.isEmpty else {
             errorMessage = "請輸入電子郵件"
-            return
-        }
-        
-        guard email.contains("@") else {
-            errorMessage = "請輸入有效的電子郵件"
             return
         }
         
@@ -33,11 +28,12 @@ public class ForgotPasswordViewModel: ObservableObject {
         
         do {
             let response = try await authService.forgotPassword(email: email)
-            successMessage = response.message
-            // Clear the email field after successful submission
-            email = ""
+            if let message = response.message {
+                successMessage = message
+                email = "" // Clear email after successful request
+            }
         } catch {
-            errorMessage = "發送重置密碼郵件失敗，請稍後再試"
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
         
         isLoading = false

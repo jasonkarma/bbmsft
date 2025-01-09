@@ -36,7 +36,7 @@ public class AuthService: AuthServiceProtocol {
     
     public static let shared = AuthService()
     
-    private init(
+    public init(
         apiClient: APIClientProtocol = APIClient.shared,
         tokenManager: TokenManagerProtocol = TokenManager.shared
     ) {
@@ -86,13 +86,27 @@ public class AuthService: AuthServiceProtocol {
         
         do {
             let response = try await apiClient.request(endpoint)
-            return ForgotPasswordResponse(message: "重設密碼郵件已發送")
+            
+            // Try to decode the response
+            let jsonData = try JSONSerialization.data(withJSONObject: response)
+            let decoder = JSONDecoder()
+            let forgotPasswordResponse = try decoder.decode(ForgotPasswordResponse.self, from: jsonData)
+            
+            // Check for error
+            if let error = forgotPasswordResponse.error {
+                throw AuthError.serverError(error)
+            }
+            
+            return forgotPasswordResponse
+            
         } catch let error as APIError {
             print("❌ API Error: \(error.localizedDescription)")
             throw AuthError.networkError(error)
+        } catch let error as AuthError {
+            throw error
         } catch {
             print("❌ Unexpected Error: \(error.localizedDescription)")
-            throw AuthError.serverError("發送重設密碼郵件失敗")
+            throw AuthError.serverError("無效的回應")
         }
     }
     

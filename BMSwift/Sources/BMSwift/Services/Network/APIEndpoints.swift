@@ -12,7 +12,7 @@ public enum APIEndpoints {
         
         public static func forgotPassword(request: ForgotPasswordRequest) -> APIEndpoint {
             APIEndpoint(
-                path: "/forgot-password",
+                path: "/password/email",
                 method: .post,
                 body: request
             )
