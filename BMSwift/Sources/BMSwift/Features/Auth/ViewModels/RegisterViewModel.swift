@@ -4,19 +4,18 @@ import Combine
 
 @MainActor
 public class RegisterViewModel: ObservableObject {
-    @Published var username: String = ""
     @Published var email: String = ""
     @Published var password: String = ""
+    @Published var confirmPassword: String = ""
     @Published var isPasswordValid: Bool = false
-    @Published var errorMessage: String = ""
+    @Published var errorMessage: String?
     @Published var isRegistered: Bool = false
     @Published var isLoading: Bool = false
     
-    private let authService: AuthServiceProtocol
+    private let apiService = APIService.shared
     private var cancellables = Set<AnyCancellable>()
     
-    init(authService: AuthServiceProtocol = AuthService.shared) {
-        self.authService = authService
+    public init() {
         setupPasswordValidation()
     }
     
@@ -31,49 +30,31 @@ public class RegisterViewModel: ObservableObject {
             .assign(to: &$isPasswordValid)
     }
     
-    func register() async {
+    public func register() async {
         guard !isLoading else { return }
+        guard isPasswordValid else {
+            errorMessage = "密碼必須至少8個字符，包含大小寫字母"
+            return
+        }
+        guard password == confirmPassword else {
+            errorMessage = "密碼不一致"
+            return
+        }
         
         isLoading = true
-        errorMessage = ""
+        errorMessage = nil
         
         do {
-            let response = try await authService.register(
+            let response = try await apiService.register(
                 email: email,
-                username: username,
-                password: password
+                password: password,
+                confirmPassword: confirmPassword
             )
             isRegistered = true
-            errorMessage = ""
         } catch let error as APIError {
-            switch error {
-            case .validationError(let errors):
-                if let emailErrors = errors["email"] {
-                    errorMessage = "此電子郵件已被使用"
-                } else if let usernameErrors = errors["username"] {
-                    errorMessage = "此暱稱已被使用"
-                } else {
-                    errorMessage = error.localizedDescription
-                }
-            case .networkError(_):
-                errorMessage = "網路連線錯誤，請稍後再試"
-            case .serverError(let message):
-                errorMessage = message
-            default:
-                errorMessage = "註冊失敗，請稍後再試"
-            }
-            isRegistered = false
-        } catch let error as AuthError {
-            switch error {
-            case .registrationError(let errors):
-                errorMessage = errors.joined(separator: "\n")
-            default:
-                errorMessage = error.localizedDescription
-            }
-            isRegistered = false
+            errorMessage = error.localizedDescription
         } catch {
-            errorMessage = "註冊失敗，請稍後再試"
-            isRegistered = false
+            errorMessage = "發生錯誤，請稍後再試"
         }
         
         isLoading = false

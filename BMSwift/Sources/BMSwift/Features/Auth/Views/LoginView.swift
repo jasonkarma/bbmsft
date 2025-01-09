@@ -1,21 +1,12 @@
 #if canImport(SwiftUI) && os(iOS)
 import SwiftUI
 
-/// BMSwift - Auth Feature
-/// Login view implementation with email and password fields
-///
-/// Dependencies:
-/// - SwiftUI: Primary UI framework
-/// - NetworkModels: Login request/response models
 public struct LoginView: View {
     @StateObject private var viewModel = LoginViewModel()
-    
-    // Custom TextField States
-    @State private var isEmailFocused: Bool = false
-    @State private var isPasswordFocused: Bool = false
+    @FocusState private var isEmailFocused: Bool
+    @FocusState private var isPasswordFocused: Bool
     @State private var isPasswordVisible: Bool = false
-    
-    private let logoImage = UIImage(contentsOfFile: "/Users/karma/Desktop/bbmsft/siteLogob.png")
+    @State private var showForgotPassword: Bool = false
     
     public init() {}
     
@@ -29,10 +20,8 @@ public struct LoginView: View {
                 }
             }
         }
-        .onTapGesture {
-            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-            isEmailFocused = false
-            isPasswordFocused = false
+        .sheet(isPresented: $showForgotPassword) {
+            ForgotPasswordView(isPresented: $showForgotPassword)
         }
     }
     
@@ -41,22 +30,21 @@ public struct LoginView: View {
             AppColors.primaryBg
                 .ignoresSafeArea()
             
-            ScrollView {
-                VStack(spacing: 30) {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 24) {
+                    Spacer()
+                        .frame(height: 50)
+                    
                     // Title
                     Text("登入")
                         .font(.title)
                         .foregroundColor(AppColors.primary)
-                        .padding(.top, 50)
                     
                     // Logo
-                    if let logo = logoImage {
-                        Image(uiImage: logo)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 150, height: 150)
-                            .padding(.bottom, 30)
-                    }
+                    Image("Logo", bundle: .module)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 120, height: 120)
                     
                     // Email Input
                     VStack(alignment: .leading, spacing: 4) {
@@ -71,33 +59,18 @@ public struct LoginView: View {
                             Image(systemName: "envelope")
                                 .foregroundColor(AppColors.primary)
                             
-                            TextField(viewModel.email.isEmpty ? "電子郵件" : "", text: $viewModel.email)
+                            TextField(viewModel.email.isEmpty ? "請輸入電子郵件" : "", text: $viewModel.email)
                                 .foregroundColor(AppColors.primary)
                                 .textInputAutocapitalization(.never)
                                 .keyboardType(.emailAddress)
-                                .onTapGesture {
-                                    isEmailFocused = true
-                                    isPasswordFocused = false
-                                }
+                                .focused($isEmailFocused)
                         }
                         .padding()
                         .background(
                             RoundedRectangle(cornerRadius: 8)
-                                .fill(isEmailFocused ? AppColors.thirdBg : Color.clear)
+                                .fill(Color.white.opacity(0.1))
                         )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(isEmailFocused ? AppColors.primary : AppColors.primary.opacity(0.3), lineWidth: 1)
-                        )
-                        
-                        if isEmailFocused {
-                            Text("請輸入電子郵件")
-                                .foregroundColor(.white)
-                                .font(.caption)
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
-                        }
                     }
-                    .animation(.easeInOut, value: isEmailFocused)
                     
                     // Password Input
                     VStack(alignment: .leading, spacing: 4) {
@@ -113,65 +86,36 @@ public struct LoginView: View {
                                 .foregroundColor(AppColors.primary)
                             
                             if isPasswordVisible {
-                                TextField(viewModel.password.isEmpty ? "密碼" : "", text: $viewModel.password)
+                                TextField(viewModel.password.isEmpty ? "請輸入密碼" : "", text: $viewModel.password)
                                     .foregroundColor(AppColors.primary)
-                                    .padding(.leading, 8)
+                                    .textInputAutocapitalization(.never)
+                                    .focused($isPasswordFocused)
                             } else {
-                                SecureField(viewModel.password.isEmpty ? "密碼" : "", text: $viewModel.password)
+                                SecureField(viewModel.password.isEmpty ? "請輸入密碼" : "", text: $viewModel.password)
                                     .foregroundColor(AppColors.primary)
-                                    .padding(.leading, 8)
+                                    .textInputAutocapitalization(.never)
+                                    .focused($isPasswordFocused)
                             }
                             
                             Button(action: { isPasswordVisible.toggle() }) {
-                                Image(systemName: isPasswordVisible ? "eye" : "eye.slash")
+                                Image(systemName: isPasswordVisible ? "eye.slash.fill" : "eye.fill")
                                     .foregroundColor(AppColors.primary)
                             }
                         }
                         .padding()
                         .background(
                             RoundedRectangle(cornerRadius: 8)
-                                .fill(isPasswordFocused ? AppColors.thirdBg : Color.clear)
+                                .fill(Color.white.opacity(0.1))
                         )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(isPasswordFocused ? AppColors.primary : AppColors.primary.opacity(0.3), lineWidth: 1)
-                        )
-                        .onTapGesture {
-                            isPasswordFocused = true
-                            isEmailFocused = false
-                        }
-                        
-                        if isPasswordFocused {
-                            Text("請輸入密碼")
-                                .foregroundColor(.white)
-                                .font(.caption)
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
-                        }
                     }
-                    .animation(.easeInOut, value: isPasswordFocused)
                     
                     // Forgot Password Button
-                    HStack {
-                        Spacer()
-                        Button(action: {
-                            viewModel.shouldNavigateToForgotPassword = true
-                        }) {
-                            Text("忘記密碼？")
-                                .foregroundColor(AppColors.primary)
-                                .font(.system(size: 17))
-                        }
-                        Spacer()
+                    Button(action: { showForgotPassword = true }) {
+                        Text("忘記密碼？")
+                            .foregroundColor(AppColors.primary)
+                            .font(.footnote)
                     }
-                    .sheet(isPresented: $viewModel.shouldNavigateToForgotPassword) {
-                        ForgotPasswordView(isPresented: $viewModel.shouldNavigateToForgotPassword)
-                    }
-                    
-                    // Error message
-                    if let errorMessage = viewModel.errorMessage {
-                        Text(errorMessage)
-                            .foregroundColor(AppColors.error)
-                            .font(.caption)
-                    }
+                    .frame(maxWidth: .infinity, alignment: .trailing)
                     
                     // Login Button
                     Button(action: {
@@ -184,29 +128,26 @@ public struct LoginView: View {
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         } else {
                             Text("登入")
-                                .frame(maxWidth: .infinity)
+                                .foregroundColor(.white)
+                                .font(.headline)
                         }
                     }
-                    .primaryButtonStyle(isEnabled: !viewModel.email.isEmpty && !viewModel.password.isEmpty)
-                    .disabled(viewModel.email.isEmpty || viewModel.password.isEmpty || viewModel.isLoading)
-                    .padding(.top, 20)
+                    .buttonStyle(PrimaryButtonStyle())
+                    .disabled(viewModel.isLoading)
                     
-                    // Register button
-                    Button(action: {
-                        viewModel.shouldNavigateToSignup = true
-                    }) {
-                        Text("註冊")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .primaryButtonStyle(isPrimary: false)
-                    .padding(.top, 8)
-                    
-                    NavigationLink(destination: RegisterView(), isActive: $viewModel.shouldNavigateToSignup) {
-                        EmptyView()
+                    if let error = viewModel.errorMessage {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .font(.caption)
+                            .multilineTextAlignment(.center)
                     }
                 }
                 .padding(.horizontal, 30)
             }
+        }
+        .onTapGesture {
+            isEmailFocused = false
+            isPasswordFocused = false
         }
     }
     
@@ -220,36 +161,16 @@ public struct LoginView: View {
                     .font(.title)
                     .foregroundColor(AppColors.primary)
                 
-                if viewModel.isFirstLogin {
-                    Text("歡迎新用戶！")
-                        .font(.headline)
-                        .foregroundColor(AppColors.primary)
-                }
-                
                 Button(action: {
-                    Task {
-                        await viewModel.logout()
-                    }
+                    viewModel.logout()
                 }) {
                     Text("登出")
-                        .bold()
+                        .foregroundColor(.white)
+                        .font(.headline)
                 }
-                .primaryButtonStyle(isPrimary: false)
+                .buttonStyle(PrimaryButtonStyle())
             }
-            .padding()
         }
-    }
-}
-
-extension Button {
-    func primaryButtonStyle(isEnabled: Bool = true, isPrimary: Bool = true) -> some View {
-        self
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(isPrimary ? AppColors.primary : AppColors.secondary)
-            .foregroundColor(isPrimary ? .white : AppColors.primary)
-            .cornerRadius(10)
-            .disabled(!isEnabled)
     }
 }
 
@@ -257,21 +178,7 @@ extension Button {
 struct LoginView_Previews: PreviewProvider {
     static var previews: some View {
         LoginView()
-            .previewDisplayName("Login Screen")
-        
-        LoginView()
-            .preferredColorScheme(.dark)
-            .previewDisplayName("Login Screen (Dark)")
-        
-        LoginView()
-            .previewDevice("iPhone SE (3rd generation)")
-            .previewDisplayName("iPhone SE")
-        
-        LoginView()
-            .previewDevice("iPhone 14 Pro Max")
-            .previewDisplayName("iPhone 14 Pro Max")
     }
 }
 #endif
-
 #endif
