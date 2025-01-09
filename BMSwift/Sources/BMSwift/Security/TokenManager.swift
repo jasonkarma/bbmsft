@@ -1,57 +1,60 @@
 #if canImport(SwiftUI) && os(iOS)
 import Foundation
-import KeychainAccess
+import Security
 
 /// Errors that can occur during token operations
 public enum TokenError: LocalizedError {
-    case tokenNotFound
-    case invalidToken
-    case tokenExpired
-    case keychainError(Error)
-    case invalidDateFormat
+    case saveFailed(Error)
+    case retrievalFailed(Error)
+    case deletionFailed(Error)
+    case invalidDate
+    case expired
+    case notFound
     
     public var errorDescription: String? {
         switch self {
-        case .tokenNotFound:
-            return "找不到登入憑證"
-        case .invalidToken:
-            return "登入憑證無效"
-        case .tokenExpired:
-            return "登入憑證已過期"
-        case .keychainError(let error):
-            return "金鑰鏈錯誤: \(error.localizedDescription)"
-        case .invalidDateFormat:
-            return "日期格式無效"
+        case .saveFailed(let error):
+            return "儲存憑證失敗: \(error.localizedDescription)"
+        case .retrievalFailed(let error):
+            return "取得憑證失敗: \(error.localizedDescription)"
+        case .deletionFailed(let error):
+            return "刪除憑證失敗: \(error.localizedDescription)"
+        case .invalidDate:
+            return "無效的憑證日期"
+        case .expired:
+            return "憑證已過期"
+        case .notFound:
+            return "找不到憑證"
         }
     }
 }
 
 /// Protocol defining token management functionality
 public protocol TokenManagerProtocol {
+    var isTokenValid: Bool { get }
     func saveToken(_ token: String, expiry: String) throws
     func getToken() throws -> String
     func getTokenExpiry() throws -> Date
     func clearToken() throws
-    var isTokenValid: Bool { get }
-    func refreshTokenIfNeeded(threshold: TimeInterval) async throws -> Bool
 }
 
 /// Manages authentication tokens securely using the Keychain
-public final class TokenManager: TokenManagerProtocol {
+public class TokenManager: TokenManagerProtocol {
     public static let shared = TokenManager()
     
-    private let keychain: Keychain
     private let tokenKey = "com.bmswift.userToken"
-    private let tokenExpiryKey = "com.bmswift.tokenExpiry"
+    private let expiryKey = "com.bmswift.tokenExpiry"
     
-    private let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        return formatter
-    }()
+    private init() {}
     
-    private init() {
-        self.keychain = Keychain(service: "com.bmswift.tokenservice")
+    /// Check if current token is valid and not expired
+    public var isTokenValid: Bool {
+        guard let token = try? getToken(),
+              let expiry = try? getTokenExpiry(),
+              !token.isEmpty else {
+            return false
+        }
+        return expiry > Date()
     }
     
     /// Save token and its expiry to the keychain
@@ -59,17 +62,70 @@ public final class TokenManager: TokenManagerProtocol {
     ///   - token: The authentication token
     ///   - expiry: Token expiry date string
     public func saveToken(_ token: String, expiry: String) throws {
-        try keychain.set(token, key: tokenKey)
-        try keychain.set(expiry, key: tokenExpiryKey)
+        print(" Saving token with expiry: \(expiry)")
+        
+        // Parse the date
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        
+        guard let expiryDate = formatter.date(from: expiry) else {
+            print(" Failed to parse date: \(expiry)")
+            throw TokenError.invalidDate
+        }
+        
+        print(" Successfully parsed date: \(expiryDate)")
+        
+        // Save token
+        let tokenQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: tokenKey,
+            kSecValueData as String: token.data(using: .utf8)!
+        ]
+        
+        // Save expiry
+        let expiryQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: expiryKey,
+            kSecValueData as String: expiryDate.timeIntervalSince1970.description.data(using: .utf8)!
+        ]
+        
+        // First try to delete any existing items
+        SecItemDelete(tokenQuery as CFDictionary)
+        SecItemDelete(expiryQuery as CFDictionary)
+        
+        // Then add new items
+        let tokenStatus = SecItemAdd(tokenQuery as CFDictionary, nil)
+        let expiryStatus = SecItemAdd(expiryQuery as CFDictionary, nil)
+        
+        if tokenStatus != errSecSuccess || expiryStatus != errSecSuccess {
+            print(" Failed to save token or expiry")
+            throw TokenError.saveFailed(NSError(domain: "TokenManager", code: -1))
+        }
+        
+        print(" Token and expiry saved successfully")
     }
     
     /// Retrieve the current token from keychain
     /// - Returns: The current authentication token
     /// - Throws: TokenError if token is not found or keychain error occurs
     public func getToken() throws -> String {
-        guard let token = try keychain.get(tokenKey) else {
-            throw TokenError.tokenNotFound
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: tokenKey,
+            kSecReturnData as String: true
+        ]
+        
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        
+        guard status == errSecSuccess,
+              let data = result as? Data,
+              let token = String(data: data, encoding: .utf8) else {
+            throw TokenError.notFound
         }
+        
         return token
     }
     
@@ -77,57 +133,47 @@ public final class TokenManager: TokenManagerProtocol {
     /// - Returns: Token expiry date
     /// - Throws: TokenError if expiry is not found or invalid
     public func getTokenExpiry() throws -> Date {
-        guard let expiryString = try keychain.get(tokenExpiryKey) else {
-            throw TokenError.tokenNotFound
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: expiryKey,
+            kSecReturnData as String: true
+        ]
+        
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        
+        guard status == errSecSuccess,
+              let data = result as? Data,
+              let timeString = String(data: data, encoding: .utf8),
+              let timeInterval = TimeInterval(timeString) else {
+            throw TokenError.notFound
         }
         
-        // Try ISO8601 format first
-        if let date = ISO8601DateFormatter().date(from: expiryString) {
-            return date
-        }
-        
-        // Try our custom format
-        if let date = dateFormatter.date(from: expiryString) {
-            return date
-        }
-        
-        throw TokenError.invalidDateFormat
+        return Date(timeIntervalSince1970: timeInterval)
     }
     
     /// Remove token and expiry from keychain
     public func clearToken() throws {
-        try keychain.remove(tokenKey)
-        try keychain.remove(tokenExpiryKey)
-    }
-    
-    /// Check if current token is valid and not expired
-    public var isTokenValid: Bool {
-        do {
-            let expiry = try getTokenExpiry()
-            return expiry > Date()
-        } catch {
-            return false
-        }
-    }
-    
-    /// Refresh token if it's about to expire
-    /// - Parameter threshold: Time threshold before expiry to trigger refresh
-    /// - Returns: True if token was refreshed, false otherwise
-    public func refreshTokenIfNeeded(threshold: TimeInterval) async throws -> Bool {
-        guard isTokenValid else {
-            throw TokenError.tokenExpired
+        let tokenQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: tokenKey
+        ]
+        
+        let expiryQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: expiryKey
+        ]
+        
+        let tokenStatus = SecItemDelete(tokenQuery as CFDictionary)
+        let expiryStatus = SecItemDelete(expiryQuery as CFDictionary)
+        
+        if tokenStatus != errSecSuccess && tokenStatus != errSecItemNotFound {
+            throw TokenError.deletionFailed(NSError(domain: "TokenManager", code: Int(tokenStatus)))
         }
         
-        let expiry = try getTokenExpiry()
-        let shouldRefresh = expiry.timeIntervalSinceNow < threshold
-        
-        if shouldRefresh {
-            // TODO: Implement token refresh logic
-            // For now, just return false since we don't have refresh endpoint
-            return false
+        if expiryStatus != errSecSuccess && expiryStatus != errSecItemNotFound {
+            throw TokenError.deletionFailed(NSError(domain: "TokenManager", code: Int(expiryStatus)))
         }
-        
-        return false
     }
 }
 #endif
