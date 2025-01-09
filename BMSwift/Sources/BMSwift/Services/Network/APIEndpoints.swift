@@ -10,6 +10,14 @@ public enum APIEndpoints {
             )
         }
         
+        public static func forgotPassword(request: ForgotPasswordRequest) -> APIEndpoint {
+            APIEndpoint(
+                path: "/forgot-password",
+                method: .post,
+                body: request
+            )
+        }
+        
         // Add more auth-related endpoints here
     }
     

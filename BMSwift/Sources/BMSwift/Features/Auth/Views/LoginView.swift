@@ -20,18 +20,20 @@ public struct LoginView: View {
     public init() {}
     
     public var body: some View {
-        Group {
-            if viewModel.isLoggedIn {
-                loggedInView
-            } else {
-                loginFormView
+        NavigationView {
+            Group {
+                if viewModel.isLoggedIn {
+                    loggedInView
+                } else {
+                    loginFormView
+                }
             }
+            .navigationBarHidden(true)
         }
     }
     
     private var loginFormView: some View {
         ZStack {
-            // Background
             AppColors.primaryBg
                 .ignoresSafeArea()
             
@@ -109,9 +111,11 @@ public struct LoginView: View {
                             if isPasswordVisible {
                                 TextField(viewModel.password.isEmpty ? "密碼" : "", text: $viewModel.password)
                                     .foregroundColor(AppColors.primary)
+                                    .padding(.leading, 8)
                             } else {
                                 SecureField(viewModel.password.isEmpty ? "密碼" : "", text: $viewModel.password)
                                     .foregroundColor(AppColors.primary)
+                                    .padding(.leading, 8)
                             }
                             
                             Button(action: { isPasswordVisible.toggle() }) {
@@ -142,6 +146,22 @@ public struct LoginView: View {
                     }
                     .animation(.easeInOut, value: isPasswordFocused)
                     
+                    // Forgot Password Button
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            viewModel.shouldNavigateToForgotPassword = true
+                        }) {
+                            Text("忘記密碼？")
+                                .foregroundColor(AppColors.primary)
+                                .font(.system(size: 17))
+                        }
+                        Spacer()
+                    }
+                    .sheet(isPresented: $viewModel.shouldNavigateToForgotPassword) {
+                        ForgotPasswordView(isPresented: $viewModel.shouldNavigateToForgotPassword)
+                    }
+                    
                     // Error message
                     if let errorMessage = viewModel.errorMessage {
                         Text(errorMessage)
@@ -151,7 +171,7 @@ public struct LoginView: View {
                     
                     // Login button
                     Button(action: {
-                        hideKeyboard()
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                         Task {
                             await viewModel.login()
                         }
@@ -161,22 +181,27 @@ public struct LoginView: View {
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         } else {
                             Text("登入")
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
+                                .font(.system(size: 17, weight: .semibold))
                         }
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(AppColors.primary)
-                    .cornerRadius(10)
+                    .primaryButtonStyle(isEnabled: viewModel.isPasswordValid)
                     .disabled(viewModel.isLoading)
                     .padding(.top, 20)
+                    
+                    // Sign up button
+                    Button(action: {
+                        viewModel.shouldNavigateToSignup = true
+                    }) {
+                        Text("註冊")
+                            .font(.system(size: 17, weight: .semibold))
+                    }
+                    .primaryButtonStyle(isPrimary: false)
                 }
                 .padding(.horizontal, 30)
             }
         }
         .onTapGesture {
-            hideKeyboard()
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
             isEmailFocused = false
             isPasswordFocused = false
         }
@@ -204,22 +229,24 @@ public struct LoginView: View {
                     }
                 }) {
                     Text("登出")
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
+                        .bold()
                 }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(AppColors.error)
-                .cornerRadius(10)
+                .primaryButtonStyle(isPrimary: false)
             }
             .padding()
         }
     }
 }
 
-extension View {
-    func hideKeyboard() {
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+extension Button {
+    func primaryButtonStyle(isEnabled: Bool = true, isPrimary: Bool = true) -> some View {
+        self
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(isPrimary ? AppColors.primary : AppColors.secondary)
+            .foregroundColor(isPrimary ? .white : AppColors.primary)
+            .cornerRadius(10)
+            .disabled(!isEnabled)
     }
 }
 

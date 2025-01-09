@@ -10,9 +10,17 @@ public class LoginViewModel: ObservableObject {
     @Published public var errorMessage: String?
     @Published public var isFirstLogin: Bool = false
     @Published public var isLoggedIn: Bool = false
+    @Published public var shouldNavigateToForgotPassword: Bool = false
+    @Published public var shouldNavigateToSignup: Bool = false
     
     private let authService: AuthServiceProtocol
     private let tokenManager: TokenManagerProtocol
+    
+    public var isPasswordValid: Bool {
+        let hasMinLength = password.count >= 8
+        let hasUppercase = password.contains { $0.isUppercase }
+        return hasMinLength && hasUppercase
+    }
     
     public init(
         authService: AuthServiceProtocol = AuthService.shared,
@@ -23,8 +31,18 @@ public class LoginViewModel: ObservableObject {
     }
     
     public func login() async {
-        guard !email.isEmpty && !password.isEmpty else {
-            errorMessage = "請輸入電子郵件和密碼"
+        guard !email.isEmpty else {
+            errorMessage = "請輸入電子郵件"
+            return
+        }
+        
+        guard !password.isEmpty else {
+            errorMessage = "請輸入密碼"
+            return
+        }
+        
+        guard isPasswordValid else {
+            errorMessage = "密碼至少需要8個字元且包含一個大寫字母"
             return
         }
         
@@ -55,6 +73,8 @@ public class LoginViewModel: ObservableObject {
             isLoggedIn = false
             isFirstLogin = false
             errorMessage = nil
+            email = ""
+            password = ""
         } catch {
             errorMessage = error.localizedDescription
         }

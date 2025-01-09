@@ -23,6 +23,7 @@ public enum AuthError: LocalizedError {
 
 public protocol AuthServiceProtocol {
     func login(email: String, password: String) async throws -> Bool
+    func forgotPassword(email: String) async throws -> ForgotPasswordResponse
 }
 
 public class AuthService: AuthServiceProtocol {
@@ -72,6 +73,22 @@ public class AuthService: AuthServiceProtocol {
         } catch let error as TokenError {
             print("❌ Token Error: \(error.localizedDescription)")
             throw AuthError.tokenError(error)
+        }
+    }
+    
+    public func forgotPassword(email: String) async throws -> ForgotPasswordResponse {
+        let request = ForgotPasswordRequest(email: email)
+        let endpoint = APIEndpoints.Auth.forgotPassword(request: request)
+        
+        do {
+            let response = try await apiClient.request(endpoint)
+            return ForgotPasswordResponse(message: "重設密碼郵件已發送")
+        } catch let error as APIError {
+            print("❌ API Error: \(error.localizedDescription)")
+            throw AuthError.networkError(error)
+        } catch {
+            print("❌ Unexpected Error: \(error.localizedDescription)")
+            throw AuthError.serverError("發送重設密碼郵件失敗")
         }
     }
 }
