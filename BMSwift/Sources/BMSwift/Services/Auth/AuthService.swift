@@ -45,6 +45,7 @@ public class AuthService: AuthServiceProtocol {
         
         do {
             let response = try await apiClient.request(endpoint)
+            print("✅ Full API Response: \(response)") // Debug print
             
             // Extract token and expiry
             guard let token = response["token"] as? String,
@@ -60,8 +61,8 @@ public class AuthService: AuthServiceProtocol {
             try tokenManager.saveToken(token, expiry: expiresAt)
             print("✅ Token saved successfully")
             
-            // Return first login status
-            let isFirstLogin = response["first_login"] as? Bool ?? false
+            // Return first login status - check both possible keys
+            let isFirstLogin = (response["first_login"] as? Bool) ?? (response["firstLogin"] as? Bool) ?? false
             print("✅ First login status: \(isFirstLogin)")
             return isFirstLogin
             

@@ -2,11 +2,25 @@
 import SwiftUI
 
 public enum AppColors {
-    public static let primary = Color.blue
-    public static let secondary = Color.gray
-    public static let background = Color.white
-    public static let text = Color.black
+    // Main colors
+    public static let primary = Color(hex: "#3AB597")
+    public static let secondary = Color(hex: "#d4d4d8")
+    
+    // Text colors
+    public static let primaryText = Color(hex: "#05221B")
+    
+    // Background colors
+    public static let primaryBg = Color.black
+    public static let secondaryBg = Color(hex: "#DEF4F2")
+    public static let thirdBg = Color(hex: "#a9a9ab")
+    
+    // Highlight colors
+    public static let highlight = Color(hex: "#E1972D")
+    
+    // System colors
     public static let error = Color.red
+    public static let success = Color.green
+    public static let warning = Color.orange
 }
 
 extension Color {
