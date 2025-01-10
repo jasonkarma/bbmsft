@@ -1,3 +1,4 @@
+#if canImport(SwiftUI)
 import SwiftUI
 import BMSwift
 
@@ -12,41 +13,44 @@ public struct ArticleCardView: View {
     
     public var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 12) {
+            HStack(spacing: 0) {
                 // Article image
                 AsyncImage(url: URL(string: "https://wiki.kinglyrobot.com/media/beauty_content_banner_image/\(article.media_name)")) { image in
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)
+                        .frame(width: 120, height: 120)
+                        .clipped()
                 } placeholder: {
-                    Color.gray.opacity(0.3)
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 120, height: 120)
                 }
-                .frame(width: 100, height: 100)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
                 
-                // Article text content
-                VStack(alignment: .leading, spacing: 8) {
+                // Article content
+                VStack(alignment: .leading, spacing: 4) {
                     Text(article.bp_subsection_title)
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.primary)
+                        .foregroundColor(BMSwift.AppColors.primary)
                         .lineLimit(2)
                     
                     Text(article.bp_subsection_intro)
                         .font(.system(size: 14))
-                        .foregroundColor(.secondary)
-                        .lineLimit(3)
+                        .foregroundColor(.white.opacity(0.7))
+                        .lineLimit(4)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, 12)
+                .padding(.trailing, 8)
             }
-            .padding(12)
-            .frame(maxWidth: .infinity)
-            .background(Color.white)
-            .cornerRadius(12)
+            .background(Color.black)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                    .stroke(Color.secondary, lineWidth: 1)
             )
+            .cornerRadius(12)
         }
         .buttonStyle(PlainButtonStyle())
     }
 }
+#endif

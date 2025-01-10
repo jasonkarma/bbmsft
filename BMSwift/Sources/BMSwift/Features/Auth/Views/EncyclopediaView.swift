@@ -21,28 +21,31 @@ public struct EncyclopediaView: View {
     }
     
     private var contentView: some View {
-        VStack(spacing: 8) {
-            mainContentArea
-            bottomNavigation
-        }
-    }
-    
-    private var mainContentArea: some View {
         ZStack {
             AppColors.primaryBg.ignoresSafeArea()
             
-            ScrollView {
-                VStack(spacing: 16) {
-                    voiceCommandArea
-                    smartDeviceStats
-                    if !viewModel.hotArticles.isEmpty {
-                        articleSection(title: "熱門文章", articles: viewModel.hotArticles)
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(spacing: 16) {
+                        if !viewModel.hotArticles.isEmpty {
+                            articleSection(title: "熱門文章", articles: viewModel.hotArticles)
+                        }
+                        if !viewModel.latestArticles.isEmpty {
+                            articleSection(title: "最新文章", articles: viewModel.latestArticles)
+                        }
                     }
-                    if !viewModel.latestArticles.isEmpty {
-                        articleSection(title: "最新文章", articles: viewModel.latestArticles)
-                    }
+                    .padding(.vertical)
                 }
-                .padding(.vertical)
+                
+                VStack(spacing: 0) {
+                    voiceCommandArea
+                        .background(Color.black)
+                    
+                    smartDeviceStats
+                        .background(Color.black)
+                    
+                    bottomNavigation
+                }
             }
         }
     }
@@ -57,7 +60,7 @@ public struct EncyclopediaView: View {
             voiceCommandButton
         }
         .padding(.horizontal)
-        .padding(.bottom, 4)
+        .padding(.vertical, 8)
     }
     
     private var voiceCommandButton: some View {
@@ -74,28 +77,69 @@ public struct EncyclopediaView: View {
     
     private var smartDeviceStats: some View {
         VStack(spacing: 8) {
-            // Bar chart container
-            VStack(alignment: .leading, spacing: 0) {
-                // Chart header
-                HStack {
-                    Text("TEST BAR VIEW")
+            HStack {
+                Image(systemName: "heart.fill")
+                    .foregroundColor(.blue)
+                Text("心率")
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Image(systemName: "figure.walk")
+                    .foregroundColor(.green)
+                Text("步數")
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Image(systemName: "drop.fill")
+                    .foregroundColor(.blue)
+                Text("消耗")
+                    .foregroundColor(.white)
+            }
+            .font(.system(size: 12))
+            .padding(.horizontal)
+
+            HStack(spacing: 0) {
+                // Y-axis values
+                VStack(alignment: .trailing, spacing: 0) {
+                    Text("200")
                         .foregroundColor(.white)
+                        .font(.system(size: 10))
                     Spacer()
+                    Text("100")
+                        .foregroundColor(.white)
+                        .font(.system(size: 10))
+                    Spacer()
+                    Text("0")
+                        .foregroundColor(.white)
+                        .font(.system(size: 10))
+                }
+                .frame(width: 25)
+                .padding(.trailing, 4)
+                
+                // Bars
+                HStack(alignment: .bottom, spacing: 0) {
+                    ForEach(0..<5) { index in
+                        VStack(spacing: 2) {
+                            Rectangle()
+                                .fill(Color.yellow.opacity(0.8))
+                                .frame(width: 16, height: CGFloat.random(in: 15...50))
+                            
+                            Text("\(index * 6)")
+                                .font(.system(size: 10))
+                                .foregroundColor(.white)
+                        }
+                        if index < 4 {
+                            Spacer()
+                        }
+                    }
                 }
                 .padding(.horizontal)
-                
-                // Chart content
-                // Will be implemented later
-                Rectangle()
-                    .fill(Color.white.opacity(0.1))
-                    .frame(height: 200)
-                    .padding(.top, 8)
             }
-            .padding(.vertical, 12)
-            .background(Color.white.opacity(0.05))
-            .cornerRadius(12)
+            .frame(height: 60)
         }
-        .padding(.horizontal)
+        .padding(.vertical, 6)
     }
     
     private func articleSection(title: String, articles: [ArticlePreview]) -> some View {
@@ -114,10 +158,10 @@ public struct EncyclopediaView: View {
                     ArticleCardView(article: article) {
                         // Handle article tap
                     }
+                    .padding(.horizontal)
                 }
             }
         }
-        .padding(.horizontal)
     }
     
     private var bottomNavigation: some View {
@@ -137,8 +181,8 @@ public struct EncyclopediaView: View {
                 }
             }
         }
-        .padding(.vertical, 8)
-        .background(Color.black.opacity(0.3))
+        .padding(.vertical, 4)
+        .background(Color.black)
     }
     
     private func tabTitle(for index: Int) -> String {
