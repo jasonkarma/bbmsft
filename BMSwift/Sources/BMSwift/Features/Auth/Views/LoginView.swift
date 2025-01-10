@@ -41,10 +41,10 @@ public struct LoginView: View {
                         .foregroundColor(AppColors.primary)
                     
                     // Image
-                    Image("SiteImage", bundle: .module)
+                    Image("LoginImage", bundle: .module)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 120, height: 120)
+                        .frame(width: 200, height: 120)
                         .padding(.bottom, 20)
                     
                     // Email Input
