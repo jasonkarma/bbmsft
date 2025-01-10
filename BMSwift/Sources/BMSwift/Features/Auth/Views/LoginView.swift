@@ -13,13 +13,19 @@ public struct LoginView: View {
     
     public var body: some View {
         NavigationView {
-            Group {
-                if viewModel.isLoggedIn {
-                    loggedInView
-                } else {
-                    loginFormView
+            ZStack {
+                AppColors.primaryBg
+                    .ignoresSafeArea()
+                
+                Group {
+                    if viewModel.isLoggedIn {
+                        loggedInView
+                    } else {
+                        loginFormView
+                    }
                 }
             }
+            .navigationBarHidden(true)
         }
         .sheet(isPresented: $showForgotPassword) {
             ForgotPasswordView(isPresented: $showForgotPassword)
@@ -28,6 +34,9 @@ public struct LoginView: View {
             NavigationView {
                 RegisterView(isPresented: $showRegister)
             }
+        }
+        .fullScreenCover(isPresented: $viewModel.isLoggedIn) {
+            EncyclopediaView()
         }
     }
     

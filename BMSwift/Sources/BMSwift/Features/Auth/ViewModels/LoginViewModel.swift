@@ -6,7 +6,7 @@ import SwiftUI
 public class LoginViewModel: ObservableObject {
     @Published var email = ""
     @Published var password = ""
-    @Published var isLoading = false
+    @Published private(set) var isLoading = false
     @Published var isLoggedIn = false
     @Published var errorMessage: String?
     @Published var showPasswordWarning = false
