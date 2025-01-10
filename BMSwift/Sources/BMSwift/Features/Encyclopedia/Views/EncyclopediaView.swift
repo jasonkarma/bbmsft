@@ -161,11 +161,11 @@ public struct EncyclopediaView: View {
                                 }
                             }
                             .font(.system(size: 24))
-                            .foregroundColor(selectedTab == index ? AppColors.primary : .gray)
+                            .foregroundColor(selectedTab == index ? .white : .white.opacity(0.5))
                             
                             Text(tabTitle(for: index))
                                 .font(.system(size: 12))
-                                .foregroundColor(selectedTab == index ? AppColors.primary : .gray)
+                                .foregroundColor(selectedTab == index ? .white : .white.opacity(0.5))
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -173,7 +173,7 @@ public struct EncyclopediaView: View {
             }
             .padding(.vertical, 8)
             .padding(.bottom, -10)
-            .background(Color.white.opacity(0.95))
+            .background(Color.black.opacity(0.3))
         }
     }
     
