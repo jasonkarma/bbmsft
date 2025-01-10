@@ -3,184 +3,162 @@ import SwiftUI
 
 public struct RegisterView: View {
     @StateObject private var viewModel = RegisterViewModel()
+    @Binding var isPresented: Bool
+    @State private var isPasswordVisible = false
     
-    // Custom TextField States
-    @State private var isEmailFocused: Bool = false
-    @State private var isPasswordFocused: Bool = false
-    @State private var isConfirmPasswordFocused: Bool = false
-    @State private var isPasswordVisible: Bool = false
-    @State private var isConfirmPasswordVisible: Bool = false
-    @State private var shouldDismiss: Bool = false
-    
-    public init() {}
+    public init(isPresented: Binding<Bool>) {
+        self._isPresented = isPresented
+    }
     
     public var body: some View {
-        Group {
-            ZStack {
-                AppColors.primaryBg
-                    .ignoresSafeArea()
-                
-                ScrollView {
-                    VStack(spacing: 30) {
-                        // Title
-                        Text("註冊")
-                            .font(.title)
-                            .foregroundColor(AppColors.primary)
-                            .padding(.top, 50)
+        ZStack {
+            AppColors.primaryBg
+                .ignoresSafeArea()
+            
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 24) {
+                    Spacer()
+                        .frame(height: 50)
                         
-                        // Email Input
-                        VStack(alignment: .leading, spacing: 4) {
-                            if isEmailFocused || !viewModel.email.isEmpty {
-                                Text("電子郵件")
-                                    .foregroundColor(.white)
-                                    .font(.caption)
-                                    .transition(.move(edge: .top).combined(with: .opacity))
-                            }
-                            
-                            HStack {
-                                Image(systemName: "envelope")
-                                    .foregroundColor(AppColors.primary)
-                                
-                                TextField(viewModel.email.isEmpty ? "請輸入電子郵件" : "", text: $viewModel.email)
-                                    .foregroundColor(AppColors.primary)
-                                    .textInputAutocapitalization(.never)
-                                    .keyboardType(.emailAddress)
-                                    .padding(.leading, 8)
-                                    .onTapGesture {
-                                        isEmailFocused = true
-                                        isPasswordFocused = false
-                                        isConfirmPasswordFocused = false
-                                    }
-                            }
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color.white.opacity(0.1))
-                            )
+                    Text("註冊")
+                        .font(.title)
+                        .foregroundColor(AppColors.primary)
+                    
+                    // Nickname Input
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Image(systemName: "person.crop.circle.fill")
+                                .foregroundColor(AppColors.primary)
+                            TextField("請輸入暱稱", text: $viewModel.username)
+                                .textContentType(.username)
+                                .autocapitalization(.none)
                         }
-                        
-                        // Password Input
-                        VStack(alignment: .leading, spacing: 4) {
-                            if isPasswordFocused || !viewModel.password.isEmpty {
-                                Text("密碼")
-                                    .foregroundColor(.white)
-                                    .font(.caption)
-                                    .transition(.move(edge: .top).combined(with: .opacity))
-                            }
-                            
-                            HStack {
-                                Image(systemName: "lock")
-                                    .foregroundColor(AppColors.primary)
-                                
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.white.opacity(0.1))
+                        )
+                    }
+                    
+                    // Email Input
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Image(systemName: "envelope.fill")
+                                .foregroundColor(AppColors.primary)
+                                .padding(.leading, -2)
+                            TextField("請輸入電子郵件", text: $viewModel.email)
+                                .textContentType(.emailAddress)
+                                .keyboardType(.emailAddress)
+                                .autocapitalization(.none)
+                                .padding(.leading, -3)
+                        }
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.white.opacity(0.1))
+                        )
+                    }
+                    
+                    // Password Input
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Image(systemName: "lock.fill")
+                                .foregroundColor(AppColors.primary)
+                                .padding(.leading, 3)
+                            Group {
                                 if isPasswordVisible {
-                                    TextField(viewModel.password.isEmpty ? "請輸入密碼" : "", text: $viewModel.password)
-                                        .foregroundColor(AppColors.primary)
-                                        .textInputAutocapitalization(.never)
-                                        .padding(.leading, 8)
+                                    TextField("請輸入密碼", text: $viewModel.password)
+                                        .padding(.leading, 1)
+                                        .onChange(of: viewModel.password) { _ in
+                                            viewModel.validatePasswordInput()
+                                        }
                                 } else {
-                                    SecureField(viewModel.password.isEmpty ? "請輸入密碼" : "", text: $viewModel.password)
-                                        .foregroundColor(AppColors.primary)
-                                        .textInputAutocapitalization(.never)
-                                        .padding(.leading, 8)
-                                }
-                                
-                                Button(action: { isPasswordVisible.toggle() }) {
-                                    Image(systemName: isPasswordVisible ? "eye.slash.fill" : "eye.fill")
-                                        .foregroundColor(AppColors.primary)
+                                    SecureField("請輸入密碼", text: $viewModel.password)
+                                        .padding(.leading, 1)
+                                        .onChange(of: viewModel.password) { _ in
+                                            viewModel.validatePasswordInput()
+                                        }
                                 }
                             }
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color.white.opacity(0.1))
-                            )
-                            .onTapGesture {
-                                isEmailFocused = false
-                                isPasswordFocused = true
-                                isConfirmPasswordFocused = false
-                            }
-                        }
-                        
-                        // Confirm Password Input
-                        VStack(alignment: .leading, spacing: 4) {
-                            if isConfirmPasswordFocused || !viewModel.confirmPassword.isEmpty {
-                                Text("確認密碼")
-                                    .foregroundColor(.white)
-                                    .font(.caption)
-                                    .transition(.move(edge: .top).combined(with: .opacity))
-                            }
+                            .textContentType(.newPassword)
                             
-                            HStack {
-                                Image(systemName: "lock")
+                            Button(action: {
+                                isPasswordVisible.toggle()
+                            }) {
+                                Image(systemName: isPasswordVisible ? "eye.fill" : "eye.slash.fill")
                                     .foregroundColor(AppColors.primary)
-                                
-                                if isConfirmPasswordVisible {
-                                    TextField(viewModel.confirmPassword.isEmpty ? "請再次輸入密碼" : "", text: $viewModel.confirmPassword)
-                                        .foregroundColor(AppColors.primary)
-                                        .textInputAutocapitalization(.never)
-                                        .padding(.leading, 8)
-                                } else {
-                                    SecureField(viewModel.confirmPassword.isEmpty ? "請再次輸入密碼" : "", text: $viewModel.confirmPassword)
-                                        .foregroundColor(AppColors.primary)
-                                        .textInputAutocapitalization(.never)
-                                        .padding(.leading, 8)
-                                }
-                                
-                                Button(action: { isConfirmPasswordVisible.toggle() }) {
-                                    Image(systemName: isConfirmPasswordVisible ? "eye.slash.fill" : "eye.fill")
-                                        .foregroundColor(AppColors.primary)
-                                }
-                            }
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color.white.opacity(0.1))
-                            )
-                            .onTapGesture {
-                                isEmailFocused = false
-                                isPasswordFocused = false
-                                isConfirmPasswordFocused = true
                             }
                         }
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.white.opacity(0.1))
+                        )
                         
-                        // Register Button
-                        Button(action: {
-                            Task {
-                                await viewModel.register()
-                                if viewModel.isRegistered {
-                                    shouldDismiss = true
-                                }
-                            }
-                        }) {
-                            if viewModel.isLoading {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            } else {
-                                Text("註冊")
-                                    .foregroundColor(.white)
-                                    .font(.headline)
-                            }
-                        }
-                        .buttonStyle(PrimaryButtonStyle())
-                        .disabled(viewModel.isLoading)
-                        
-                        if let error = viewModel.errorMessage {
-                            Text(error)
-                                .foregroundColor(.red)
+                        if viewModel.showPasswordWarning {
+                            Text("密碼需大於8字．且有大小寫英文")
+                                .foregroundColor(.orange)
                                 .font(.caption)
-                                .multilineTextAlignment(.center)
                         }
                     }
-                    .padding(.horizontal, 30)
+                    
+                    if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                            .font(.caption)
+                            .multilineTextAlignment(.center)
+                    }
+                    
+                    Button(action: {
+                        Task {
+                            await viewModel.register()
+                        }
+                    }) {
+                        if viewModel.isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else {
+                            Text("註冊")
+                                .foregroundColor(.white)
+                                .font(.headline)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(AppColors.primary)
+                    .cornerRadius(8)
+                    .disabled(viewModel.isLoading)
+                    
+                    Spacer()
                 }
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(false)
-            .onTapGesture {
-                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                .padding(.horizontal, 30)
             }
         }
-        .navigate(to: LoginView(), when: $shouldDismiss, navigationStyle: .modal)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: {
+                    isPresented = false
+                }) {
+                    HStack {
+                        Image(systemName: "chevron.left")
+                        Text("返回")
+                    }
+                    .foregroundColor(AppColors.primary)
+                }
+            }
+        }
+        .alert(viewModel.alertMessage, isPresented: $viewModel.showAlert) {
+            Button("確認") {
+                viewModel.dismissAlert()
+                isPresented = false
+            }
+        }
+        .onChange(of: viewModel.shouldDismiss) { shouldDismiss in
+            if shouldDismiss {
+                isPresented = false
+            }
+        }
     }
 }
 #endif

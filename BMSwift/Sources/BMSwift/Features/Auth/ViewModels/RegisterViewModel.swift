@@ -3,61 +3,67 @@ import Foundation
 import Combine
 
 @MainActor
-public class RegisterViewModel: ObservableObject {
-    @Published var email: String = ""
-    @Published var password: String = ""
-    @Published var confirmPassword: String = ""
-    @Published var isPasswordValid: Bool = false
+class RegisterViewModel: ObservableObject {
+    @Published var username = ""
+    @Published var password = ""
+    @Published var email = ""
+    @Published var isLoading = false
     @Published var errorMessage: String?
-    @Published var isRegistered: Bool = false
-    @Published var isLoading: Bool = false
+    @Published var showAlert = false
+    @Published var alertMessage = ""
+    @Published var shouldDismiss = false
+    @Published var isRegistered = false
+    @Published var showPasswordWarning = false
     
     private let apiService = APIService.shared
-    private var cancellables = Set<AnyCancellable>()
     
-    public init() {
-        setupPasswordValidation()
-    }
-    
-    private func setupPasswordValidation() {
-        $password
-            .map { password in
-                let hasMinLength = password.count >= 8
-                let hasUppercase = password.contains { $0.isUppercase }
-                let hasLowercase = password.contains { $0.isLowercase }
-                return hasMinLength && hasUppercase && hasLowercase
-            }
-            .assign(to: &$isPasswordValid)
-    }
-    
-    public func register() async {
-        guard !isLoading else { return }
-        guard isPasswordValid else {
-            errorMessage = "密碼必須至少8個字符，包含大小寫字母"
-            return
-        }
-        guard password == confirmPassword else {
-            errorMessage = "密碼不一致"
-            return
-        }
-        
+    func register() async {
         isLoading = true
         errorMessage = nil
         
+        // Validate password
+        if !isValidPassword(password) {
+            errorMessage = "密碼需大於8字．且有大小寫英文"
+            isLoading = false
+            return
+        }
+        
         do {
-            let response = try await apiService.register(
+            _ = try await apiService.register(
+                username: username,
                 email: email,
-                password: password,
-                confirmPassword: confirmPassword
+                password: password
             )
+            
+            // Show success alert
+            alertMessage = "註冊成功"
+            showAlert = true
             isRegistered = true
+            
         } catch let error as APIError {
-            errorMessage = error.localizedDescription
+            errorMessage = error.errorDescription
         } catch {
-            errorMessage = "發生錯誤，請稍後再試"
+            errorMessage = "發生未知錯誤"
         }
         
         isLoading = false
+    }
+    
+    func dismissAlert() {
+        showAlert = false
+        shouldDismiss = true  // Always dismiss when alert is closed
+    }
+    
+    func isValidPassword(_ password: String) -> Bool {
+        let minLength = 8
+        let hasUppercase = password.contains(where: { $0.isUppercase })
+        let hasLowercase = password.contains(where: { $0.isLowercase })
+        
+        return password.count >= minLength && hasUppercase && hasLowercase
+    }
+    
+    func validatePasswordInput() {
+        showPasswordWarning = !password.isEmpty && !isValidPassword(password)
     }
 }
 #endif

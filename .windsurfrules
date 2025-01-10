@@ -1,193 +1,202 @@
 # BMSwift Project Guidelines
 
 ## 1. Architecture & Frameworks
+
+### SwiftUI Guidelines
 1. Primary UI Framework
    - Use SwiftUI for primary UI development
-   - Use UIKit components when needed through UIViewRepresentable
-   - Document UIKit usage and justification
+   - Use UIKit components only when SwiftUI alternatives don't exist
+   - All UIKit integrations must use UIViewRepresentable
 
-2. Networking
-   - Use Network.framework for all network operations
-   - Centralize API handling in NetworkService
-   - All network models must be in NetworkModels module
-   - Use async/await for network calls
+2. View Structure
+   - Keep views small and focused (max 150 lines)
+   - Extract reusable components to separate files
+   - Use ViewBuilder for complex view logic
+   - Follow composition over inheritance
 
-3. Module Structure
-   - NetworkModels: All API models, requests, responses
-   - Services: NetworkService and other service layers
-   - Features: View-ViewModel pairs by feature
-   - Theme: Global styling and design system
-   - Extensions: Framework extensions
+3. Environment & State Management
+   - Use @Environment only for SwiftUI system values
+   - Avoid naming conflicts with environment keys
+   ```swift
+   // Good
+   @Environment(\.dismiss) private var dismissAction
+   @Environment(\.presentationMode) private var presentation
+   
+   // Bad - Avoid using same name as environment key
+   @Environment(\.dismiss) private var dismiss  // Don't do this
+    Never use custom types with @Environment
 
-# BMSwift Project Structure & Guidelines
+4. View Presentation & Dismissal
+   - Use @Binding for sheet and full-screen presentations
+   ```swift
+   // In the presenting view
+   @State private var isShowingRegister = false
+   
+   // Show the sheet
+   .sheet(isPresented: $isShowingRegister) {
+       RegisterView(isPresented: $isShowingRegister)
+   }
+   
+   // In the presented view
+   struct RegisterView: View {
+       @Binding var isPresented: Bool
+       
+       init(isPresented: Binding<Bool>) {
+           self._isPresented = isPresented
+       }
+       
+       // Dismiss by setting binding to false
+       isPresented = false
+   }
 
-## 1. Project Directory Structure
-```swift
-BMSwift/
-├── App/
-│   ├── BMSwiftApp.swift
-│   ├── SceneDelegate.swift
-│   ├── AppDelegate.swift
-│   └── Configuration/
-│       ├── Debug.xcconfig
-│       ├── Release.xcconfig
-│       └── Info.plist
-├── Features/
-│   ├── Auth/
-│   │   ├── Views/
-│   │   │   ├── LoginView.swift
-│   │   │   └── SignUpView.swift
-│   │   └── ViewModels/
-│   │       ├── LoginViewModel.swift
-│   │       └── SignUpViewModel.swift
-│   ├── Profile/
-│   │   ├── Views/
-│   │   └── ViewModels/
-│   └── Media/
-│       ├── Views/
-│       │   ├── CameraView.swift
-│       │   ├── PhotoLibraryView.swift
-│       │   └── AudioRecorderView.swift
-│       └── ViewModels/
-│           ├── CameraViewModel.swift
-│           ├── PhotoLibraryViewModel.swift
-│           └── AudioRecorderViewModel.swift
-├── Services/
-│   ├── Network/
-│   │   ├── Base/
-│   │   │   ├── NetworkService.swift
-│   │   │   ├── APIEndpoint.swift
-│   │   │   └── NetworkMonitor.swift
-│   │   └── APIs/
-│   │       ├── AuthAPI.swift
-│   │       ├── UserAPI.swift
-│   │       └── MediaAPI.swift
-│   ├── Permissions/
-│   │   └── PermissionService.swift
-│   ├── Media/
-│   │   ├── CameraService.swift
-│   │   ├── PhotoLibraryService.swift
-│   │   └── AudioService.swift
-│   └── Bluetooth/
-│       └── BluetoothService.swift
-├── Theme/
-│   ├── AppColors.swift
-│   ├── AppFonts.swift
-│   ├── AppDimensions.swift
-│   └── AppStyles.swift
-├── Components/
-│   ├── UIKit/
-│   │   ├── CustomTextField.swift
-│   │   ├── CustomImagePicker.swift
-│   │   └── CustomCameraView.swift
-│   └── SwiftUI/
-│       ├── LoadingView.swift
-│       ├── ErrorView.swift
-│       └── PermissionRequestView.swift
-├── Extensions/
-│   ├── UIKit/
-│   │   ├── UIImage+Extensions.swift
-│   │   └── UIViewController+Extensions.swift
-│   └── SwiftUI/
-│       └── View+Extensions.swift
-├── Models/
-│   ├── NetworkModels/
-│   │   ├── Auth/
-│   │   │   ├── LoginModels.swift
-│   │   │   └── SignUpModels.swift
-│   │   ├── User/
-│   │   │   └── UserModels.swift
-│   │   └── Media/
-│   │       └── MediaModels.swift
-│   └── Local/
-│       ├── UserSettings.swift
-│       └── AppState.swift
-├── Utilities/
-│   ├── Constants.swift
-│   ├── Logger.swift
-│   └── Helpers/
-│       ├── MediaHelper.swift
-│       └── DateHelper.swift
-└── Resources/
-    ├── Assets.xcassets/
-    └── Localizable.strings
-
-
-3. Coding Standards
-Network Layer
-1.API Handling
-
-// NetworkModels module
-public struct APIRequest<T: Codable> {
-    public let endpoint: String
-    public let method: HTTPMethod
-    public let body: T?
-}
-
-// NetworkService
-public final class NetworkService {
-    public static let shared = NetworkService()
-    private let baseURL: String
+Networking Guidelines
+1.API Structure
+All endpoints defined in APIService.swift using enums
+enum APIEndpoint {
+    static let baseURL = Environment.current.apiBaseURL
+    case login
+    case register
     
-    public func request<T: Codable>(_ request: APIRequest<T>) async throws -> T
+    var path: String {
+        switch self {
+        case .login: return "/api/login"
+        case .register: return "/api/register"
+        }
+    }
 }
 
-2.Error Handling
-Use NetworkError enum for all network-related errors
-Provide meaningful error messages
-Handle all error cases in ViewModels
+2. Error Handling
+public struct APIError: Error, Codable {
+    public let error: [String]
+    
+    public var localizedDescription: String {
+        error.joined(separator: "\n")
+    }
+}
 
-UIKit Integration
-1.UIKit Components
-struct CustomTextField: UIViewRepresentable {
-    // Always implement Coordinator for UIKit delegates
-    class Coordinator: NSObject, UITextFieldDelegate {
-        // Implement delegate methods
+3.Request/Response Models
+All models must conform to Codable
+Use explicit CodingKeys
+Include documentation comments
+
+/// Login request model
+public struct LoginRequest: Codable {
+    /// User email
+    let email: String
+    /// User password (never stored)
+    let password: String
+    /// Request source
+    let from: String = "ios"
+}
+
+Environment Configuration
+public enum Environment {
+    case development
+    case production
+    
+    static var current: Environment {
+        #if DEBUG
+        return .development
+        #else
+        return .production
+        #endif
     }
     
-    // Configuration
-    func makeUIView(context: Context) -> UITextField
-    func updateUIView(_ uiView: UITextField, context: Context)
+    var apiBaseURL: String {
+        switch self {
+        case .development:
+            return "https://dev-api.blackboard.com"
+        case .production:
+            return "https://api.blackboard.com"
+        }
+    }
 }
-2.Styling
-Use AppColors for all colors (UIKit and SwiftUI)
-Define common styles in Theme module
-Create extensions for UIKit styling consistency
-4. Documentation Requirements
-1.File Headers
-/// BMSwift - [Feature Name]
-/// [Brief description]
-///
-/// Dependencies:
-/// - UIKit: [Reason for usage]
-/// - NetworkModels: [Data models used]
-/// - SwiftUI: [UI components used]
-2.Network Models
-/// Represents a login request to the API
-public struct LoginRequest: Codable {
-    /// User's email address
-    public let email: String
-    /// User's password (never stored)
-    public let password: String
+
+2.Localization
+    1.Language Support
+        Primary language: Traditional Chinese (zh-Hant)
+        All user-facing strings must be localized
+        Use string catalogs for localization
+            Text("login.button.title".localized)
+
+    2.Date & Number Formatting
+        Use locale-aware formatters
+        Support Taiwan calendar and time zones
+
+3.ViewModels
+    1.Structure
+
+    class LoginViewModel: ObservableObject {
+    @Published private(set) var isLoading = false
+    @Published var errorMessage: String?
+    
+    private let apiService = APIService.shared
+    
+    func login() async {
+        do {
+            isLoading = true
+            let response = try await apiService.login(request)
+            // Handle success
+        } catch let error as APIError {
+            errorMessage = error.localizedDescription
+        } catch {
+            errorMessage = "發生未知錯誤"
+        }
+        isLoading = false
+    }
 }
-5. Testing Requirements
-1.Network Layer
- Mock NetworkService for testing
- Test all error cases
- Test request/response parsing
-2.UI Components
- Test UIKit integrations
- Test SwiftUI views
- Test view state management
-6. Build & Deployment
-1.Configuration
- Separate development and production environments
- Use xcconfig files for build settings
- Document all required capabilities
-2.App Store
- Follow App Store guidelines
- Prepare privacy declarations
- Document submission requirements
 
+    2.Best Practices
+        Use @Published for observable properties
+        Keep business logic out of views
+        Handle all error cases
+        Show loading states
+        Use async/await for asynchronous operations
 
-and also this app is using Chinese(traditional) for the language
+4.Testing Requirements
+    1. Unit Tests
+      
+        Required for all ViewModels
+        Required for API services
+        Mock all network calls
+        Test error scenarios
+    2.UI Tests
+        Basic flow testing
+        Accessibility testing
+        Different device sizes
+
+5. Documentation
+    1.File Headers
+        /// BMSwift - Login View
+        /// Handles user authentication UI
+        ///
+        /// Dependencies:
+        /// - LoginViewModel: Handles login logic
+        /// - APIService: Network operations
+
+    2.Public APIs
+        Document all public methods and properties
+        Include parameter descriptions
+        Document possible errors
+        Add usage examples
+
+6. Asset Management
+    1.Image Assets
+        Use asset catalogs
+        Support dark mode
+        Include @2x and @3x sizes
+        Use PDF for icons when possible
+    2.Colors
+        Define in AppColors
+        Support dark mode
+        Use semantic naming
+
+7. Security
+    1.Data Storage
+        Never store passwords
+        Use Keychain for sensitive data
+        Clear sensitive data on logout
+    2.Network Security
+        Use HTTPS only
+        Certificate pinning
+        Validate all responses

@@ -7,6 +7,7 @@ public struct LoginView: View {
     @FocusState private var isPasswordFocused: Bool
     @State private var isPasswordVisible: Bool = false
     @State private var showForgotPassword: Bool = false
+    @State private var showRegister: Bool = false
     
     public init() {}
     
@@ -22,6 +23,11 @@ public struct LoginView: View {
         }
         .sheet(isPresented: $showForgotPassword) {
             ForgotPasswordView(isPresented: $showForgotPassword)
+        }
+        .sheet(isPresented: $showRegister) {
+            NavigationView {
+                RegisterView(isPresented: $showRegister)
+            }
         }
     }
     
@@ -79,12 +85,18 @@ public struct LoginView: View {
                                     .textInputAutocapitalization(.never)
                                     .focused($isPasswordFocused)
                                     .padding(.leading, 4)
+                                    .onChange(of: viewModel.password) { _ in
+                                        viewModel.validatePasswordInput()
+                                    }
                             } else {
                                 SecureField("請輸入密碼", text: $viewModel.password)
                                     .foregroundColor(AppColors.primary)
                                     .textInputAutocapitalization(.never)
                                     .focused($isPasswordFocused)
                                     .padding(.leading, 4)
+                                    .onChange(of: viewModel.password) { _ in
+                                        viewModel.validatePasswordInput()
+                                    }
                             }
                             
                             Button(action: {
@@ -99,11 +111,19 @@ public struct LoginView: View {
                             RoundedRectangle(cornerRadius: 8)
                                 .fill(Color.white.opacity(0.1))
                         )
+                        
+                        if viewModel.showPasswordWarning {
+                            Text("密碼需大於8字．且有大小寫英文")
+                                .foregroundColor(.orange)
+                                .font(.caption)
+                        }
                     }
                     
                     // Forgot Password and Register buttons
                     HStack {
-                        NavigationLink(destination: RegisterView()) {
+                        Button(action: {
+                            showRegister = true
+                        }) {
                             Text("註冊")
                                 .foregroundColor(AppColors.primary)
                         }
