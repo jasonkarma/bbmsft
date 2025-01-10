@@ -40,8 +40,8 @@ public struct LoginView: View {
                         .font(.title)
                         .foregroundColor(AppColors.primary)
                     
-                    // Logo
-                    Image("Logo", bundle: .module)
+                    // Image
+                    Image("SiteImage", bundle: .module)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 120, height: 120)
@@ -49,18 +49,11 @@ public struct LoginView: View {
                     
                     // Email Input
                     VStack(alignment: .leading, spacing: 4) {
-                        if isEmailFocused || !viewModel.email.isEmpty {
-                            Text("電子郵件")
-                                .foregroundColor(.white)
-                                .font(.caption)
-                                .transition(.move(edge: .top).combined(with: .opacity))
-                        }
-                        
                         HStack {
                             Image(systemName: "envelope")
                                 .foregroundColor(AppColors.primary)
                             
-                            TextField(viewModel.email.isEmpty ? "請輸入電子郵件" : "", text: $viewModel.email)
+                            TextField("請輸入電子郵件", text: $viewModel.email)
                                 .foregroundColor(AppColors.primary)
                                 .textInputAutocapitalization(.never)
                                 .keyboardType(.emailAddress)
@@ -75,31 +68,29 @@ public struct LoginView: View {
                     
                     // Password Input
                     VStack(alignment: .leading, spacing: 4) {
-                        if isPasswordFocused || !viewModel.password.isEmpty {
-                            Text("密碼")
-                                .foregroundColor(.white)
-                                .font(.caption)
-                                .transition(.move(edge: .top).combined(with: .opacity))
-                        }
-                        
                         HStack {
                             Image(systemName: "lock")
                                 .foregroundColor(AppColors.primary)
+                                .padding(.leading, 4)
                             
                             if isPasswordVisible {
-                                TextField(viewModel.password.isEmpty ? "請輸入密碼" : "", text: $viewModel.password)
+                                TextField("請輸入密碼", text: $viewModel.password)
                                     .foregroundColor(AppColors.primary)
                                     .textInputAutocapitalization(.never)
                                     .focused($isPasswordFocused)
+                                    .padding(.leading, 4)
                             } else {
-                                SecureField(viewModel.password.isEmpty ? "請輸入密碼" : "", text: $viewModel.password)
+                                SecureField("請輸入密碼", text: $viewModel.password)
                                     .foregroundColor(AppColors.primary)
                                     .textInputAutocapitalization(.never)
                                     .focused($isPasswordFocused)
+                                    .padding(.leading, 4)
                             }
                             
-                            Button(action: { isPasswordVisible.toggle() }) {
-                                Image(systemName: isPasswordVisible ? "eye.slash.fill" : "eye.fill")
+                            Button(action: {
+                                isPasswordVisible.toggle()
+                            }) {
+                                Image(systemName: isPasswordVisible ? "eye.fill" : "eye.slash.fill")
                                     .foregroundColor(AppColors.primary)
                             }
                         }
@@ -110,13 +101,23 @@ public struct LoginView: View {
                         )
                     }
                     
-                    // Forgot Password Button
-                    Button(action: { showForgotPassword = true }) {
-                        Text("忘記密碼？")
-                            .foregroundColor(AppColors.primary)
-                            .font(.footnote)
+                    // Forgot Password and Register buttons
+                    HStack {
+                        NavigationLink(destination: RegisterView()) {
+                            Text("註冊")
+                                .foregroundColor(AppColors.primary)
+                        }
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            showForgotPassword = true
+                        }) {
+                            Text("忘記密碼？")
+                                .foregroundColor(AppColors.primary)
+                        }
                     }
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.horizontal, 4)
                     
                     // Login Button
                     Button(action: {
