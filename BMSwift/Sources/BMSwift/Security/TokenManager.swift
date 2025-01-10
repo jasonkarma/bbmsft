@@ -33,9 +33,9 @@ public enum TokenError: LocalizedError {
 public protocol TokenManagerProtocol {
     var isTokenValid: Bool { get }
     var isAuthenticated: Bool { get }
-    func saveToken(_ token: String, expiry: String) throws
+    var token: String? { get }
+    func saveToken(_ token: String)
     func getToken() throws -> String
-    func getTokenExpiry() throws -> Date
     func clearToken()
 }
 
@@ -44,74 +44,74 @@ public class TokenManager: TokenManagerProtocol {
     public static let shared = TokenManager()
     
     private let tokenKey = "auth_token"
-    private let expirationKey = "token_expiration"
     
     private let userDefaults = UserDefaults.standard
     
     private init() {}
     
-    /// Check if current token is valid and not expired
     public var isTokenValid: Bool {
-        guard let token = try? getToken(),
-              let expiry = try? getTokenExpiry(),
-              !token.isEmpty else {
+        do {
+            _ = try getToken()
+            return true
+        } catch {
             return false
         }
-        return expiry > Date()
     }
     
-    /// Check if user is authenticated
     public var isAuthenticated: Bool {
-        guard let token = try? getToken(),
-              let _ = try? getTokenExpiry() else {
-            return false
+        isTokenValid
+    }
+    
+    public var token: String? {
+        try? getToken()
+    }
+    
+    public func saveToken(_ token: String) {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: tokenKey,
+            kSecValueData as String: token.data(using: .utf8)!,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+        ]
+        
+        // First try to delete any existing token
+        SecItemDelete(query as CFDictionary)
+        
+        // Then save the new token
+        let status = SecItemAdd(query as CFDictionary, nil)
+        if status != errSecSuccess {
+            print("Failed to save token with status: \(status)")
         }
-        return !token.isEmpty
     }
     
-    /// Save token and its expiry to the keychain
-    /// - Parameters:
-    ///   - token: The authentication token
-    ///   - expiry: Token expiry date string
-    public func saveToken(_ token: String, expiry: String) throws {
-        userDefaults.set(token, forKey: tokenKey)
-        userDefaults.set(expiry, forKey: expirationKey)
-    }
-    
-    /// Retrieve the current token from keychain
-    /// - Returns: The current authentication token
-    /// - Throws: TokenError if token is not found or keychain error occurs
     public func getToken() throws -> String {
-        guard let token = userDefaults.string(forKey: tokenKey) else {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: tokenKey,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        
+        guard status == errSecSuccess,
+              let data = result as? Data,
+              let token = String(data: data, encoding: .utf8)
+        else {
             throw TokenError.notFound
         }
+        
         return token
     }
     
-    /// Retrieve the token expiry date
-    /// - Returns: Token expiry date
-    /// - Throws: TokenError if expiry is not found or invalid
-    public func getTokenExpiry() throws -> Date {
-        guard let expiry = userDefaults.string(forKey: expirationKey) else {
-            throw TokenError.notFound
-        }
-        
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(identifier: "UTC")
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        
-        guard let expiryDate = formatter.date(from: expiry) else {
-            throw TokenError.invalidDate
-        }
-        
-        return expiryDate
-    }
-    
-    /// Remove token and expiry from keychain
     public func clearToken() {
-        userDefaults.removeObject(forKey: tokenKey)
-        userDefaults.removeObject(forKey: expirationKey)
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: tokenKey
+        ]
+        
+        SecItemDelete(query as CFDictionary)
     }
 }
 #endif

@@ -10,6 +10,7 @@ public class LoginViewModel: ObservableObject {
     @Published var isLoggedIn = false
     @Published var errorMessage: String?
     @Published var showPasswordWarning = false
+    @Published private(set) var token: String?
     
     private let apiService = APIService.shared
     private let tokenManager = TokenManager.shared
@@ -17,6 +18,7 @@ public class LoginViewModel: ObservableObject {
     public init() {
         // Check if user is already logged in
         isLoggedIn = tokenManager.isAuthenticated
+        token = tokenManager.token
     }
     
     public func login() async {
@@ -40,7 +42,8 @@ public class LoginViewModel: ObservableObject {
             print("Login successful: \(response)")  // Debug print
             
             // Save token
-            try tokenManager.saveToken(response.token, expiry: response.expiredAt)
+            token = response.token
+            tokenManager.saveToken(response.token)
             isLoggedIn = true
             
             if response.firstLogin {

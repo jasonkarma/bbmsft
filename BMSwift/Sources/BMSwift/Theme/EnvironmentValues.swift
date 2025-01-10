@@ -24,6 +24,19 @@ extension EnvironmentValues {
 }
 
 @available(iOS 13.0, *)
+private struct AuthTokenKey: EnvironmentKey {
+    static let defaultValue: String? = nil
+}
+
+@available(iOS 13.0, *)
+extension EnvironmentValues {
+    var authToken: String? {
+        get { self[AuthTokenKey.self] }
+        set { self[AuthTokenKey.self] = newValue }
+    }
+}
+
+@available(iOS 13.0, *)
 extension View {
     func provideDismissAction(_ action: @escaping () -> Void) -> some View {
         environment(\.dismissAction, DismissAction(action: action))

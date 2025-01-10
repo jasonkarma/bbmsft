@@ -36,7 +36,9 @@ public struct LoginView: View {
             }
         }
         .fullScreenCover(isPresented: $viewModel.isLoggedIn) {
-            EncyclopediaView()
+            if let token = viewModel.token {
+                EncyclopediaView(isPresented: $viewModel.isLoggedIn, token: token)
+            }
         }
     }
     
