@@ -12,7 +12,7 @@ public class LoginViewModel: ObservableObject {
     @Published var showPasswordWarning = false
     @Published private(set) var token: String?
     
-    private let apiService = APIService.shared
+    private let apiService = AuthAPIService.shared
     private let tokenManager = TokenManager.shared
     
     public init() {

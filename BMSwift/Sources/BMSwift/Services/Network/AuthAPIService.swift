@@ -58,75 +58,6 @@ public struct ErrorResponse: Codable {
     }
 }
 
-// MARK: - Encyclopedia Models
-public struct FrontPageContent: Codable {
-    let hotContents: [ArticlePreview]
-    let latestContents: [ArticlePreview]
-}
-
-public struct ArticlePreview: Codable, Identifiable {
-    public var id: Int { bp_subsection_id }
-    let bp_subsection_id: Int
-    let bp_subsection_title: String
-    let bp_subsection_intro: String
-    let media_name: String
-    let visit: Int
-    let likecount: Int
-    let platform: Int
-    let clientlike: Int
-    let clientvisit: Int
-    let clientkeep: Int
-}
-
-public struct ArticleDetail: Codable {
-    let info: ArticleInfo
-    let cnt: [ArticleContent]
-    let keywords: [Keyword]
-    let suggests: [ArticleSuggestion]
-    let chapters: [Chapter]
-    let clientsAction: ClientActions
-}
-
-public struct ArticleInfo: Codable {
-    let bp_subsection_id: Int
-    let bp_subsection_title: String
-    let platform: Int
-    let bp_subsection_intro: String
-    let name: String
-    let bp_subsection_state: Int
-    let visit: Int
-    let bp_subsection_first_enabled_at: String
-    let likecount: Int
-}
-
-public struct ArticleContent: Codable {
-    let type: Int
-    let title: String
-    let cnt: String
-}
-
-public struct Keyword: Codable {
-    let bp_hashtag: String
-    let bp_tag_id: Int
-}
-
-public struct ArticleSuggestion: Codable {
-    let bp_subsection_id: Int
-    let bp_subsection_title: String
-    let bp_subsection_intro: String
-    let name: String
-}
-
-public struct Chapter: Codable {
-    let bp_chapter_id: Int
-    let bp_chapter_name: String
-}
-
-public struct ClientActions: Codable {
-    let keep: Bool
-    let like: Bool
-}
-
 // MARK: - Network Error
 public enum APIError: LocalizedError {
     case invalidURL
@@ -157,10 +88,10 @@ public enum APIError: LocalizedError {
     }
 }
 
-// MARK: - API Service
-public class APIService {
+// MARK: - Auth API Service
+public class AuthAPIService {
     private let baseURL = "https://wiki.kinglyrobot.com/api"
-    public static let shared = APIService()
+    public static let shared = AuthAPIService()
     
     private init() {}
     
@@ -169,12 +100,6 @@ public class APIService {
         static let login = "/login"
         static let register = "/register"
         static let forgotPassword = "/forgot-password"
-    }
-    
-    // MARK: - Encyclopedia Endpoints
-    private enum EncyclopediaEndpoint {
-        static let frontPageContent = "/beauty/frontPageContent"
-        static let articleDetail = "/pageContentArticle/"  // Append article ID
     }
     
     // MARK: - Authentication Methods
@@ -201,23 +126,6 @@ public class APIService {
     public func logout() {
         // Clear any stored tokens or user data
         // Add token clearing logic here if needed
-    }
-    
-    // MARK: - Encyclopedia Methods
-    public func getFrontPageContent(token: String) async throws -> FrontPageContent {
-        return try await makeRequest(
-            EncyclopediaEndpoint.frontPageContent,
-            method: "GET",
-            token: token
-        )
-    }
-    
-    public func getArticleDetail(id: Int, token: String) async throws -> ArticleDetail {
-        return try await makeRequest(
-            EncyclopediaEndpoint.articleDetail + "\(id)",
-            method: "GET",
-            token: token
-        )
     }
     
     private func makeRequest<T: Codable>(_ endpoint: String,

@@ -15,7 +15,7 @@ class RegisterViewModel: ObservableObject {
     @Published var isRegistered = false
     @Published var showPasswordWarning = false
     
-    private let apiService = APIService.shared
+    private let apiService = AuthAPIService.shared
     
     func register() async {
         isLoading = true

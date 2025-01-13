@@ -7,7 +7,7 @@ public class EncyclopediaViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: Error?
     
-    private let apiService = APIService.shared
+    private let apiService = EncyclopediaAPIService.shared
     
     public init() {}
     

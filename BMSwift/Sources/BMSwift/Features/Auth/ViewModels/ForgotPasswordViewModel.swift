@@ -10,7 +10,7 @@ public class ForgotPasswordViewModel: ObservableObject {
     @Published public var errorMessage: String?
     @Published public var successMessage: String?
     
-    private let apiService = APIService.shared
+    private let apiService = AuthAPIService.shared
     
     public init() {}
     
