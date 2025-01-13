@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		4689A4BDB0EDC5940CC51C8F /* BMSwiftApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1056F06C73670410B594C55D /* BMSwiftApp.swift */; };
 		6385D1E9C2E0F87EB6DA19DA /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = E795E0750ADF018C6512193E /* SceneDelegate.swift */; };
+		8EAF8C0915F3C092FF5CFD2A /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = EF62F0DFCB5F13EFCA433AC1 /* KeychainAccess */; };
 		A5DFB13DC348B5239396EE7E /* BMSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 569EF1CE00A459C717B9F015 /* BMSwift */; };
 		B240D811FF6B63075C9EC49D /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98972C3194013BF6FEE1CFDF /* SwiftUI.framework */; };
 		BAE34D02D30C91BEFA1E81A3 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98296A7A5128A4CB5C323E6C /* UIKit.framework */; };
@@ -37,7 +38,7 @@
 		98296A7A5128A4CB5C323E6C /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = UIKit.framework; sourceTree = "<group>"; };
 		98972C3194013BF6FEE1CFDF /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = SwiftUI.framework; sourceTree = "<group>"; };
 		AFC62A53C0041AFB96690E6C /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
-		E74A819B248D867AC5A36621 /* BMSwift */ = {isa = PBXFileReference; lastKnownFileType = folder; name = BMSwift; path = ../BMSwift; sourceTree = SOURCE_ROOT; };
+		CDD5A85220BC7525EDCA705B /* bbmsft */ = {isa = PBXFileReference; lastKnownFileType = folder; name = bbmsft; path = ..; sourceTree = SOURCE_ROOT; };
 		E795E0750ADF018C6512193E /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		EEE92596DB57682D983B600C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		F8D3B1DF5D286D386431CA8D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -49,6 +50,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A5DFB13DC348B5239396EE7E /* BMSwift in Frameworks */,
+				8EAF8C0915F3C092FF5CFD2A /* KeychainAccess in Frameworks */,
 				BAE34D02D30C91BEFA1E81A3 /* UIKit.framework in Frameworks */,
 				B240D811FF6B63075C9EC49D /* SwiftUI.framework in Frameworks */,
 				E5F8EFE1797987AB2DF0A63C /* Foundation.framework in Frameworks */,
@@ -66,13 +68,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		2B3524A485E317EBE3293471 /* App */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = App;
-			sourceTree = "<group>";
-		};
 		39488944EF01F02B7E0A38CF /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -86,7 +81,7 @@
 		425606F8650A49F7B597C65D /* Packages */ = {
 			isa = PBXGroup;
 			children = (
-				E74A819B248D867AC5A36621 /* BMSwift */,
+				CDD5A85220BC7525EDCA705B /* bbmsft */,
 			);
 			name = Packages;
 			sourceTree = "<group>";
@@ -108,7 +103,6 @@
 				1056F06C73670410B594C55D /* BMSwiftApp.swift */,
 				EEE92596DB57682D983B600C /* Info.plist */,
 				E795E0750ADF018C6512193E /* SceneDelegate.swift */,
-				2B3524A485E317EBE3293471 /* App */,
 			);
 			path = BMSwiftApp;
 			sourceTree = "<group>";
@@ -132,6 +126,7 @@
 			name = BMSwiftApp;
 			packageProductDependencies = (
 				569EF1CE00A459C717B9F015 /* BMSwift */,
+				EF62F0DFCB5F13EFCA433AC1 /* KeychainAccess */,
 			);
 			productName = BMSwiftApp;
 			productReference = 4A77905985D04C2673AE1FA4 /* BMSwiftApp.app */;
@@ -161,7 +156,8 @@
 			);
 			mainGroup = 692489FB488BB502A31E1CFC;
 			packageReferences = (
-				431EDA4712C5FDD9017CA1D2 /* XCLocalSwiftPackageReference "../BMSwift" */,
+				BFC4F2323682A7AC45983842 /* XCRemoteSwiftPackageReference "KeychainAccess" */,
+				3306B653BC0265B0F4C8CEB2 /* XCLocalSwiftPackageReference ".." */,
 			);
 			projectDirPath = "";
 			projectRoot = "";
@@ -215,6 +211,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = JM4Y7GQKZW;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SDKROOT)/System/Library/Frameworks",
@@ -235,7 +232,6 @@
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/../BMSwift/Sources";
-				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -277,7 +273,6 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -341,7 +336,6 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -370,6 +364,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = JM4Y7GQKZW;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SDKROOT)/System/Library/Frameworks",
@@ -390,7 +385,6 @@
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/../BMSwift/Sources";
-				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -419,16 +413,32 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		431EDA4712C5FDD9017CA1D2 /* XCLocalSwiftPackageReference "../BMSwift" */ = {
+		3306B653BC0265B0F4C8CEB2 /* XCLocalSwiftPackageReference ".." */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = ../BMSwift;
+			relativePath = ..;
 		};
 /* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		BFC4F2323682A7AC45983842 /* XCRemoteSwiftPackageReference "KeychainAccess" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kishikawakatsumi/KeychainAccess.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.2.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		569EF1CE00A459C717B9F015 /* BMSwift */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = BMSwift;
+		};
+		EF62F0DFCB5F13EFCA433AC1 /* KeychainAccess */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BFC4F2323682A7AC45983842 /* XCRemoteSwiftPackageReference "KeychainAccess" */;
+			productName = KeychainAccess;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

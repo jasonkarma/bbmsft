@@ -1,6 +1,5 @@
 #if canImport(SwiftUI)
 import SwiftUI
-import BMSwift
 
 public struct ArticleCardView: View {
     let article: ArticlePreview

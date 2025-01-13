@@ -1,6 +1,5 @@
 #if canImport(SwiftUI) && os(iOS)
 import SwiftUI
-import BMSwift
 
 public struct EncyclopediaView: View {
     @StateObject private var viewModel = EncyclopediaViewModel()
