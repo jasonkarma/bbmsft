@@ -15,10 +15,48 @@ public enum AuthModels {
     
     public struct LoginResponse: Codable {
         public let token: String
+        public let expiresAt: Date
         public let firstLogin: Bool
         
-        public init(token: String, firstLogin: Bool) {
+        private enum CodingKeys: String, CodingKey {
+            case token
+            case expiresAt = "expires_at"
+            case firstLogin = "first_login"
+        }
+        
+        public init(from decoder: Decoder) throws {
+            // First decode into a temporary structure to handle the raw values
+            struct TempLoginResponse: Codable {
+                let token: String
+                let expires_at: String
+                let first_login: Bool
+            }
+            
+            // Decode the raw response first
+            let temp = try TempLoginResponse(from: decoder)
+            
+            // Now assign the values with proper transformations
+            self.token = temp.token
+            
+            // Parse the date string
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+            formatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
+            
+            guard let date = formatter.date(from: temp.expires_at) else {
+                throw DecodingError.dataCorrupted(.init(
+                    codingPath: [CodingKeys.expiresAt],
+                    debugDescription: "Date string does not match expected format: \(temp.expires_at)"
+                ))
+            }
+            
+            self.expiresAt = date
+            self.firstLogin = temp.first_login
+        }
+        
+        public init(token: String, expiresAt: Date, firstLogin: Bool) {
             self.token = token
+            self.expiresAt = expiresAt
             self.firstLogin = firstLogin
         }
     }

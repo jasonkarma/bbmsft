@@ -1,53 +1,90 @@
 import Foundation
 
 extension BMNetwork {
+    struct ErrorResponse: Codable {
+        let error: String
+    }
+    
     public final class NetworkClient {
         // MARK: - Properties
         private let baseURL: URL
         private let session: URLSession
-        private let decoder: JSONDecoder
+        
+        // MARK: - Shared Instance
+        public static let shared = NetworkClient(baseURL: URL(string: "https://wiki.kinglyrobot.com")!)
         
         // MARK: - Initialization
         public init(baseURL: URL,
-                   session: URLSession = .shared,
-                   decoder: JSONDecoder = JSONDecoder()) {
+                   session: URLSession = .shared) {
             self.baseURL = baseURL
             self.session = session
-            self.decoder = decoder
-            
-            // Configure decoder
-            decoder.keyDecodingStrategy = .convertFromSnakeCase
-            decoder.dateDecodingStrategy = .iso8601
         }
         
         // MARK: - API Methods
-        public func send<E: BMNetworkAPIEndpoint>(_ request: BMNetworkAPIRequest<E>) async throws -> E.ResponseType {
+        public func send<E: BMNetwork.APIEndpoint>(_ request: BMNetwork.APIRequest<E>) async throws -> E.ResponseType {
             let urlRequest = try createURLRequest(for: request)
             
             let (data, response) = try await session.data(for: urlRequest)
             
             guard let httpResponse = response as? HTTPURLResponse else {
-                throw BMNetworkAPIError.invalidResponse
+                throw BMNetwork.APIError.invalidResponse
+            }
+            
+            // Debug logging
+            print("Response Status Code: \(httpResponse.statusCode)")
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("Raw Response Body: \(responseString)")
+                
+                // Try parsing as dictionary for debugging
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    print("JSON Keys: \(json.keys.joined(separator: ", "))")
+                }
             }
             
             switch httpResponse.statusCode {
             case 200...299:
-                return try decoder.decode(E.ResponseType.self, from: data)
+                do {
+                    // Create a fresh decoder for each request
+                    let decoder = JSONDecoder()
+                    
+                    // Configure decoder for date formatting only
+                    let dateFormatter = DateFormatter()
+                    dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+                    decoder.dateDecodingStrategy = .formatted(dateFormatter)
+                    
+                    // Print raw JSON structure for debugging
+                    if let jsonObject = try? JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed) {
+                        print("Parsed JSON structure: \(jsonObject)")
+                    }
+                    
+                    return try decoder.decode(E.ResponseType.self, from: data)
+                } catch {
+                    print("Decoding error: \(error)")
+                    throw error
+                }
             case 401:
-                throw BMNetworkAPIError.unauthorized
+                if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+                    throw BMNetwork.APIError.serverError(errorResponse.error)
+                }
+                throw BMNetwork.APIError.unauthorized
             case 404:
-                throw BMNetworkAPIError.notFound
+                if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+                    throw BMNetwork.APIError.serverError(errorResponse.error)
+                }
+                throw BMNetwork.APIError.notFound
             default:
-                if let errorMessage = String(data: data, encoding: .utf8) {
-                    throw BMNetworkAPIError.serverError(errorMessage)
+                if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+                    throw BMNetwork.APIError.serverError(errorResponse.error)
+                } else if let errorMessage = String(data: data, encoding: .utf8) {
+                    throw BMNetwork.APIError.serverError(errorMessage)
                 } else {
-                    throw BMNetworkAPIError.serverError("Unknown server error")
+                    throw BMNetwork.APIError.serverError("Unknown server error")
                 }
             }
         }
         
         // MARK: - Helper Methods
-        private func createURLRequest<E: BMNetworkAPIEndpoint>(for request: BMNetworkAPIRequest<E>) throws -> URLRequest {
+        private func createURLRequest<E: BMNetwork.APIEndpoint>(for request: BMNetwork.APIRequest<E>) throws -> URLRequest {
             // Create URL components
             var components = URLComponents()
             components.scheme = baseURL.scheme
@@ -57,12 +94,15 @@ extension BMNetwork {
             
             // Create URL
             guard let url = components.url else {
-                throw BMNetworkAPIError.invalidURL
+                throw BMNetwork.APIError.invalidURL
             }
             
             // Create URLRequest
             var urlRequest = URLRequest(url: url)
             urlRequest.httpMethod = request.endpoint.method.rawValue
+            
+            // Set Content-Type header for JSON
+            urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
             
             // Add headers
             request.endpoint.headers.forEach { urlRequest.setValue($1, forHTTPHeaderField: $0) }
@@ -77,7 +117,17 @@ extension BMNetwork {
                 let encoder = JSONEncoder()
                 encoder.keyEncodingStrategy = .convertToSnakeCase
                 urlRequest.httpBody = try encoder.encode(body)
+                
+                // Debug logging
+                if let jsonString = String(data: urlRequest.httpBody!, encoding: .utf8) {
+                    print("Request Body: \(jsonString)")
+                }
             }
+            
+            // Debug logging
+            print("Request URL: \(urlRequest.url?.absoluteString ?? "")")
+            print("Request Method: \(urlRequest.httpMethod ?? "")")
+            print("Request Headers: \(urlRequest.allHTTPHeaderFields ?? [:])")
             
             return urlRequest
         }

@@ -1,9 +1,8 @@
 #if canImport(SwiftUI) && os(iOS)
 import Foundation
-import Combine
 
 @MainActor
-class RegisterViewModel: ObservableObject {
+public class RegisterViewModel: ObservableObject {
     @Published var username = ""
     @Published var password = ""
     @Published var email = ""
@@ -15,7 +14,11 @@ class RegisterViewModel: ObservableObject {
     @Published var isRegistered = false
     @Published var showPasswordWarning = false
     
-    private let apiService = APIService.shared
+    private let client: BMNetwork.NetworkClient
+    
+    public init(client: BMNetwork.NetworkClient = BMNetwork.NetworkClient.shared) {
+        self.client = client
+    }
     
     func register() async {
         isLoading = true
@@ -29,21 +32,20 @@ class RegisterViewModel: ObservableObject {
         }
         
         do {
-            _ = try await apiService.register(
-                username: username,
+            let request = AuthEndpoints.register(
                 email: email,
-                password: password
+                password: password,
+                username: username
             )
+            let response = try await client.send(request)
             
             // Show success alert
-            alertMessage = "註冊成功"
+            alertMessage = response.message
             showAlert = true
             isRegistered = true
             
-        } catch let error as APIError {
-            errorMessage = error.errorDescription
         } catch {
-            errorMessage = "發生未知錯誤"
+            errorMessage = error.localizedDescription
         }
         
         isLoading = false
@@ -54,7 +56,7 @@ class RegisterViewModel: ObservableObject {
         shouldDismiss = true  // Always dismiss when alert is closed
     }
     
-    func isValidPassword(_ password: String) -> Bool {
+    private func isValidPassword(_ password: String) -> Bool {
         let minLength = 8
         let hasUppercase = password.contains(where: { $0.isUppercase })
         let hasLowercase = password.contains(where: { $0.isLowercase })

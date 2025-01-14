@@ -3,14 +3,15 @@ import Foundation
 /// Protocol defining the authentication service interface
 public protocol AuthServiceProtocol {
     func login(email: String, password: String) async throws -> AuthModels.LoginResponse
-    func register(email: String, password: String, username: String) async throws -> AuthModels.RegisterResponse
-    func verifyEmail(token: String) async throws -> AuthModels.VerifyEmailResponse
-    func resetPassword(token: String, newPassword: String) async throws -> AuthModels.ResetPasswordResponse
-    func forgotPassword(email: String) async throws -> AuthModels.ForgotPasswordResponse
+    func register(email: String, password: String, username: String) async throws -> AuthEndpoints.RegisterResponse
+    func forgotPassword(email: String) async throws -> AuthEndpoints.ForgotPasswordResponse
 }
 
 /// Default implementation of AuthService
 public final class AuthService: AuthServiceProtocol {
+    // MARK: - Shared Instance
+    public static let shared = AuthService(client: BMNetwork.NetworkClient(baseURL: URL(string: "https://wiki.kinglyrobot.com")!))
+    
     // MARK: - Properties
     private let client: BMNetwork.NetworkClient
     
@@ -21,26 +22,17 @@ public final class AuthService: AuthServiceProtocol {
     
     // MARK: - AuthService Methods
     public func login(email: String, password: String) async throws -> AuthModels.LoginResponse {
+        print("[Login] Making login request...")
         let request = AuthEndpoints.login(email: email, password: password)
         return try await client.send(request)
     }
     
-    public func register(email: String, password: String, username: String) async throws -> AuthModels.RegisterResponse {
+    public func register(email: String, password: String, username: String) async throws -> AuthEndpoints.RegisterResponse {
         let request = AuthEndpoints.register(email: email, password: password, username: username)
         return try await client.send(request)
     }
     
-    public func verifyEmail(token: String) async throws -> AuthModels.VerifyEmailResponse {
-        let request = AuthEndpoints.verifyEmail(token: token)
-        return try await client.send(request)
-    }
-    
-    public func resetPassword(token: String, newPassword: String) async throws -> AuthModels.ResetPasswordResponse {
-        let request = AuthEndpoints.resetPassword(token: token, newPassword: newPassword)
-        return try await client.send(request)
-    }
-    
-    public func forgotPassword(email: String) async throws -> AuthModels.ForgotPasswordResponse {
+    public func forgotPassword(email: String) async throws -> AuthEndpoints.ForgotPasswordResponse {
         let request = AuthEndpoints.forgotPassword(email: email)
         return try await client.send(request)
     }

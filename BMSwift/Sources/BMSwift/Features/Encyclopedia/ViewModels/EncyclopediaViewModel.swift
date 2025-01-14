@@ -6,8 +6,9 @@
 //
 
 import Foundation
+import SwiftUI
 
-/// View model for the Encyclopedia feature
+/// View model for the encyclopedia view
 /// Manages the state and business logic for encyclopedia content
 @MainActor
 public final class EncyclopediaViewModel: ObservableObject {
@@ -17,7 +18,7 @@ public final class EncyclopediaViewModel: ObservableObject {
     @Published private(set) var state: ViewState = .idle
     
     /// Current error if any
-    @Published var error: APIError?
+    @Published var error: BMNetwork.APIError?
     
     /// Front page content
     @Published var frontPageContent: FrontPageResponse?
@@ -25,91 +26,104 @@ public final class EncyclopediaViewModel: ObservableObject {
     /// Currently displayed article
     @Published var currentArticle: ArticleResponse?
     
-    // MARK: - Private Properties
+    /// Hot articles from front page
+    @Published private(set) var hotArticles: [ArticlePreview] = []
     
+    /// Latest articles from front page
+    @Published private(set) var latestArticles: [ArticlePreview] = []
+    
+    /// Loading state
+    @Published private(set) var isLoading: Bool = false
+    
+    // MARK: - Private Properties
     private let encyclopediaService: EncyclopediaServiceProtocol
-    private let authManager: AuthManagerProtocol
+    private let authActor: AuthenticationActor
+    private let token: String
     
     // MARK: - Initialization
     
     /// Creates a new instance of EncyclopediaViewModel
     /// - Parameters:
-    ///   - encyclopediaService: Service for fetching encyclopedia content
-    ///   - authManager: Manager for handling authentication state
+    ///   - token: Authentication token for API requests
+    ///   - client: Network client for making API requests
+    ///   - authActor: Actor for handling authentication state
     public init(
-        encyclopediaService: EncyclopediaServiceProtocol,
-        authManager: AuthManagerProtocol
+        token: String,
+        client: BMNetwork.NetworkClient = BMNetwork.NetworkClient.shared,
+        authActor: AuthenticationActor = .shared
     ) {
-        self.encyclopediaService = encyclopediaService
-        self.authManager = authManager
+        print("[Encyclopedia] Initializing with token: \(token.prefix(10))...")
+        self.token = token
+        self.encyclopediaService = EncyclopediaService(client: client)
+        self.authActor = authActor
     }
     
     // MARK: - Public Methods
     
     /// Loads the front page content
     public func loadFrontPageContent() async {
+        print("[Encyclopedia] Loading front page content...")
+        isLoading = true
         state = .loading
         
         do {
-            guard let authToken = authManager.currentToken else {
-                throw APIError.unauthorized
-            }
-            
-            let content = try await encyclopediaService.getFrontPageContent(authToken: authToken)
+            let content = try await encyclopediaService.getFrontPageContent(authToken: token)
+            print("[Encyclopedia] Content loaded successfully")
             frontPageContent = content
+            hotArticles = content.hotContents
+            latestArticles = content.latestContents
             state = .success(content)
-        } catch let error as APIError {
-            self.error = error
-            state = .error(error)
         } catch {
-            let apiError = APIError.networkError(error)
-            self.error = apiError
-            state = .error(apiError)
+            print("[Encyclopedia] Failed to load content: \(error)")
+            self.error = error as? BMNetwork.APIError ?? .networkError(error)
+            state = .error(self.error!)
         }
+        
+        isLoading = false
     }
     
     /// Loads a specific article
-    /// - Parameter id: Article identifier
     public func loadArticle(id: Int) async {
+        isLoading = true
         state = .loading
         
         do {
-            guard let authToken = authManager.currentToken else {
-                throw APIError.unauthorized
-            }
-            
-            let article = try await encyclopediaService.getArticle(id: id, authToken: authToken)
+            let article = try await encyclopediaService.getArticle(id: id, authToken: token)
             currentArticle = article
             state = .success(article)
             
             // Record the visit
-            try await encyclopediaService.visitArticle(id: id)
-        } catch let error as APIError {
-            self.error = error
-            state = .error(error)
+            await visitArticle(id: id)
         } catch {
-            let apiError = APIError.networkError(error)
-            self.error = apiError
-            state = .error(apiError)
+            self.error = error as? BMNetwork.APIError ?? .networkError(error)
+            state = .error(self.error!)
         }
+        
+        isLoading = false
     }
     
     /// Likes an article
-    /// - Parameter id: Article identifier
     public func likeArticle(id: Int) async {
         do {
-            try await encyclopediaService.likeArticle(id: id)
+            try await encyclopediaService.likeArticle(id: id, authToken: token)
+            // Optionally refresh the article to show updated like status
+            await loadArticle(id: id)
         } catch {
-            self.error = APIError.networkError(error)
+            self.error = error as? BMNetwork.APIError ?? .networkError(error)
         }
     }
-}
-
-// MARK: - View State
-
-extension EncyclopediaViewModel {
-    /// Represents the different states of the view
-    enum ViewState {
+    
+    /// Records a visit to an article
+    public func visitArticle(id: Int) async {
+        do {
+            try await encyclopediaService.visitArticle(id: id, authToken: token)
+        } catch {
+            self.error = error as? BMNetwork.APIError ?? .networkError(error)
+        }
+    }
+    
+    // MARK: - View State
+    public enum ViewState {
         case idle
         case loading
         case success(Any)

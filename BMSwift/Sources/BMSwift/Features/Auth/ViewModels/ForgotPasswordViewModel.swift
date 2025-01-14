@@ -10,9 +10,11 @@ public class ForgotPasswordViewModel: ObservableObject {
     @Published public var errorMessage: String?
     @Published public var successMessage: String?
     
-    private let apiService = APIService.shared
+    private let authService: AuthService
     
-    public init() {}
+    public init(authService: AuthService = .shared) {
+        self.authService = authService
+    }
     
     public func sendResetEmail() async {
         guard !email.isEmpty else {
@@ -25,10 +27,10 @@ public class ForgotPasswordViewModel: ObservableObject {
         successMessage = nil
         
         do {
-            let response = try await apiService.forgotPassword(email: email)
+            let response = try await authService.forgotPassword(email: email)
             successMessage = response.message
             email = "" // Clear email after successful request
-        } catch let error as APIError {
+        } catch let error as BMNetwork.APIError {
             errorMessage = error.localizedDescription
         } catch {
             errorMessage = "發生錯誤，請稍後再試"

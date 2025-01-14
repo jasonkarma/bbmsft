@@ -2,7 +2,7 @@
 import SwiftUI
 
 public struct EncyclopediaView: View {
-    @StateObject private var viewModel = EncyclopediaViewModel()
+    @StateObject private var viewModel: EncyclopediaViewModel
     @State private var selectedTab = 0
     @Binding var isPresented: Bool
     private let token: String
@@ -10,12 +10,13 @@ public struct EncyclopediaView: View {
     public init(isPresented: Binding<Bool>, token: String) {
         self._isPresented = isPresented
         self.token = token
+        self._viewModel = StateObject(wrappedValue: EncyclopediaViewModel(token: token))
     }
     
     public var body: some View {
         contentView
             .task {
-                await viewModel.loadFrontPageContent(token: token)
+                await viewModel.loadFrontPageContent()
             }
     }
     
@@ -27,8 +28,9 @@ public struct EncyclopediaView: View {
                 ScrollView {
                     VStack(spacing: 16) {
                         if !viewModel.hotArticles.isEmpty {
-                            articleSection(title: "熱門文章", articles: viewModel.hotArticles)
+                            articleSection(title: "热门文章", articles: viewModel.hotArticles)
                         }
+                        
                         if !viewModel.latestArticles.isEmpty {
                             articleSection(title: "最新文章", articles: viewModel.latestArticles)
                         }
@@ -49,118 +51,54 @@ public struct EncyclopediaView: View {
         }
     }
     
-    private var voiceCommandArea: some View {
-        HStack {
-            Text("取得美容百科文章資料 10 篇")
+    private func articleSection(title: String, articles: [ArticlePreview]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.title3)
                 .foregroundColor(.white)
+                .padding(.horizontal)
             
-            Spacer()
-            
-            voiceCommandButton
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 16) {
+                    ForEach(articles, id: \.id) { article in
+                        ArticleCardView(article: article)
+                            .task {
+                                await viewModel.loadArticle(id: article.id)
+                            }
+                    }
+                }
+                .padding(.horizontal)
+            }
         }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
     }
     
-    private var voiceCommandButton: some View {
-        Button(action: {
-            // Voice command functionality will be implemented later
-        }) {
+    private var voiceCommandArea: some View {
+        HStack {
             Image(systemName: "mic.fill")
-                .font(.system(size: 24))
                 .foregroundColor(.white)
-                .frame(width: 44, height: 44)
-                .background(Circle().stroke(Color.white, lineWidth: 2))
+                .font(.title2)
+            
+            Text("按住说话")
+                .foregroundColor(.white)
+                .font(.body)
         }
+        .frame(maxWidth: .infinity)
+        .padding()
     }
     
     private var smartDeviceStats: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Image(systemName: "heart.fill")
-                    .foregroundColor(.blue)
-                Text("心率")
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-                Image(systemName: "figure.walk")
-                    .foregroundColor(.green)
-                Text("步數")
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-                Image(systemName: "drop.fill")
-                    .foregroundColor(.blue)
-                Text("消耗")
-                    .foregroundColor(.white)
-            }
-            .font(.system(size: 12))
-            .padding(.horizontal)
-
-            HStack(spacing: 0) {
-                // Y-axis values
-                VStack(alignment: .trailing, spacing: 0) {
-                    Text("200")
-                        .foregroundColor(.white)
-                        .font(.system(size: 10))
-                    Spacer()
-                    Text("100")
-                        .foregroundColor(.white)
-                        .font(.system(size: 10))
-                    Spacer()
-                    Text("0")
-                        .foregroundColor(.white)
-                        .font(.system(size: 10))
-                }
-                .frame(width: 25)
-                .padding(.trailing, 4)
-                
-                // Bars
-                HStack(alignment: .bottom, spacing: 0) {
-                    ForEach(0..<5) { index in
-                        VStack(spacing: 2) {
-                            Rectangle()
-                                .fill(Color.yellow.opacity(0.8))
-                                .frame(width: 16, height: CGFloat.random(in: 15...50))
-                            
-                            Text("\(index * 6)")
-                                .font(.system(size: 10))
-                                .foregroundColor(.white)
-                        }
-                        if index < 4 {
-                            Spacer()
-                        }
-                    }
-                }
-                .padding(.horizontal)
-            }
-            .frame(height: 60)
-        }
-        .padding(.vertical, 6)
-    }
-    
-    private func articleSection(title: String, articles: [ArticlePreview]) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.system(size: 18, weight: .medium))
+        HStack {
+            Text("智能设备")
                 .foregroundColor(.white)
-                .padding(.horizontal)
+                .font(.body)
             
-            if viewModel.isLoading {
-                ProgressView()
-                    .tint(.white)
-                    .frame(maxWidth: .infinity)
-            } else {
-                ForEach(articles) { article in
-                    ArticleCardView(article: article) {
-                        // Handle article tap
-                    }
-                    .padding(.horizontal)
-                }
-            }
+            Spacer()
+            
+            Text("0")
+                .foregroundColor(.white)
+                .font(.body)
         }
+        .padding()
     }
     
     private var bottomNavigation: some View {
@@ -189,7 +127,7 @@ public struct EncyclopediaView: View {
         case 0: return "AI功能"
         case 1: return "文章"
         case 2: return "收藏"
-        case 3: return "設定"
+        case 3: return "设置"
         default: return ""
         }
     }

@@ -2,14 +2,18 @@
 import SwiftUI
 
 public struct LoginView: View {
-    @StateObject private var viewModel = LoginViewModel()
+    @StateObject private var viewModel: LoginViewModel
+    @State private var showEncyclopedia = false
+    
     @FocusState private var isEmailFocused: Bool
     @FocusState private var isPasswordFocused: Bool
     @State private var isPasswordVisible: Bool = false
     @State private var showForgotPassword: Bool = false
     @State private var showRegister: Bool = false
     
-    public init() {}
+    public init() {
+        _viewModel = StateObject(wrappedValue: LoginViewModel())
+    }
     
     public var body: some View {
         NavigationView {
@@ -17,15 +21,13 @@ public struct LoginView: View {
                 AppColors.primaryBg
                     .ignoresSafeArea()
                 
-                Group {
-                    if viewModel.isLoggedIn {
-                        loggedInView
-                    } else {
-                        loginFormView
-                    }
-                }
+                loginFormView
             }
             .navigationBarHidden(true)
+            .task {
+                print("[LoginView] Checking authentication status...")
+                await viewModel.checkAuthenticationStatus()
+            }
         }
         .sheet(isPresented: $showForgotPassword) {
             ForgotPasswordView(isPresented: $showForgotPassword)
@@ -35,9 +37,26 @@ public struct LoginView: View {
                 RegisterView(isPresented: $showRegister)
             }
         }
-        .fullScreenCover(isPresented: $viewModel.isLoggedIn) {
-            if let token = viewModel.token {
-                EncyclopediaView(isPresented: $viewModel.isLoggedIn, token: token)
+        .onChange(of: viewModel.isLoggedIn) { isLoggedIn in
+            print("[LoginView] isLoggedIn changed to: \(isLoggedIn)")
+            if isLoggedIn, let _ = viewModel.token {
+                print("[LoginView] Have token, showing encyclopedia")
+                showEncyclopedia = true
+            }
+        }
+        .fullScreenCover(isPresented: $showEncyclopedia) {
+            Group {
+                if let token = viewModel.token {
+                    NavigationView {
+                        EncyclopediaView(isPresented: $showEncyclopedia, token: token)
+                    }
+                } else {
+                    Text("")
+                        .onAppear {
+                            print("[LoginView] No token available for EncyclopediaView")
+                            showEncyclopedia = false
+                        }
+                }
             }
         }
     }
@@ -181,28 +200,6 @@ public struct LoginView: View {
         .onTapGesture {
             isEmailFocused = false
             isPasswordFocused = false
-        }
-    }
-    
-    private var loggedInView: some View {
-        ZStack {
-            AppColors.primaryBg
-                .ignoresSafeArea()
-            
-            VStack(spacing: 20) {
-                Text("登入成功")
-                    .font(.title)
-                    .foregroundColor(AppColors.primary)
-                
-                Button(action: {
-                    viewModel.logout()
-                }) {
-                    Text("登出")
-                        .foregroundColor(.white)
-                        .font(.headline)
-                }
-                .buttonStyle(PrimaryButtonStyle())
-            }
         }
     }
 }
