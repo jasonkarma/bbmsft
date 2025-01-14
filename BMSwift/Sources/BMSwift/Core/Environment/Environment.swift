@@ -24,11 +24,11 @@ public enum Environment {
     public var baseURL: URL {
         switch self {
         case .development:
-            return URL(string: "https://dev-api.bmswift.com")!
+            return URL(string: "https://wiki.kinglyrobot.com/api")!
         case .staging:
-            return URL(string: "https://staging-api.bmswift.com")!
+            return URL(string: "https://wiki.kinglyrobot.com/api")!
         case .production:
-            return URL(string: "https://api.bmswift.com")!
+            return URL(string: "https://wiki.kinglyrobot.com/api")!
         }
     }
     
@@ -49,7 +49,7 @@ public enum Environment {
     public var networkTimeoutInterval: TimeInterval {
         switch self {
         case .development:
-            return 60
+            return 30
         case .staging:
             return 30
         case .production:

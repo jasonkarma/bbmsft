@@ -10,15 +10,14 @@ public class LoginViewModel: ObservableObject {
     @Published var isLoggedIn = false
     @Published var errorMessage: String?
     @Published var showPasswordWarning = false
-    @Published private(set) var token: String?
     
     private let apiService = APIService.shared
-    private let tokenManager = TokenManager.shared
+    private let authActor = AuthenticationActor.shared
     
     public init() {
-        // Check if user is already logged in
-        isLoggedIn = tokenManager.isAuthenticated
-        token = tokenManager.token
+        Task {
+            isLoggedIn = await authActor.isAuthenticated
+        }
     }
     
     public func login() async {
@@ -39,48 +38,35 @@ public class LoginViewModel: ObservableObject {
         
         do {
             let response = try await apiService.login(email: email, password: password)
-            print("Login successful: \(response)")  // Debug print
-            
-            // Save token
-            token = response.token
-            tokenManager.saveToken(response.token)
             isLoggedIn = true
             
             if response.firstLogin {
                 // Handle first login flow if needed
-                print("First time login")  // Debug print
+                print("First time login")
             }
         } catch let error as APIError {
-            print("API Error: \(error.localizedDescription)")  // Debug print
             errorMessage = error.localizedDescription
             isLoggedIn = false
         } catch {
-            print("Unknown Error: \(error)")  // Debug print
-            errorMessage = "發生錯誤，請稍後再試"
+            errorMessage = "登入失敗，請稍後再試"
             isLoggedIn = false
         }
         
         isLoading = false
     }
     
-    public func logout() {
-        tokenManager.clearToken()
+    private func isValidPassword(_ password: String) -> Bool {
+        let passwordRegex = "^(?=.*[A-Z])(?=.*[a-z]).{8,}$"
+        let passwordTest = NSPredicate(format: "SELF MATCHES %@", passwordRegex)
+        return passwordTest.evaluate(with: password)
+    }
+    
+    public func logout() async {
+        await authActor.clearAuthentication()
         isLoggedIn = false
         email = ""
         password = ""
         errorMessage = nil
-    }
-    
-    func isValidPassword(_ password: String) -> Bool {
-        let minLength = 8
-        let hasUppercase = password.contains(where: { $0.isUppercase })
-        let hasLowercase = password.contains(where: { $0.isLowercase })
-        
-        return password.count >= minLength && hasUppercase && hasLowercase
-    }
-    
-    func validatePasswordInput() {
-        showPasswordWarning = !password.isEmpty && !isValidPassword(password)
     }
 }
 #endif
