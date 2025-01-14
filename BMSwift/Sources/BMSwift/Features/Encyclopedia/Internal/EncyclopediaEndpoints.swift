@@ -1,30 +1,74 @@
 import Foundation
 
-// MARK: - Encyclopedia Endpoints
-enum EncyclopediaEndpoints {
-    // MARK: - Front Page
-    struct FrontPage: APIEndpoint {
-        typealias RequestType = Never
-        typealias ResponseType = FrontPageResponse
+/// Namespace for Encyclopedia-related API endpoints
+public enum EncyclopediaEndpoints {
+    /// Front page endpoint
+    public struct FrontPage: APIEndpoint {
+        public typealias RequestType = Never
+        public typealias ResponseType = FrontPageResponse
         
-        let path = "/api/beauty/frontPageContent"
-        let method: HTTPMethod = .get
-        let requiresAuth = true
+        public let path = "/api/beauty/frontPageContent"
+        public let method: HTTPMethod = .get
+        public let requiresAuth = true
+        
+        public init() {}
     }
     
-    // MARK: - Article
-    struct Article: APIEndpoint {
-        typealias RequestType = Never
-        typealias ResponseType = ArticleResponse
+    /// Article endpoint
+    public struct Article: APIEndpoint {
+        public typealias RequestType = Never
+        public typealias ResponseType = ArticleResponse
         
-        let id: Int
-        let path: String
-        let method: HTTPMethod = .get
-        let requiresAuth = true
+        public let id: Int
+        public let path: String
+        public let method: HTTPMethod = .get
+        public let requiresAuth = true
         
-        init(id: Int) {
+        public init(id: Int) {
             self.id = id
             self.path = "/api/pageContentArticle/\(id)"
+        }
+        
+        /// Creates an endpoint for liking an article
+        public var likeEndpoint: Like {
+            Like(id: id)
+        }
+        
+        /// Creates an endpoint for recording a visit
+        public var visitEndpoint: Visit {
+            Visit(id: id)
+        }
+    }
+    
+    /// Like article endpoint
+    public struct Like: APIEndpoint {
+        public typealias RequestType = Never
+        public typealias ResponseType = EmptyResponse
+        
+        public let id: Int
+        public let path: String
+        public let method: HTTPMethod = .post
+        public let requiresAuth = true
+        
+        public init(id: Int) {
+            self.id = id
+            self.path = "/api/article/\(id)/like"
+        }
+    }
+    
+    /// Visit article endpoint
+    public struct Visit: APIEndpoint {
+        public typealias RequestType = Never
+        public typealias ResponseType = EmptyResponse
+        
+        public let id: Int
+        public let path: String
+        public let method: HTTPMethod = .post
+        public let requiresAuth = true
+        
+        public init(id: Int) {
+            self.id = id
+            self.path = "/api/article/\(id)/visit"
         }
     }
 }

@@ -1,9 +1,9 @@
 import Foundation
 
-// MARK: - Auth Namespace
-public enum BMAuth {
-    // MARK: - Login Models
-    public struct LoginRequest: Encodable {
+/// Namespace for Auth-related models
+public enum AuthModels {
+    // MARK: - Login
+    public struct LoginRequest: Codable {
         public let email: String
         public let password: String
         
@@ -13,69 +13,87 @@ public enum BMAuth {
         }
     }
     
-    public struct LoginResponse: Decodable {
+    public struct LoginResponse: Codable {
         public let token: String
-        public let expiresAt: Date
         public let firstLogin: Bool
         
-        private enum CodingKeys: String, CodingKey {
-            case token
-            case expiresAt = "expired_at"
-            case firstLogin = "first_login"
+        public init(token: String, firstLogin: Bool) {
+            self.token = token
+            self.firstLogin = firstLogin
         }
     }
     
-    // MARK: - Register Models
-    public struct RegisterRequest: Encodable {
-        public let username: String
+    // MARK: - Register
+    public struct RegisterRequest: Codable {
         public let email: String
         public let password: String
-        public let from: String
+        public let username: String
         
-        public init(username: String, email: String, password: String, from: String) {
-            self.username = username
+        public init(email: String, password: String, username: String) {
             self.email = email
             self.password = password
-            self.from = from
+            self.username = username
         }
     }
     
-    public struct RegisterResponse: Decodable {
-        public let message: String
-        public let errors: [String]?
+    public struct RegisterResponse: Codable {
+        public let token: String
         
-        private enum CodingKeys: String, CodingKey {
-            case message
-            case errors = "error"
+        public init(token: String) {
+            self.token = token
         }
     }
     
-    // MARK: - Forgot Password Models
-    public struct ForgotPasswordRequest: Encodable {
+    // MARK: - Verify Email
+    public struct VerifyEmailRequest: Codable {
+        public let token: String
+        
+        public init(token: String) {
+            self.token = token
+        }
+    }
+    
+    public struct VerifyEmailResponse: Codable {
+        public let verified: Bool
+        
+        public init(verified: Bool) {
+            self.verified = verified
+        }
+    }
+    
+    // MARK: - Reset Password
+    public struct ResetPasswordRequest: Codable {
+        public let token: String
+        public let newPassword: String
+        
+        public init(token: String, newPassword: String) {
+            self.token = token
+            self.newPassword = newPassword
+        }
+    }
+    
+    public struct ResetPasswordResponse: Codable {
+        public let success: Bool
+        
+        public init(success: Bool) {
+            self.success = success
+        }
+    }
+    
+    // MARK: - Forgot Password
+    public struct ForgotPasswordRequest: Codable {
         public let email: String
-        public let locale: String
-        public let env: String
         
-        public init(email: String, locale: String, env: String) {
+        public init(email: String) {
             self.email = email
-            self.locale = locale
-            self.env = env
         }
     }
     
-    public struct ForgotPasswordResponse: Decodable {
-        public let message: String
-        public let count: Int?
-        public let createdAt: Date?
-        public let expiresAt: Date?
-        public let error: String?
+    public struct ForgotPasswordResponse: Codable {
+        public let success: Bool
         
-        private enum CodingKeys: String, CodingKey {
-            case message
-            case count
-            case createdAt = "created_at"
-            case expiresAt = "expired_at"
-            case error
+        public init(success: Bool) {
+            self.success = success
         }
     }
 }

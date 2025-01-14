@@ -1,27 +1,30 @@
 import Foundation
 
-// MARK: - HTTP Method
-public enum HTTPMethod: String {
-    case get = "GET"
-    case post = "POST"
-    case put = "PUT"
-    case delete = "DELETE"
-    case patch = "PATCH"
+/// Namespace for network-related types
+public enum BMNetwork {
+    // MARK: - HTTP Method
+    public enum HTTPMethod: String {
+        case get = "GET"
+        case post = "POST"
+        case put = "PUT"
+        case delete = "DELETE"
+        case patch = "PATCH"
+    }
 }
 
 // MARK: - API Endpoint Protocol
-public protocol APIEndpoint {
+public protocol BMNetworkAPIEndpoint {
     associatedtype RequestType: Codable
     associatedtype ResponseType: Codable
     
     var path: String { get }
-    var method: HTTPMethod { get }
+    var method: BMNetwork.HTTPMethod { get }
     var requiresAuth: Bool { get }
     var headers: [String: String] { get }
 }
 
 // MARK: - Default Implementation
-public extension APIEndpoint {
+public extension BMNetworkAPIEndpoint {
     var headers: [String: String] {
         ["Content-Type": "application/json"]
     }
@@ -30,25 +33,25 @@ public extension APIEndpoint {
 }
 
 // MARK: - API Request
-public struct APIRequest<E: APIEndpoint> {
-    public let endpoint: E
-    public let body: E.RequestType?
-    public let queryItems: [URLQueryItem]?
+public struct BMNetworkAPIRequest<Endpoint: BMNetworkAPIEndpoint> {
+    public let endpoint: Endpoint
+    public let body: Endpoint.RequestType?
     public let authToken: String?
+    public let queryItems: [URLQueryItem]?
     
-    public init(endpoint: E, 
-                body: E.RequestType? = nil,
-                queryItems: [URLQueryItem]? = nil,
-                authToken: String? = nil) {
+    public init(endpoint: Endpoint, 
+               body: Endpoint.RequestType? = nil,
+               authToken: String? = nil,
+               queryItems: [URLQueryItem]? = nil) {
         self.endpoint = endpoint
         self.body = body
-        self.queryItems = queryItems
         self.authToken = authToken
+        self.queryItems = queryItems
     }
 }
 
 // MARK: - API Error
-public enum APIError: LocalizedError {
+public enum BMNetworkAPIError: LocalizedError {
     case invalidURL
     case networkError(Error)
     case invalidResponse
