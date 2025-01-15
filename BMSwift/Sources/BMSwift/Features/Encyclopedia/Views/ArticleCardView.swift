@@ -31,19 +31,25 @@ public struct ArticleCardView: View {
                     .font(.headline)
                     .foregroundColor(Color(red: 58/255, green: 181/255, blue: 151/255))
                     .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 
                 Text(article.intro)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .lineLimit(3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                Spacer(minLength: 0)
             }
             .padding(.all, 8)
+            .frame(height: 100)
         }
+        .frame(height: 100)
         .background(Color.black)
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                .stroke(Color.gray.opacity(0.5), lineWidth: 1.5)
         )
         .shadow(radius: 4)
     }
