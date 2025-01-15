@@ -32,6 +32,33 @@ public protocol EncyclopediaServiceProtocol {
     ///   - id: Article identifier
     ///   - authToken: Authentication token for the request
     func visitArticle(id: Int, authToken: String) async throws
+    
+    /// Fetches detailed content for an article
+    /// - Parameters:
+    ///   - id: Article identifier
+    ///   - authToken: Authentication token for the request
+    /// - Returns: ArticleDetailResponse containing the full article content
+    func fetchArticleDetail(id: Int, authToken: String) async throws -> ArticleDetailResponse
+    
+    /// Fetches comments for an article
+    /// - Parameters:
+    ///   - articleId: Article identifier
+    ///   - authToken: Authentication token for the request
+    /// - Returns: Array of comments
+    func fetchComments(articleId: Int, authToken: String) async throws -> [Comment]
+    
+    /// Posts a new comment
+    /// - Parameters:
+    ///   - articleId: Article identifier
+    ///   - content: Comment content
+    ///   - authToken: Authentication token for the request
+    func postComment(articleId: Int, content: String, authToken: String) async throws
+    
+    /// Adds article to favorites
+    /// - Parameters:
+    ///   - id: Article identifier
+    ///   - authToken: Authentication token for the request
+    func keepArticle(id: Int, authToken: String) async throws
 }
 
 /// Implementation of the Encyclopedia service
@@ -69,6 +96,33 @@ public final class EncyclopediaService: EncyclopediaServiceProtocol {
     public func visitArticle(id: Int, authToken: String) async throws {
         print("[Encyclopedia] Recording visit to article \(id)...")
         let request = EncyclopediaEndpoints.visit(id: id, authToken: authToken)
+        _ = try await client.send(request)
+    }
+    
+    // MARK: - Article Detail Methods
+    
+    public func fetchArticleDetail(id: Int, authToken: String) async throws -> ArticleDetailResponse {
+        print("[Encyclopedia] Fetching article detail \(id)...")
+        let request = EncyclopediaEndpoints.articleDetail(id: id, authToken: authToken)
+        return try await client.send(request)
+    }
+    
+    public func fetchComments(articleId: Int, authToken: String) async throws -> [Comment] {
+        print("[Encyclopedia] Fetching comments for article \(articleId)...")
+        let request = EncyclopediaEndpoints.comments(id: articleId, authToken: authToken)
+        let response = try await client.send(request)
+        return response.comments
+    }
+    
+    public func postComment(articleId: Int, content: String, authToken: String) async throws {
+        print("[Encyclopedia] Posting comment for article \(articleId)...")
+        let request = EncyclopediaEndpoints.postComment(articleId: articleId, content: content, authToken: authToken)
+        _ = try await client.send(request)
+    }
+    
+    public func keepArticle(id: Int, authToken: String) async throws {
+        print("[Encyclopedia] Keeping article \(id)...")
+        let request = EncyclopediaEndpoints.keep(id: id, authToken: authToken)
         _ = try await client.send(request)
     }
 }

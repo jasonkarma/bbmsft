@@ -45,6 +45,30 @@ public struct ArticlePreview: Codable {
         clientVisit = clientVisitInt != 0
         clientKeep = clientKeepInt != 0
     }
+    
+    public init(
+        id: Int,
+        title: String,
+        intro: String,
+        mediaName: String,
+        visitCount: Int,
+        likeCount: Int,
+        platform: Int,
+        clientLike: Bool,
+        clientVisit: Bool,
+        clientKeep: Bool
+    ) {
+        self.id = id
+        self.title = title
+        self.intro = intro
+        self.mediaName = mediaName
+        self.visitCount = visitCount
+        self.likeCount = likeCount
+        self.platform = platform
+        self.clientLike = clientLike
+        self.clientVisit = clientVisit
+        self.clientKeep = clientKeep
+    }
 }
 
 public struct FrontPageResponse: Decodable {
@@ -111,6 +135,13 @@ public struct ArticleInfo: Codable {
 public struct ArticleClientActions: Codable {
     public let keep: Bool
     public let like: Bool
+    public let visit: Bool
+    
+    private enum CodingKeys: String, CodingKey {
+        case keep
+        case like
+        case visit
+    }
 }
 
 public struct ArticleResponse: Decodable {

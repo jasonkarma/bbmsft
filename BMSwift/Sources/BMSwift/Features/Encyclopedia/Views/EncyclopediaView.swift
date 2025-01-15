@@ -60,7 +60,7 @@ public struct EncyclopediaView: View {
                                         
                                         LazyVStack(spacing: 8) {
                                             ForEach(viewModel.hotArticles, id: \.id) { article in
-                                                ArticleCardView(article: article)
+                                                ArticleCardView(article: article, token: token)
                                                     .background(Color.black.opacity(0.5))
                                                     .cornerRadius(12)
                                             }
