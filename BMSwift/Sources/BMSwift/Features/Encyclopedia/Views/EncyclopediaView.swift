@@ -14,30 +14,90 @@ public struct EncyclopediaView: View {
     }
     
     public var body: some View {
-        contentView
-            .task {
-                await viewModel.loadFrontPageContent()
-            }
-    }
-    
-    private var contentView: some View {
         ZStack {
             AppColors.primaryBg.ignoresSafeArea()
             
-            VStack(spacing: 0) {
-                ScrollView {
-                    VStack(spacing: 16) {
-                        if !viewModel.hotArticles.isEmpty {
-                            articleSection(title: "热门文章", articles: viewModel.hotArticles)
+            if viewModel.isLoading {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    .scaleEffect(1.5)
+            } else if let error = viewModel.error {
+                VStack(spacing: 16) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 50))
+                        .foregroundColor(.yellow)
+                    
+                    Text(error.localizedDescription)
+                        .foregroundColor(.white)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                    
+                    Button(action: {
+                        Task {
+                            await viewModel.loadFrontPageContent()
                         }
-                        
-                        if !viewModel.latestArticles.isEmpty {
-                            articleSection(title: "最新文章", articles: viewModel.latestArticles)
+                    }) {
+                        Text("重試")
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 12)
+                            .background(AppColors.primary)
+                            .cornerRadius(8)
+                    }
+                }
+            } else {
+                contentView
+            }
+        }
+        .task {
+            print("[EncyclopediaView] Loading content with token: \(token.prefix(10))...")
+            await viewModel.loadFrontPageContent()
+        }
+    }
+    
+    private var contentView: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 16) {
+                    if !viewModel.hotArticles.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("热門文章")
+                                .font(.title3)
+                                .foregroundColor(.white)
+                                .padding(.horizontal)
+                            
+                            LazyVStack(spacing: 8) {
+                                ForEach(viewModel.hotArticles, id: \.id) { article in
+                                    ArticleCardView(article: article)
+                                        .background(Color.black.opacity(0.5))
+                                        .cornerRadius(12)
+                                }
+                            }
+                            .padding(.horizontal)
                         }
                     }
-                    .padding(.vertical)
+                    
+                    if !viewModel.latestArticles.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("最新文章")
+                                .font(.title3)
+                                .foregroundColor(.white)
+                                .padding(.horizontal)
+                            
+                            LazyVStack(spacing: 8) {
+                                ForEach(viewModel.latestArticles, id: \.id) { article in
+                                    ArticleCardView(article: article)
+                                        .background(Color.black.opacity(0.5))
+                                        .cornerRadius(12)
+                                }
+                            }
+                            .padding(.horizontal)
+                        }
+                    }
                 }
-                
+                .padding(.vertical)
+            }
+            .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 0) {
                     voiceCommandArea
                         .background(Color.black)
@@ -49,6 +109,7 @@ public struct EncyclopediaView: View {
                 }
             }
         }
+        .background(AppColors.primaryBg)
     }
     
     private func articleSection(title: String, articles: [ArticlePreview]) -> some View {
@@ -62,9 +123,6 @@ public struct EncyclopediaView: View {
                 HStack(spacing: 16) {
                     ForEach(articles, id: \.id) { article in
                         ArticleCardView(article: article)
-                            .task {
-                                await viewModel.loadArticle(id: article.id)
-                            }
                     }
                 }
                 .padding(.horizontal)
@@ -78,7 +136,7 @@ public struct EncyclopediaView: View {
                 .foregroundColor(.white)
                 .font(.title2)
             
-            Text("按住说话")
+            Text("按住說話")
                 .foregroundColor(.white)
                 .font(.body)
         }
@@ -88,14 +146,14 @@ public struct EncyclopediaView: View {
     
     private var smartDeviceStats: some View {
         HStack {
-            Text("智能设备")
+            Text("智能設備")
                 .foregroundColor(.white)
                 .font(.body)
             
             Spacer()
             
-            Text("0")
-                .foregroundColor(.white)
+            Text("已連接")
+                .foregroundColor(.green)
                 .font(.body)
         }
         .padding()
@@ -103,41 +161,39 @@ public struct EncyclopediaView: View {
     
     private var bottomNavigation: some View {
         HStack(spacing: 0) {
-            ForEach(0..<4) { index in
+            ForEach(0..<3) { index in
                 Button(action: {
                     selectedTab = index
                 }) {
-                    VStack(spacing: 4) {
+                    VStack {
                         Image(systemName: tabIcon(for: index))
-                            .font(.system(size: 24))
+                            .font(.title3)
                         Text(tabTitle(for: index))
-                            .font(.system(size: 12))
+                            .font(.caption)
                     }
+                    .foregroundColor(selectedTab == index ? AppColors.primary : .gray)
                     .frame(maxWidth: .infinity)
-                    .foregroundColor(selectedTab == index ? .white : .white.opacity(0.5))
                 }
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 8)
         .background(Color.black)
-    }
-    
-    private func tabTitle(for index: Int) -> String {
-        switch index {
-        case 0: return "AI功能"
-        case 1: return "文章"
-        case 2: return "收藏"
-        case 3: return "设置"
-        default: return ""
-        }
     }
     
     private func tabIcon(for index: Int) -> String {
         switch index {
-        case 0: return "wand.and.stars"
-        case 1: return "doc.text"
-        case 2: return "heart"
-        case 3: return "gearshape"
+        case 0: return "house.fill"
+        case 1: return "text.book.closed.fill"
+        case 2: return "person.fill"
+        default: return ""
+        }
+    }
+    
+    private func tabTitle(for index: Int) -> String {
+        switch index {
+        case 0: return "首页"
+        case 1: return "百科"
+        case 2: return "我的"
         default: return ""
         }
     }

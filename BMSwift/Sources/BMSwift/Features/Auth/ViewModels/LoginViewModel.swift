@@ -23,6 +23,11 @@ public class LoginViewModel: ObservableObject {
     
     public func checkAuthenticationStatus() async {
         isLoggedIn = await authActor.isAuthenticated
+        if isLoggedIn {
+            // Get token from the response instead of directly from authActor
+            let response = try? await authService.getCurrentSession()
+            token = response?.token
+        }
     }
     
     @MainActor
@@ -30,6 +35,7 @@ public class LoginViewModel: ObservableObject {
         print("[Login] Starting login process...")
         isLoading = true
         errorMessage = nil
+        token = nil // Reset token
         
         do {
             print("[Login] Making login request...")
@@ -42,11 +48,14 @@ public class LoginViewModel: ObservableObject {
             let expiresAtString = dateFormatter.string(from: response.expiresAt)
             await authActor.saveAuthentication(token: response.token, expiresAt: expiresAtString)
             
-            self.token = response.token
-            self.isLoggedIn = true
-            
-            // Show success message
+            // Show success message first
             self.errorMessage = "成功登入"
+            
+            // Set isLoggedIn and token after a brief delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.isLoggedIn = true
+                self.token = response.token // This will trigger navigation
+            }
             
             if response.firstLogin {
                 print("[Login] First time login detected")
@@ -79,6 +88,7 @@ public class LoginViewModel: ObservableObject {
         email = ""
         password = ""
         errorMessage = nil
+        token = nil
     }
 }
 #endif

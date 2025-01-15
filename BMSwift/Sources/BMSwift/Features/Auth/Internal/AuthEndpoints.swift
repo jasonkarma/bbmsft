@@ -15,6 +15,18 @@ public enum AuthEndpoints {
         public init() {}
     }
     
+    /// Get current session endpoint
+    public struct GetCurrentSession: BMNetwork.APIEndpoint {
+        public typealias RequestType = EmptyRequest
+        public typealias ResponseType = AuthModels.LoginResponse
+        
+        public let path: String = "/api/session"
+        public let method: BMNetwork.HTTPMethod = .get
+        public let requiresAuth: Bool = true
+        
+        public init() {}
+    }
+    
     /// Register endpoint
     public struct Register: BMNetwork.APIEndpoint {
         public typealias RequestType = RegisterRequest
@@ -36,6 +48,11 @@ public enum AuthEndpoints {
         public let method: BMNetwork.HTTPMethod = .post
         public let requiresAuth: Bool = false
         
+        public init() {}
+    }
+    
+    /// Empty request type for endpoints that don't need a request body
+    public struct EmptyRequest: Codable {
         public init() {}
     }
 }
@@ -131,5 +148,11 @@ public extension AuthEndpoints {
     static func forgotPassword(email: String) -> BMNetwork.APIRequest<ForgotPassword> {
         let request = ForgotPasswordRequest(email: email)
         return BMNetwork.APIRequest(endpoint: ForgotPassword(), body: request)
+    }
+    
+    static func getCurrentSession() -> BMNetwork.APIRequest<GetCurrentSession> {
+        let request = GetCurrentSession()
+        let body = EmptyRequest()
+        return BMNetwork.APIRequest(endpoint: request, body: body)
     }
 }

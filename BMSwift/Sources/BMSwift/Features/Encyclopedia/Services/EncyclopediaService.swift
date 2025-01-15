@@ -49,26 +49,26 @@ public final class EncyclopediaService: EncyclopediaServiceProtocol {
     // MARK: - Encyclopedia Methods
     
     public func getFrontPageContent(authToken: String) async throws -> FrontPageResponse {
-        let endpoint: EncyclopediaEndpoints.FrontPage = EncyclopediaEndpoints.FrontPage()
-        let request = BMNetwork.APIRequest(endpoint: endpoint, authToken: authToken)
+        print("[Encyclopedia] Getting front page content...")
+        let request = EncyclopediaEndpoints.frontPage(authToken: authToken)
         return try await client.send(request)
     }
     
     public func getArticle(id: Int, authToken: String) async throws -> ArticleResponse {
-        let endpoint: EncyclopediaEndpoints.Article = EncyclopediaEndpoints.Article(id: id)
-        let request = BMNetwork.APIRequest(endpoint: endpoint, authToken: authToken)
+        print("[Encyclopedia] Getting article \(id)...")
+        let request = EncyclopediaEndpoints.article(id: id, authToken: authToken)
         return try await client.send(request)
     }
     
     public func likeArticle(id: Int, authToken: String) async throws {
-        let endpoint: EncyclopediaEndpoints.Like = EncyclopediaEndpoints.Like(id: id)
-        let request = BMNetwork.APIRequest(endpoint: endpoint, authToken: authToken)
+        print("[Encyclopedia] Liking article \(id)...")
+        let request = EncyclopediaEndpoints.like(id: id, authToken: authToken)
         _ = try await client.send(request)
     }
     
     public func visitArticle(id: Int, authToken: String) async throws {
-        let endpoint: EncyclopediaEndpoints.Visit = EncyclopediaEndpoints.Visit(id: id)
-        let request = BMNetwork.APIRequest(endpoint: endpoint, authToken: authToken)
+        print("[Encyclopedia] Recording visit to article \(id)...")
+        let request = EncyclopediaEndpoints.visit(id: id, authToken: authToken)
         _ = try await client.send(request)
     }
 }

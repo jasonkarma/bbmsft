@@ -5,6 +5,7 @@ public protocol AuthServiceProtocol {
     func login(email: String, password: String) async throws -> AuthModels.LoginResponse
     func register(email: String, password: String, username: String) async throws -> AuthEndpoints.RegisterResponse
     func forgotPassword(email: String) async throws -> AuthEndpoints.ForgotPasswordResponse
+    func getCurrentSession() async throws -> AuthModels.LoginResponse
 }
 
 /// Default implementation of AuthService
@@ -34,6 +35,11 @@ public final class AuthService: AuthServiceProtocol {
     
     public func forgotPassword(email: String) async throws -> AuthEndpoints.ForgotPasswordResponse {
         let request = AuthEndpoints.forgotPassword(email: email)
+        return try await client.send(request)
+    }
+    
+    public func getCurrentSession() async throws -> AuthModels.LoginResponse {
+        let request = AuthEndpoints.getCurrentSession()
         return try await client.send(request)
     }
 }

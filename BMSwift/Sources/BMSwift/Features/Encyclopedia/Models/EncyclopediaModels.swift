@@ -25,6 +25,26 @@ public struct ArticlePreview: Codable {
         case clientVisit = "clientvisit"
         case clientKeep = "clientkeep"
     }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(Int.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        intro = try container.decode(String.self, forKey: .intro)
+        mediaName = try container.decode(String.self, forKey: .mediaName)
+        visitCount = try container.decode(Int.self, forKey: .visitCount)
+        likeCount = try container.decode(Int.self, forKey: .likeCount)
+        platform = try container.decode(Int.self, forKey: .platform)
+        
+        // Convert integer values to booleans
+        let clientLikeInt = try container.decode(Int.self, forKey: .clientLike)
+        let clientVisitInt = try container.decode(Int.self, forKey: .clientVisit)
+        let clientKeepInt = try container.decode(Int.self, forKey: .clientKeep)
+        
+        clientLike = clientLikeInt != 0
+        clientVisit = clientVisitInt != 0
+        clientKeep = clientKeepInt != 0
+    }
 }
 
 public struct FrontPageResponse: Decodable {

@@ -85,7 +85,7 @@ public struct RegisterView: View {
                             Button(action: {
                                 isPasswordVisible.toggle()
                             }) {
-                                Image(systemName: isPasswordVisible ? "eye.fill" : "eye.slash.fill")
+                                Image(systemName: isPasswordVisible ? "eye.slash.fill" : "eye.fill")
                                     .foregroundColor(AppColors.primary)
                             }
                         }

@@ -28,6 +28,13 @@ public struct LoginView: View {
                 print("[LoginView] Checking authentication status...")
                 await viewModel.checkAuthenticationStatus()
             }
+            .onChange(of: viewModel.token) { newToken in
+                print("[LoginView] Token changed: \(newToken != nil)")
+                if newToken != nil {
+                    print("[LoginView] Have token, showing encyclopedia")
+                    showEncyclopedia = true
+                }
+            }
         }
         .sheet(isPresented: $showForgotPassword) {
             ForgotPasswordView(isPresented: $showForgotPassword)
@@ -37,25 +44,10 @@ public struct LoginView: View {
                 RegisterView(isPresented: $showRegister)
             }
         }
-        .onChange(of: viewModel.isLoggedIn) { isLoggedIn in
-            print("[LoginView] isLoggedIn changed to: \(isLoggedIn)")
-            if isLoggedIn, let _ = viewModel.token {
-                print("[LoginView] Have token, showing encyclopedia")
-                showEncyclopedia = true
-            }
-        }
         .fullScreenCover(isPresented: $showEncyclopedia) {
-            Group {
-                if let token = viewModel.token {
-                    NavigationView {
-                        EncyclopediaView(isPresented: $showEncyclopedia, token: token)
-                    }
-                } else {
-                    Text("")
-                        .onAppear {
-                            print("[LoginView] No token available for EncyclopediaView")
-                            showEncyclopedia = false
-                        }
+            if let token = viewModel.token {
+                NavigationView {
+                    EncyclopediaView(isPresented: $showEncyclopedia, token: token)
                 }
             }
         }
@@ -100,6 +92,12 @@ public struct LoginView: View {
                             RoundedRectangle(cornerRadius: 8)
                                 .fill(Color.white.opacity(0.1))
                         )
+                        
+                        if let error = viewModel.errorMessage {
+                            Text(error)
+                                .foregroundColor(error == "成功登入" ? .green : .red)
+                                .font(.caption)
+                        }
                     }
                     
                     // Password Input
@@ -107,32 +105,21 @@ public struct LoginView: View {
                         HStack {
                             Image(systemName: "lock")
                                 .foregroundColor(AppColors.primary)
-                                .padding(.leading, 4)
                             
                             if isPasswordVisible {
                                 TextField("請輸入密碼", text: $viewModel.password)
                                     .foregroundColor(AppColors.primary)
                                     .textInputAutocapitalization(.never)
                                     .focused($isPasswordFocused)
-                                    .padding(.leading, 4)
-                                    .onChange(of: viewModel.password) { _ in
-                                        viewModel.validatePasswordInput()
-                                    }
                             } else {
                                 SecureField("請輸入密碼", text: $viewModel.password)
                                     .foregroundColor(AppColors.primary)
                                     .textInputAutocapitalization(.never)
                                     .focused($isPasswordFocused)
-                                    .padding(.leading, 4)
-                                    .onChange(of: viewModel.password) { _ in
-                                        viewModel.validatePasswordInput()
-                                    }
                             }
                             
-                            Button(action: {
-                                isPasswordVisible.toggle()
-                            }) {
-                                Image(systemName: isPasswordVisible ? "eye.fill" : "eye.slash.fill")
+                            Button(action: { isPasswordVisible.toggle() }) {
+                                Image(systemName: isPasswordVisible ? "eye" : "eye.slash")
                                     .foregroundColor(AppColors.primary)
                             }
                         }
@@ -143,31 +130,11 @@ public struct LoginView: View {
                         )
                         
                         if viewModel.showPasswordWarning {
-                            Text("密碼需大於8字．且有大小寫英文")
-                                .foregroundColor(.orange)
+                            Text("密碼必須至少包含8個字符，包括大小寫字母")
+                                .foregroundColor(.red)
                                 .font(.caption)
                         }
                     }
-                    
-                    // Forgot Password and Register buttons
-                    HStack {
-                        Button(action: {
-                            showRegister = true
-                        }) {
-                            Text("註冊")
-                                .foregroundColor(AppColors.primary)
-                        }
-                        
-                        Spacer()
-                        
-                        Button(action: {
-                            showForgotPassword = true
-                        }) {
-                            Text("忘記密碼？")
-                                .foregroundColor(AppColors.primary)
-                        }
-                    }
-                    .padding(.horizontal, 4)
                     
                     // Login Button
                     Button(action: {
@@ -180,18 +147,29 @@ public struct LoginView: View {
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         } else {
                             Text("登入")
-                                .foregroundColor(.white)
                                 .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
                         }
                     }
-                    .buttonStyle(PrimaryButtonStyle())
+                    .padding()
+                    .background(AppColors.primary)
+                    .cornerRadius(8)
                     .disabled(viewModel.isLoading)
                     
-                    if let error = viewModel.errorMessage {
-                        Text(error)
-                            .foregroundColor(.red)
-                            .font(.caption)
-                            .multilineTextAlignment(.center)
+                    // Additional Options
+                    HStack {
+                        Button("忘記密碼?") {
+                            showForgotPassword = true
+                        }
+                        .foregroundColor(AppColors.primary)
+                        
+                        Spacer()
+                        
+                        Button("註冊") {
+                            showRegister = true
+                        }
+                        .foregroundColor(AppColors.primary)
                     }
                 }
                 .padding(.horizontal, 30)
