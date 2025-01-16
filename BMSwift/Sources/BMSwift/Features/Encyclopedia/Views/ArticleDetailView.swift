@@ -14,7 +14,7 @@ public struct ArticleDetailView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     // Article Info
                     Text(article.info.bp_subsection_title)
-                        .font(.title)
+                        .font(.title3)
                         .fontWeight(.bold)
                         .foregroundColor(AppColors.primary)
                     
@@ -199,39 +199,51 @@ public struct ArticleDetailView: View {
 
 struct ArticleContentView: View {
     let htmlContent: String
-    @State private var images: [URL] = []
-    @State private var processedText: String = ""
+    
+    private struct ContentItem: Identifiable {
+        let id = UUID()
+        enum ItemType {
+            case text(String, isHeader: Bool = false)
+            case image(URL)
+        }
+        let type: ItemType
+    }
+    
+    @State private var contentItems: [ContentItem] = []
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if !processedText.isEmpty {
-                Text(processedText)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            
-            // Display images after the content
-            ForEach(images, id: \.self) { imageUrl in
-                AsyncImage(url: imageUrl) { phase in
-                    switch phase {
-                    case .empty:
-                        ProgressView()
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                    case .failure:
-                        Color.gray
-                            .opacity(0.3)
-                            .overlay(
-                                Image(systemName: "photo")
-                                    .foregroundColor(.gray)
-                            )
-                    @unknown default:
-                        EmptyView()
+            ForEach(contentItems) { item in
+                switch item.type {
+                case .text(let text, let isHeader):
+                    Text(text)
+                        .font(isHeader ? .callout : .body)
+                        .fontWeight(isHeader ? .bold : .regular)
+                        .foregroundColor(.white)
+                        .fixedSize(horizontal: false, vertical: true)
+                case .image(let imageUrl):
+                    AsyncImage(url: imageUrl) { phase in
+                        switch phase {
+                        case .empty:
+                            ProgressView()
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                        case .failure:
+                            Color.gray
+                                .opacity(0.3)
+                                .overlay(
+                                    Image(systemName: "photo")
+                                        .foregroundColor(.gray)
+                                )
+                        @unknown default:
+                            EmptyView()
+                        }
                     }
+                    .frame(maxHeight: 200)
+                    .cornerRadius(8)
                 }
-                .frame(maxHeight: 200)
-                .cornerRadius(8)
             }
         }
         .onAppear {
@@ -247,7 +259,6 @@ struct ArticleContentView: View {
         let range = NSRange(text.startIndex..., in: text)
         let matches = regex.matches(in: text, range: range)
         
-        // Process matches in reverse to avoid offset issues
         for match in matches.reversed() {
             guard let hexRange = Range(match.range(at: 1), in: text),
                   let unicodeScalar = UInt32(text[hexRange], radix: 16),
@@ -262,37 +273,77 @@ struct ArticleContentView: View {
     }
     
     private func processContent() {
-        // First decode Unicode
-        var content = decodeUnicode(htmlContent)
+        var items: [ContentItem] = []
+        let content = decodeUnicode(htmlContent)
+            .replacingOccurrences(of: "&nbsp;", with: " ")
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
         
-        // Extract image URLs
-        let imagePattern = "<img[^>]+src=\"([^\"]+)\"[^>]*>"
-        if let regex = try? NSRegularExpression(pattern: imagePattern, options: []) {
-            let matches = regex.matches(
-                in: content,
-                options: [],
-                range: NSRange(content.startIndex..., in: content)
-            )
-            
-            images = matches.compactMap { match in
-                guard let range = Range(match.range(at: 1), in: content),
-                      let url = URL(string: String(content[range])) else {
-                    return nil
+        // Split content by image tags and process each part
+        let parts = content.components(separatedBy: "<img")
+        
+        for (index, part) in parts.enumerated() {
+            if index == 0 {
+                // Process first part (before any images)
+                processPart(part, into: &items)
+            } else {
+                // Process image and remaining text
+                let subParts = part.components(separatedBy: ">")
+                if subParts.count >= 2 {
+                    // Extract image URL
+                    if let srcMatch = subParts[0].range(of: "src=\"([^\"]+)\"", options: .regularExpression),
+                       let urlString = String(subParts[0][srcMatch]).components(separatedBy: "\"").dropFirst().first,
+                       let url = URL(string: urlString) {
+                        items.append(ContentItem(type: .image(url)))
+                    }
+                    
+                    // Process remaining text
+                    let remainingText = subParts.dropFirst().joined(separator: ">")
+                    processPart(remainingText, into: &items)
                 }
-                return url
             }
-            
-            // Remove img tags
-            content = content.replacingOccurrences(
-                of: "<img[^>]+>",
-                with: "",
-                options: .regularExpression
-            )
         }
         
-        // Process HTML content
-        content = content
-            .replacingOccurrences(of: "<body[^>]*>", with: "", options: .regularExpression)
+        contentItems = items
+    }
+    
+    private func processPart(_ text: String, into items: inout [ContentItem]) {
+        var content = text
+        
+        // First, extract and process headers while maintaining their position
+        var currentPosition = content.startIndex
+        while let headerStartRange = content[currentPosition...].range(of: "<h4>"),
+              let headerEndRange = content[headerStartRange.upperBound...].range(of: "</h4>") {
+            
+            // Add text before header if any
+            let textBeforeHeader = String(content[currentPosition..<headerStartRange.lowerBound])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if !textBeforeHeader.isEmpty {
+                let processedText = processText(textBeforeHeader)
+                if !processedText.isEmpty {
+                    items.append(ContentItem(type: .text(processedText)))
+                }
+            }
+            
+            // Add header
+            let headerText = String(content[headerStartRange.upperBound..<headerEndRange.lowerBound])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if !headerText.isEmpty {
+                items.append(ContentItem(type: .text(headerText, isHeader: true)))
+            }
+            
+            currentPosition = headerEndRange.upperBound
+        }
+        
+        // Add remaining text after last header
+        let remainingText = String(content[currentPosition...])
+        let processedText = processText(remainingText)
+        if !processedText.isEmpty {
+            items.append(ContentItem(type: .text(processedText)))
+        }
+    }
+    
+    private func processText(_ text: String) -> String {
+        text.replacingOccurrences(of: "<body[^>]*>", with: "", options: .regularExpression)
             .replacingOccurrences(of: "</body>", with: "")
             .replacingOccurrences(of: "<br>", with: "\n")
             .replacingOccurrences(of: "<br/>", with: "\n")
@@ -301,19 +352,10 @@ struct ArticleContentView: View {
             .replacingOccurrences(of: "</p>", with: "\n")
             .replacingOccurrences(of: "<div>", with: "")
             .replacingOccurrences(of: "</div>", with: "\n")
-            .replacingOccurrences(of: "<figure>", with: "")
-            .replacingOccurrences(of: "</figure>", with: "")
-            .replacingOccurrences(of: "&nbsp;", with: " ")
             .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-        
-        // Clean up whitespace
-        content = content
-            .components(separatedBy: .newlines)
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-            .joined(separator: "\n\n")
-        
-        processedText = content
+            .replacingOccurrences(of: "&nbsp;", with: " ")
+            .replacingOccurrences(of: "\\s*\n\\s*", with: "\n", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 
