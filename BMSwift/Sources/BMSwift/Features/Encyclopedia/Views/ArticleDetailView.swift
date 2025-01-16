@@ -2,198 +2,222 @@
 import SwiftUI
 
 public struct ArticleDetailView: View {
-    @StateObject var viewModel: ArticleDetailViewModel
+    @StateObject private var viewModel: ArticleDetailViewModel
     
     public init(viewModel: ArticleDetailViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
     
     public var body: some View {
+        contentView
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    likeButton
+                }
+            }
+            .task {
+                await viewModel.loadContent()
+            }
+            .alert("Error", isPresented: .constant(viewModel.error != nil)) {
+                Button("OK") {
+                    viewModel.error = nil
+                }
+            } message: {
+                if let error = viewModel.error {
+                    Text(error.localizedDescription)
+                }
+            }
+    }
+    
+    private var contentView: some View {
         ScrollView {
             if let article = viewModel.articleDetail {
                 VStack(alignment: .leading, spacing: 16) {
-                    // Article Info
-                    Text(article.info.bp_subsection_title)
-                        .font(.title3)
-                        .fontWeight(.bold)
-                        .foregroundColor(AppColors.primary)
-                    
-                    // Stats and Date
-                    HStack(spacing: 16) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "eye")
-                            Text("\(article.info.visit)")
-                        }
-                        .foregroundColor(.gray)
-                        
-                        HStack(spacing: 4) {
-                            Image(systemName: "heart")
-                            Text("\(article.info.likecount)")
-                        }
-                        .foregroundColor(.gray)
-                        
-                        Text(article.info.bp_subsection_first_enabled_at)
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-                    .font(.caption)
-                    
-                    // Content
-                    ArticleContentView(htmlContent: article.info.bp_subsection_intro)
-                    
-                    // Banner Image
-                    if !article.info.name.isEmpty {
-                        AsyncImage(url: URL(string: "https://wiki.kinglyrobot.com/media/beauty_content_banner_image/\(article.info.name)")) { phase in
-                            switch phase {
-                            case .empty:
-                                ProgressView()
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .cornerRadius(8)
-                            case .failure(_):
-                                Color.gray.opacity(0.3)
-                                    .frame(height: 200)
-                                    .cornerRadius(8)
-                            @unknown default:
-                                EmptyView()
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                    
-                    // Article Content Sections
-                    ForEach(article.cnt, id: \.title) { content in
-                        VStack(alignment: .leading, spacing: 8) {
-                            if !content.title.isEmpty {
-                                Text(content.title)
-                                    .font(.headline)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(AppColors.primary)
-                            }
-                            
-                            ArticleContentView(htmlContent: content.cnt)
-                        }
-                        .padding(.vertical, 8)
-                    }
-                    
-                    // Keywords
-                    if !article.keywords.isEmpty {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach(article.keywords, id: \.bp_tag_id) { keyword in
-                                    Text("#\(keyword.bp_hashtag)")
-                                        .font(.caption)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(Color.gray.opacity(0.1))
-                                        .cornerRadius(12)
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Comments Section
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Comments")
-                            .font(.headline)
-                            .foregroundColor(AppColors.primary)
-                        
-                        ForEach(viewModel.comments, id: \.created_at) { comment in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(comment.user_name)
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(AppColors.primary)
-                                Text(comment.cnt)
-                                    .font(.body)
-                                    .foregroundColor(.white)
-                                Text(comment.created_at)
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-                            .padding()
-                            .background(Color.gray.opacity(0.1))
-                            .cornerRadius(8)
-                        }
-                        
-                        // Comment Input
-                        HStack {
-                            TextField("Add a comment...", text: $viewModel.commentText)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                            
-                            Button("Post") {
-                                Task {
-                                    await viewModel.submitComment()
-                                }
-                            }
-                            .disabled(viewModel.commentText.isEmpty)
-                        }
-                    }
-                    
-                    // Suggested Articles
-                    if !article.suggests.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Related Articles")
-                                .font(.headline)
-                                .foregroundColor(AppColors.primary)
-                            
-                            ForEach(article.suggests, id: \.bp_subsection_id) { suggestion in
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(suggestion.bp_subsection_title)
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(AppColors.primary)
-                                    Text(suggestion.bp_subsection_intro)
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                        .lineLimit(2)
-                                }
-                                .padding()
-                                .background(Color.gray.opacity(0.1))
-                                .cornerRadius(8)
-                            }
-                        }
-                    }
+                    articleHeader(article.info)
+                    statsSection(article.info)
+                    articleBody(article)
+                    keywordsView(article.keywords)
+                    commentsSection(viewModel.comments)
+                    suggestedArticlesView(article.suggests)
                 }
                 .padding()
             }
         }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItemGroup(placement: .navigationBarTrailing) {
-                HStack {
-                    Button {
-                        Task {
-                            await viewModel.likeArticle()
+    }
+    
+    private var likeButton: some View {
+        Button {
+            Task {
+                await viewModel.likeArticle()
+            }
+        } label: {
+            Image(systemName: viewModel.articleDetail?.clientsAction.like == true ? "heart.fill" : "heart")
+        }
+    }
+    
+    private func articleHeader(_ info: ArticleDetailResponse.Info) -> some View {
+        Text(info.bp_subsection_title)
+            .font(.title3)
+            .fontWeight(.bold)
+            .foregroundColor(AppColors.primary)
+    }
+    
+    private func statsSection(_ info: ArticleDetailResponse.Info) -> some View {
+        HStack(spacing: 16) {
+            Label("\(info.visit)", systemImage: "eye")
+            Label("\(info.likecount)", systemImage: "heart")
+            Spacer()
+            Text(info.bp_subsection_first_enabled_at)
+                .font(.caption)
+        }
+        .foregroundColor(.gray)
+        .font(.caption)
+    }
+    
+    private func articleBody(_ article: ArticleDetailResponse) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ArticleContentView(htmlContent: article.info.bp_subsection_intro)
+            
+            if !article.info.name.isEmpty {
+                articleImage(article.info.name)
+            }
+            
+            articleContent(article.cnt)
+        }
+    }
+    
+    private func articleImage(_ name: String) -> some View {
+        AsyncImage(url: URL(string: "https://wiki.kinglyrobot.com/media/beauty_content_banner_image/\(name)")) { phase in
+            switch phase {
+            case .empty:
+                ProgressView()
+            case .success(let image):
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .cornerRadius(8)
+            case .failure:
+                Color.gray.opacity(0.3)
+                    .frame(height: 200)
+                    .cornerRadius(8)
+            @unknown default:
+                EmptyView()
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+    
+    private func articleContent(_ content: [ArticleDetailResponse.Content]) -> some View {
+        ForEach(content, id: \.title) { item in
+            VStack(alignment: .leading, spacing: 8) {
+                if !item.title.isEmpty {
+                    Text(item.title)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(AppColors.primary)
+                }
+                ArticleContentView(htmlContent: item.cnt)
+            }
+            .padding(.vertical, 8)
+        }
+    }
+    
+    private func keywordsView(_ keywords: [ArticleDetailResponse.Keyword]) -> some View {
+        Group {
+            if !keywords.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(keywords, id: \.bp_tag_id) { keyword in
+                            Text("#\(keyword.bp_hashtag)")
+                                .font(.caption)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(12)
                         }
-                    } label: {
-                        Image(systemName: viewModel.articleDetail?.clientsAction.like == true ? "heart.fill" : "heart")
-                    }
-                    
-                    Button {
-                        Task {
-                            await viewModel.keepArticle()
-                        }
-                    } label: {
-                        Image(systemName: viewModel.articleDetail?.clientsAction.keep == true ? "bookmark.fill" : "bookmark")
                     }
                 }
             }
         }
-        .task {
-            await viewModel.loadContent()
-        }
-        .alert("Error", isPresented: .constant(viewModel.error != nil)) {
-            Button("OK") {
-                viewModel.error = nil
+    }
+    
+    private func commentsSection(_ comments: [Comment]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Comments")
+                .font(.headline)
+                .foregroundColor(AppColors.primary)
+            
+            ForEach(comments, id: \.created_at) { comment in
+                commentView(comment)
             }
-        } message: {
-            if let error = viewModel.error {
-                Text(error.localizedDescription)
+            
+            commentInput
+        }
+    }
+    
+    private func commentView(_ comment: Comment) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(comment.user_name)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(AppColors.primary)
+            Text(comment.cnt)
+                .font(.body)
+                .foregroundColor(.primary)
+            Text(comment.created_at)
+                .font(.caption)
+                .foregroundColor(.gray)
+        }
+        .padding()
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(8)
+    }
+    
+    private var commentInput: some View {
+        HStack {
+            TextField("Add a comment...", text: $viewModel.commentText)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+            
+            Button("Post") {
+                Task {
+                    await viewModel.submitComment()
+                }
+            }
+            .disabled(viewModel.commentText.isEmpty)
+        }
+    }
+    
+    private func suggestedArticlesView(_ suggests: [ArticleDetailResponse.Suggestion]) -> some View {
+        Group {
+            if !suggests.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Related Articles")
+                        .font(.headline)
+                        .foregroundColor(AppColors.primary)
+                    
+                    ForEach(suggests, id: \.bp_subsection_id) { suggestion in
+                        suggestionView(suggestion)
+                    }
+                }
             }
         }
+    }
+    
+    private func suggestionView(_ suggestion: ArticleDetailResponse.Suggestion) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(suggestion.bp_subsection_title)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(AppColors.primary)
+            Text(suggestion.bp_subsection_intro)
+                .font(.caption)
+                .foregroundColor(.gray)
+                .lineLimit(2)
+        }
+        .padding()
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(8)
     }
 }
 
@@ -307,7 +331,7 @@ struct ArticleContentView: View {
     }
     
     private func processPart(_ text: String, into items: inout [ContentItem]) {
-        var content = text
+        let content = text
         
         // First, extract and process headers while maintaining their position
         var currentPosition = content.startIndex
