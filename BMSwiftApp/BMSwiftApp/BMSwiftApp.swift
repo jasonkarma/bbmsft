@@ -39,10 +39,12 @@ struct BMSwiftApp: App {
     
     var body: some Scene {
         WindowGroup {
-            LoginView()
-                .preferredColorScheme(.dark) // Forces dark mode for consistent appearance
-                .background(Color.black)     // Sets default background color
-                .ignoresSafeArea()           // Extends background to edges
+            NavigationStack {
+                LoginView()
+                    .preferredColorScheme(.dark) // Forces dark mode for consistent appearance
+                    .background(Color.black)     // Sets default background color
+                    .ignoresSafeArea()           // Extends background to edges
+            }
         }
     }
     

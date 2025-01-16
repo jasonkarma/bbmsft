@@ -6,7 +6,7 @@ let package = Package(
     name: "BMSwift",
     defaultLocalization: "zh-Hant",
     platforms: [
-        .iOS(.v15),
+        .iOS(.v16),
         .macOS(.v12)  // For development support
     ],
     products: [

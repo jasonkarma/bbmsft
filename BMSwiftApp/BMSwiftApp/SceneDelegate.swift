@@ -13,7 +13,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     ) {
         guard let windowScene = (scene as? UIWindowScene) else { return }
         let window = UIWindow(windowScene: windowScene)
-        let contentView = LoginView()
+        let contentView = NavigationStack {
+            LoginView()
+                .preferredColorScheme(.dark)
+                .background(Color.black)
+                .ignoresSafeArea()
+        }
         let hostingController = UIHostingController(rootView: contentView)
         window.rootViewController = hostingController
         self.window = window

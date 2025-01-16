@@ -14,95 +14,102 @@ public struct EncyclopediaView: View {
     }
     
     public var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .top) {
-                AppColors.primaryBg
-                    .ignoresSafeArea()
-                
-                if viewModel.isLoading {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        .scaleEffect(1.5)
-                } else if let error = viewModel.error {
-                    VStack(spacing: 16) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 50))
-                            .foregroundColor(.yellow)
-                        
-                        Text(error.localizedDescription)
-                            .foregroundColor(.white)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                        
-                        Button(action: {
-                            Task {
-                                await viewModel.loadFrontPageContent()
-                            }
-                        }) {
-                            Text("重試")
+        NavigationStack {
+            GeometryReader { geometry in
+                ZStack(alignment: .top) {
+                    AppColors.primaryBg
+                        .ignoresSafeArea()
+                    
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(1.5)
+                    } else if let error = viewModel.error {
+                        VStack(spacing: 16) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 50))
+                                .foregroundColor(.yellow)
+                            
+                            Text(error.localizedDescription)
                                 .foregroundColor(.white)
-                                .padding(.horizontal, 24)
-                                .padding(.vertical, 12)
-                                .background(AppColors.primary)
-                                .cornerRadius(8)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                            
+                            Button(action: {
+                                Task {
+                                    await viewModel.loadFrontPageContent()
+                                }
+                            }) {
+                                Text("重試")
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 24)
+                                    .padding(.vertical, 12)
+                                    .background(AppColors.primary)
+                                    .cornerRadius(8)
+                            }
                         }
-                    }
-                } else {
-                    VStack(spacing: 0) {
-                        ScrollView {
-                            VStack(spacing: 16) {
-                                if !viewModel.hotArticles.isEmpty {
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        Text("热門文章")
-                                            .font(.title3)
-                                            .foregroundColor(.white)
-                                            .padding(.horizontal)
-                                        
-                                        LazyVStack(spacing: 8) {
-                                            ForEach(viewModel.hotArticles, id: \.id) { article in
-                                                ArticleCardView(article: article, token: token)
-                                                    .background(Color.black.opacity(0.5))
-                                                    .cornerRadius(12)
+                    } else {
+                        VStack(spacing: 0) {
+                            ScrollView {
+                                VStack(spacing: 16) {
+                                    if !viewModel.hotArticles.isEmpty {
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            Text("热門文章")
+                                                .font(.title3)
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal)
+                                            
+                                            LazyVStack(spacing: 8) {
+                                                ForEach(viewModel.hotArticles, id: \.id) { article in
+                                                    NavigationLink(value: article) {
+                                                        ArticleCardView(article: article, token: token)
+                                                            .background(Color.black.opacity(0.5))
+                                                            .cornerRadius(12)
+                                                    }
+                                                }
                                             }
+                                            .padding(.horizontal)
                                         }
-                                        .padding(.horizontal)
                                     }
                                 }
-                            }
-                            .padding(.bottom)
-                        }
-                        
-                        VStack(spacing: 0) {
-                            if !viewModel.latestArticles.isEmpty {
-                                BannerArticleView(articles: viewModel.latestArticles)
+                                .padding(.bottom)
                             }
                             
                             VStack(spacing: 0) {
-                                voiceCommandArea
-                                    .background(Color.black)
+                                if !viewModel.latestArticles.isEmpty {
+                                    BannerArticleView(articles: viewModel.latestArticles)
+                                }
                                 
-                                smartDeviceStats
-                                    .background(Color.black)
-                                
-                                bottomNavigation
+                                VStack(spacing: 0) {
+                                    voiceCommandArea
+                                        .background(Color.black)
+                                    
+                                    smartDeviceStats
+                                        .background(Color.black)
+                                    
+                                    bottomNavigation
+                                }
                             }
                         }
                     }
+                    
+                    // Black overlay for notch area
+                    VStack {
+                        Rectangle()
+                            .fill(Color.black)
+                            .frame(height: geometry.safeAreaInsets.top)
+                        Spacer()
+                    }
+                    .ignoresSafeArea()
                 }
-                
-                // Black overlay for notch area
-                VStack {
-                    Rectangle()
-                        .fill(Color.black)
-                        .frame(height: geometry.safeAreaInsets.top)
-                    Spacer()
-                }
-                .ignoresSafeArea()
             }
-        }
-        .task {
-            print("[EncyclopediaView] Loading content with token: \(token.prefix(10))...")
-            await viewModel.loadFrontPageContent()
+            .navigationDestination(for: ArticlePreview.self) { article in
+                ArticleDetailView(viewModel: ArticleDetailViewModel(articleId: article.id, token: token))
+            }
+            .task {
+                print("[EncyclopediaView] Loading content with token: \(token.prefix(10))...")
+                await viewModel.loadFrontPageContent()
+            }
         }
     }
     

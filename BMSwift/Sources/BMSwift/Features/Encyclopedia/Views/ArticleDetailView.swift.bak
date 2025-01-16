@@ -1,0 +1,183 @@
+#if canImport(SwiftUI) && os(iOS)
+import SwiftUI
+
+public struct ArticleDetailView: View {
+    @StateObject private var viewModel: ArticleDetailViewModel
+    
+    public init(viewModel: ArticleDetailViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+    }
+    
+    public var body: some View {
+        contentView
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    toolbarContent
+                }
+            }
+            .task {
+                await viewModel.loadContent()
+            }
+    }
+    
+    @ViewBuilder
+    private var contentView: some View {
+        if viewModel.isLoading {
+            ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if let error = viewModel.error {
+            VStack(spacing: 16) {
+                Text("Error loading article")
+                    .font(.headline)
+                    .foregroundColor(.red)
+                Text(error.localizedDescription)
+                    .font(.subheadline)
+                    .multilineTextAlignment(.center)
+                Button("Retry") {
+                    Task {
+                        await viewModel.loadContent()
+                    }
+                }
+            }
+            .padding()
+        } else if let article = viewModel.articleDetail {
+            articleContent(article)
+        } else {
+            Text("No content available")
+                .foregroundColor(.gray)
+        }
+    }
+    
+    @ViewBuilder
+    private var toolbarContent: some View {
+        if !viewModel.isLoading, viewModel.error == nil, let article = viewModel.articleDetail {
+            Button {
+                Task {
+                    await viewModel.likeArticle()
+                }
+            } label: {
+                Image(systemName: article.clientsAction.like ? "heart.fill" : "heart")
+            }
+        }
+    }
+    
+    private func articleContent(_ article: ArticleDetailResponse) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Group {
+                    VStack(alignment: .leading) {
+                        Text(article.info.bp_subsection_title)
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                        
+                        HStack(spacing: 16) {
+                            Label("\(article.info.visit)", systemImage: "eye")
+                            Label("\(article.info.likecount)", systemImage: "heart")
+                            Spacer()
+                            Text(article.info.bp_subsection_first_enabled_at)
+                                .font(.caption)
+                        }
+                        .foregroundColor(.gray)
+                        .font(.caption)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(article.cnt, id: \.title) { content in
+                            Text(content.cnt)
+                                .font(.body)
+                                .foregroundColor(.primary)
+                        }
+                    }
+                }
+                .id(article.info.bp_subsection_id)
+                
+                VStack(alignment: .leading, spacing: 12) {
+                    if !article.keywords.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(article.keywords, id: \.bp_tag_id) { keyword in
+                                    Text("#\(keyword.bp_hashtag)")
+                                        .font(.caption)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(Color.gray.opacity(0.1))
+                                        .cornerRadius(12)
+                                }
+                            }
+                        }
+                    }
+                    
+                    if !viewModel.comments.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Comments")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            
+                            ForEach(viewModel.comments, id: \.created_at) { comment in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(comment.user_name)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.primary)
+                                    Text(comment.cnt)
+                                        .font(.body)
+                                        .foregroundColor(.primary)
+                                    Text(comment.created_at)
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                }
+                                .padding()
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(8)
+                            }
+                            
+                            HStack {
+                                TextField("Add a comment...", text: $viewModel.commentText)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                
+                                Button("Post") {
+                                    Task {
+                                        await viewModel.submitComment()
+                                    }
+                                }
+                                .disabled(viewModel.commentText.isEmpty)
+                            }
+                        }
+                    }
+                    
+                    if !article.suggests.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Related Articles")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            
+                            ForEach(article.suggests, id: \.bp_subsection_id) { suggestion in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(suggestion.bp_subsection_title)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.primary)
+                                    Text(suggestion.bp_subsection_intro)
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                        .lineLimit(2)
+                                }
+                                .padding()
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(8)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding()
+        }
+        .scrollDismissesKeyboard(.immediately)
+        .refreshable {
+            await viewModel.loadContent()
+        }
+    }
+}
+#endif

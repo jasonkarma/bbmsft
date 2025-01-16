@@ -1,7 +1,7 @@
 import Foundation
 
 // MARK: - Encyclopedia Content Models
-public struct ArticlePreview: Codable {
+public struct ArticlePreview: Codable, Hashable {
     public let id: Int
     public let title: String
     public let intro: String
@@ -68,6 +68,14 @@ public struct ArticlePreview: Codable {
         self.clientLike = clientLike
         self.clientVisit = clientVisit
         self.clientKeep = clientKeep
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.id == rhs.id
     }
 }
 

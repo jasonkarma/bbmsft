@@ -1,10 +1,10 @@
-#if canImport(SwiftUI)
+#if canImport(SwiftUI) && os(iOS)
 import SwiftUI
 
 public struct ArticleCardView: View {
     private let article: ArticlePreview
     private let token: String
-    private let imageBaseURL = "https://wiki.kinglyrobot.com/media/beauty_content_banner_image/small/"
+    private let imageBaseURL: String = "https://wiki.kinglyrobot.com/media/beauty_content_banner_image/small/"
     
     public init(article: ArticlePreview, token: String) {
         self.article = article
@@ -56,6 +56,7 @@ public struct ArticleCardView: View {
             )
             .shadow(radius: 4)
         }
+        .buttonStyle(.plain)
     }
 }
 #endif
