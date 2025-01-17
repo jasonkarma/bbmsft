@@ -155,7 +155,28 @@ private struct SuggestionCardView: View {
         } label: {
             VStack(alignment: .leading, spacing: 0) {
                 // Top - Image
-                suggestionImageView
+                Group {
+                    if let imageUrl = URL(string: "https://wiki.kinglyrobot.com/media/beauty_content_banner_image/\(suggestion.name)") {
+                        AuthenticatedAsyncImage(url: imageUrl, token: token) { phase in
+                            switch phase {
+                            case .empty:
+                                Color.gray
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                            case .failure:
+                                Color.gray
+                            @unknown default:
+                                Color.gray
+                            }
+                        }
+                    } else {
+                        Color.gray
+                    }
+                }
+                .frame(width: 120, height: 120)
+                .clipped()
                 
                 // Bottom - Content
                 VStack(alignment: .leading, spacing: 4) {
@@ -164,13 +185,11 @@ private struct SuggestionCardView: View {
                         .fontWeight(.medium)
                         .foregroundColor(AppColors.primary)
                         .lineLimit(2)
-                        .multilineTextAlignment(.leading)
                     
                     Text(suggestion.bp_subsection_intro)
                         .font(.caption2)
                         .foregroundColor(.secondary)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
+                        .lineLimit(3)
                 }
                 .frame(width: 96)
                 .padding(.horizontal, 12)
@@ -181,57 +200,6 @@ private struct SuggestionCardView: View {
             .background(Color(.systemBackground))
             .cornerRadius(12)
             .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
-        }
-    }
-    
-    private func logSuggestionDebug(_ suggestion: ArticleDetailResponse.Suggestion) {
-        print("\n📋 Suggestion Debug:")
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print("🆔 ID:                \(suggestion.bp_subsection_id)")
-        print("📝 Title:             \(suggestion.bp_subsection_title)")
-        print("📄 Intro:             \(suggestion.bp_subsection_intro)")
-        print("👤 Name:              \(suggestion.name)")
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-    }
-    
-    private func logImageDebug(baseURL: String, encodedName: String, fullURL: String) {
-        print("\n📸 Image URL Construction Debug:")
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print("🔗 Base URL:          \(baseURL)")
-        print("🔒 Encoded Name:      \(encodedName)")
-        print("🌐 Full URL:          \(fullURL)")
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-    }
-    
-    private var suggestionImageView: some View {
-        Group {
-            if let imageUrl = URL(string: "https://wiki.kinglyrobot.com/media/beauty_content_banner_image/\(suggestion.name)") {
-                AuthenticatedAsyncImage(url: imageUrl, token: token) { phase in
-                    switch phase {
-                    case .empty:
-                        Color.gray
-                            .frame(height: 120)
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(height: 120)
-                            .clipped()
-                    case .failure:
-                        Color.gray
-                            .frame(height: 120)
-                    @unknown default:
-                        Color.gray
-                            .frame(height: 120)
-                    }
-                }
-            } else {
-                Color.gray
-                    .frame(height: 120)
-                    .onAppear {
-                        print("❌ Invalid image URL: https://wiki.kinglyrobot.com/media/beauty_content_banner_image/\(suggestion.name)")
-                    }
-            }
         }
     }
 }
