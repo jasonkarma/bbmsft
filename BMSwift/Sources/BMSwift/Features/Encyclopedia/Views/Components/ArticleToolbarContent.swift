@@ -1,56 +1,48 @@
 #if canImport(SwiftUI) && os(iOS)
 import SwiftUI
 
-struct ArticleToolbarContent: View {
+public struct ArticleToolbarContent: View {
     @ObservedObject var viewModel: ArticleDetailViewModel
     
-    private var isLiked: Bool {
-        viewModel.articleDetail?.clientsAction.isLiked == true
-    }
-    
-    private var isKept: Bool {
-        viewModel.articleDetail?.clientsAction.isKept == true
-    }
-    
-    var body: some View {
+    public var body: some View {
         HStack(spacing: 16) {
-            // Like button
-            Button {
-                Task {
-                    await viewModel.likeArticle()
+            if case .loaded(let article) = viewModel.state {
+                Button(action: {
+                    Task {
+                        await viewModel.likeArticle()
+                    }
+                }) {
+                    Image(systemName: article.clientsAction.like ? "heart.fill" : "heart")
+                        .font(.system(size: 20))
+                        .foregroundColor(article.clientsAction.like ? .red : .gray)
                 }
-            } label: {
-                Image(systemName: isLiked ? "heart.fill" : "heart")
-                    .font(.system(size: 20))
-                    .foregroundColor(isLiked ? .red : .gray)
-            }
-            .overlay {
-                if let message = viewModel.likeMessage {
-                    Text(message)
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                        .offset(y: -25)
-                        .transition(.opacity)
+                .overlay {
+                    if let message = viewModel.likeMessage {
+                        Text(message)
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .offset(y: -25)
+                            .transition(.opacity)
+                    }
                 }
-            }
-            
-            // Keep button
-            Button {
-                Task {
-                    await viewModel.keepArticle()
+                
+                Button(action: {
+                    Task {
+                        await viewModel.keepArticle()
+                    }
+                }) {
+                    Image(systemName: article.clientsAction.keep ? "bookmark.fill" : "bookmark")
+                        .font(.system(size: 20))
+                        .foregroundColor(article.clientsAction.keep ? .blue : .gray)
                 }
-            } label: {
-                Image(systemName: isKept ? "bookmark.fill" : "bookmark")
-                    .font(.system(size: 20))
-                    .foregroundColor(isKept ? .blue : .gray)
-            }
-            .overlay {
-                if let message = viewModel.keepMessage {
-                    Text(message)
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                        .offset(y: -25)
-                        .transition(.opacity)
+                .overlay {
+                    if let message = viewModel.keepMessage {
+                        Text(message)
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .offset(y: -25)
+                            .transition(.opacity)
+                    }
                 }
             }
         }

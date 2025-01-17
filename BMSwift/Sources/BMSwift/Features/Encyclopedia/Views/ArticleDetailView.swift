@@ -12,13 +12,14 @@ public struct ArticleDetailView: View {
     public var body: some View {
         ZStack(alignment: .top) {
             ScrollView {
-                if viewModel.isLoading {
+                switch viewModel.state {
+                case .initial, .loading:
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if let error = viewModel.error {
+                case .error(let error):
                     Text(error.localizedDescription)
                         .foregroundColor(.red)
-                } else if let article = viewModel.articleDetail {
+                case .loaded(let article):
                     VStack(alignment: .leading, spacing: 16) {
                         ArticleHeaderView(info: article.info)
                         if !article.cnt.isEmpty {
@@ -27,8 +28,13 @@ public struct ArticleDetailView: View {
                         if !article.keywords.isEmpty || !article.suggests.isEmpty || !viewModel.comments.isEmpty {
                             ArticleFooterView(
                                 article: article,
+                                token: viewModel.token,
                                 comments: viewModel.comments,
-                                viewModel: viewModel
+                                viewModel: viewModel,
+                                onNavigateToArticle: { id in
+                                    // TODO: Implement navigation
+                                    print("Navigate to article: \(id)")
+                                }
                             )
                         }
                     }
@@ -46,16 +52,12 @@ public struct ArticleDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                if !viewModel.isLoading, viewModel.error == nil {
-                    ArticleToolbarContent(viewModel: viewModel)
-                }
+                ArticleToolbarContent(viewModel: viewModel)
             }
         }
-        .onAppear {
-            if viewModel.articleDetail == nil {
-                Task {
-                    await viewModel.loadContent()
-                }
+        .task {
+            if case .initial = viewModel.state {
+                await viewModel.loadContent()
             }
         }
     }

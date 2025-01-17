@@ -3,20 +3,49 @@ import SwiftUI
 
 @MainActor
 public final class ArticleDetailViewModel: ObservableObject, Hashable {
+    public enum ViewState {
+        case initial
+        case loading
+        case loaded(ArticleDetailResponse)
+        case error(BMNetwork.APIError)
+    }
+    
     // MARK: - Published Properties
-    @Published private(set) var articleDetail: ArticleDetailResponse?
+    @Published private(set) var state: ViewState = .initial
     @Published private(set) var comments: [Comment] = []
-    @Published private(set) var isLoading: Bool = false
-    @Published var error: BMNetwork.APIError?
     @Published var commentText: String = ""
     @Published var showToast: Bool = false
     @Published var toastMessage: String = ""
     @Published private(set) var likeMessage: String?
     @Published private(set) var keepMessage: String?
     
+    // MARK: - Internal Properties
+    nonisolated var token: String { _token }
+    
+    var articleDetail: ArticleDetailResponse? {
+        if case .loaded(let article) = state {
+            return article
+        }
+        return nil
+    }
+    
+    var isLoading: Bool {
+        if case .loading = state {
+            return true
+        }
+        return false
+    }
+    
+    var error: BMNetwork.APIError? {
+        if case .error(let error) = state {
+            return error
+        }
+        return nil
+    }
+    
     // MARK: - Private Properties
     private let articleId: Int
-    private let token: String
+    private let _token: String
     private let encyclopediaService: EncyclopediaServiceProtocol
     private var currentTask: Task<Void, Never>?
     
@@ -27,7 +56,7 @@ public final class ArticleDetailViewModel: ObservableObject, Hashable {
         encyclopediaService: EncyclopediaServiceProtocol = EncyclopediaService(client: BMNetwork.NetworkClient(baseURL: URL(string: "https://wiki.kinglyrobot.com")!))
     ) {
         self.articleId = articleId
-        self.token = token
+        self._token = token
         self.encyclopediaService = encyclopediaService
     }
     
@@ -47,21 +76,20 @@ public final class ArticleDetailViewModel: ObservableObject, Hashable {
         currentTask?.cancel()
         
         let task = Task {
-            guard !isLoading else { return }
-            
-            isLoading = true
-            error = nil
+            state = .loading
             
             do {
                 // Load article first
                 let article = try await encyclopediaService.fetchArticleDetail(id: articleId, authToken: token)
                 if Task.isCancelled { return }
-                self.articleDetail = article
                 
                 // Then load comments
                 let commentsList = try await encyclopediaService.fetchComments(articleId: articleId, authToken: token)
                 if Task.isCancelled { return }
-                self.comments = commentsList
+                
+                // Update state and comments
+                state = .loaded(article)
+                comments = commentsList
                 
                 // Record visit
                 if !Task.isCancelled {
@@ -70,16 +98,12 @@ public final class ArticleDetailViewModel: ObservableObject, Hashable {
                 
             } catch let networkError as BMNetwork.APIError {
                 if !Task.isCancelled {
-                    error = networkError
+                    state = .error(networkError)
                 }
             } catch {
                 if !Task.isCancelled {
-                    self.error = .networkError(error)
+                    state = .error(.networkError(error))
                 }
-            }
-            
-            if !Task.isCancelled {
-                isLoading = false
             }
         }
         
@@ -93,51 +117,68 @@ public final class ArticleDetailViewModel: ObservableObject, Hashable {
         do {
             try await encyclopediaService.postComment(articleId: articleId, content: commentText, authToken: token)
             commentText = ""
-            await loadContent()
+            
+            // Just fetch new comments instead of reloading everything
+            let newComments = try await encyclopediaService.fetchComments(articleId: articleId, authToken: token)
+            comments = newComments
+            
+            // Show success toast
+            withAnimation {
+                toastMessage = "發佈成功"
+                showToast = true
+            }
         } catch {
-            self.error = error as? BMNetwork.APIError ?? .networkError(error)
+            withAnimation {
+                toastMessage = "發佈失敗"
+                showToast = true
+            }
+            self.state = .error(error as? BMNetwork.APIError ?? .networkError(error))
         }
     }
     
     public func likeArticle() async {
-        guard let id = articleDetail?.info.bp_subsection_id else { return }
+        guard case .loaded(var article) = state else { return }
+        
         do {
-            let wasLiked = articleDetail?.clientsAction.like ?? false
-            try await encyclopediaService.likeArticle(id: id, authToken: token)
-            articleDetail?.clientsAction.like.toggle()
+            let wasLiked = article.clientsAction.like
+            try await encyclopediaService.likeArticle(id: article.info.bp_subsection_id, authToken: token)
+            
+            // Update the local state with the new like status
+            article.clientsAction.like.toggle()
+            state = .loaded(article)
             
             // Only show message when adding like, not removing
             if !wasLiked {
-                toastMessage = "已添加到喜歡"
                 withAnimation {
+                    toastMessage = "已添加到喜欢"
                     showToast = true
                 }
             }
         } catch {
             print("Error liking article: \(error)")
-            // Revert the state if there was an error
-            articleDetail?.clientsAction.like = false
         }
     }
     
     public func keepArticle() async {
-        guard let id = articleDetail?.info.bp_subsection_id else { return }
+        guard case .loaded(var article) = state else { return }
+        
         do {
-            let wasKept = articleDetail?.clientsAction.keep ?? false
-            try await encyclopediaService.keepArticle(id: id, authToken: token)
-            articleDetail?.clientsAction.keep.toggle()
+            let wasKept = article.clientsAction.keep
+            try await encyclopediaService.keepArticle(id: article.info.bp_subsection_id, authToken: token)
+            
+            // Update the local state with the new keep status
+            article.clientsAction.keep.toggle()
+            state = .loaded(article)
             
             // Only show message when adding to keeps, not removing
             if !wasKept {
-                toastMessage = "已添加到收藏"
                 withAnimation {
+                    toastMessage = "已添加到收藏"
                     showToast = true
                 }
             }
         } catch {
             print("Error keeping article: \(error)")
-            // Revert the state if there was an error
-            articleDetail?.clientsAction.keep = false
         }
     }
 }
