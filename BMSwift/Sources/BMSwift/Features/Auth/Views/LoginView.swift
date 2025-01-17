@@ -61,19 +61,20 @@ public struct LoginView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 24) {
                     Spacer()
-                        .frame(height: 50)
+                        .frame(height: 20)
                     
                     // Title
                     Text("登入")
                         .font(.title)
                         .foregroundColor(AppColors.primary)
+                        .padding(.bottom, -10)
                     
                     // Image
                     Image("LoginImage", bundle: .module)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 200, height: 120)
-                        .padding(.bottom, 20)
+                        .frame(width: 200, height: 100)
+                        .padding(.bottom, 10)
                     
                     // Email Input
                     VStack(alignment: .leading, spacing: 4) {
@@ -163,6 +164,7 @@ public struct LoginView: View {
                             showForgotPassword = true
                         }
                         .foregroundColor(AppColors.primary)
+                        .padding(.top, -10)
                         
                         Spacer()
                         
