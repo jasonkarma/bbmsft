@@ -50,8 +50,8 @@ public enum EncyclopediaEndpoints {
     
     /// Like article endpoint
     public struct Like: BMNetwork.APIEndpoint {
-        public typealias RequestType = ClientActionRequest
-        public typealias ResponseType = ClientActionResponse
+        public typealias RequestType = [String: Int]
+        public typealias ResponseType = LikeActionResponse
         
         public let id: Int
         public let path: String = "/api/clientLike"
@@ -65,6 +65,10 @@ public enum EncyclopediaEndpoints {
                 "Content-Type": "application/json",
                 "Authorization": "Bearer \(authToken)"
             ]
+        }
+        
+        public var body: [String: Int] {
+            ["bp_subsection_id": id]
         }
     }
     
@@ -188,7 +192,7 @@ public extension EncyclopediaEndpoints {
     
     static func like(id: Int, authToken: String) -> BMNetwork.APIRequest<Like> {
         let endpoint = Like(id: id, authToken: authToken)
-        let body = ClientActionRequest(bp_subsection_id: id)
+        let body = endpoint.body
         return BMNetwork.APIRequest(endpoint: endpoint, body: body)
     }
     

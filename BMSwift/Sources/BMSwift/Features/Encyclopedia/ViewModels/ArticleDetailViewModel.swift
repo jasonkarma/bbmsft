@@ -9,11 +9,16 @@ public final class ArticleDetailViewModel: ObservableObject, Hashable {
     @Published private(set) var isLoading: Bool = false
     @Published var error: BMNetwork.APIError?
     @Published var commentText: String = ""
+    @Published var showToast: Bool = false
+    @Published var toastMessage: String = ""
+    @Published private(set) var likeMessage: String?
+    @Published private(set) var keepMessage: String?
     
     // MARK: - Private Properties
     private let articleId: Int
     private let token: String
     private let encyclopediaService: EncyclopediaServiceProtocol
+    private var currentTask: Task<Void, Never>?
     
     // MARK: - Initialization
     public init(
@@ -38,33 +43,48 @@ public final class ArticleDetailViewModel: ObservableObject, Hashable {
     
     // MARK: - Public Methods
     public func loadContent() async {
-        print("ArticleDetailViewModel: Starting content load")
-        isLoading = true
-        error = nil
+        // Cancel any existing task
+        currentTask?.cancel()
         
-        do {
-            print("ArticleDetailViewModel: Fetching article and comments")
-            let article = try await encyclopediaService.fetchArticleDetail(id: articleId, authToken: token)
-            self.articleDetail = article
+        let task = Task {
+            guard !isLoading else { return }
             
-            // Fetch comments separately to avoid any potential issues
+            isLoading = true
+            error = nil
+            
             do {
-                let comments = try await encyclopediaService.fetchComments(articleId: articleId, authToken: token)
-                self.comments = comments
+                // Load article first
+                let article = try await encyclopediaService.fetchArticleDetail(id: articleId, authToken: token)
+                if Task.isCancelled { return }
+                self.articleDetail = article
+                
+                // Then load comments
+                let commentsList = try await encyclopediaService.fetchComments(articleId: articleId, authToken: token)
+                if Task.isCancelled { return }
+                self.comments = commentsList
+                
+                // Record visit
+                if !Task.isCancelled {
+                    try? await encyclopediaService.visitArticle(id: articleId, authToken: token)
+                }
+                
+            } catch let networkError as BMNetwork.APIError {
+                if !Task.isCancelled {
+                    error = networkError
+                }
             } catch {
-                print("ArticleDetailViewModel: Error fetching comments - \(error)")
-                // Don't fail the whole view if comments fail to load
-                self.comments = []
+                if !Task.isCancelled {
+                    self.error = .networkError(error)
+                }
             }
             
-            print("ArticleDetailViewModel: Successfully loaded article")
-        } catch {
-            print("ArticleDetailViewModel: Error loading content - \(error)")
-            self.error = error as? BMNetwork.APIError ?? .networkError(error)
+            if !Task.isCancelled {
+                isLoading = false
+            }
         }
         
-        isLoading = false
-        print("ArticleDetailViewModel: Finished loading. hasError: \(error != nil), hasContent: \(articleDetail != nil)")
+        currentTask = task
+        await task.value
     }
     
     public func submitComment() async {
@@ -80,20 +100,44 @@ public final class ArticleDetailViewModel: ObservableObject, Hashable {
     }
     
     public func likeArticle() async {
+        guard let id = articleDetail?.info.bp_subsection_id else { return }
         do {
-            try await encyclopediaService.likeArticle(id: articleId, authToken: token)
-            await loadContent()
+            let wasLiked = articleDetail?.clientsAction.like ?? false
+            try await encyclopediaService.likeArticle(id: id, authToken: token)
+            articleDetail?.clientsAction.like.toggle()
+            
+            // Only show message when adding like, not removing
+            if !wasLiked {
+                toastMessage = "已添加到喜歡"
+                withAnimation {
+                    showToast = true
+                }
+            }
         } catch {
-            self.error = error as? BMNetwork.APIError ?? .networkError(error)
+            print("Error liking article: \(error)")
+            // Revert the state if there was an error
+            articleDetail?.clientsAction.like = false
         }
     }
     
     public func keepArticle() async {
+        guard let id = articleDetail?.info.bp_subsection_id else { return }
         do {
-            try await encyclopediaService.keepArticle(id: articleId, authToken: token)
-            await loadContent()
+            let wasKept = articleDetail?.clientsAction.keep ?? false
+            try await encyclopediaService.keepArticle(id: id, authToken: token)
+            articleDetail?.clientsAction.keep.toggle()
+            
+            // Only show message when adding to keeps, not removing
+            if !wasKept {
+                toastMessage = "已添加到收藏"
+                withAnimation {
+                    showToast = true
+                }
+            }
         } catch {
-            self.error = error as? BMNetwork.APIError ?? .networkError(error)
+            print("Error keeping article: \(error)")
+            // Revert the state if there was an error
+            articleDetail?.clientsAction.keep = false
         }
     }
 }

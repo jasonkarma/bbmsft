@@ -5,11 +5,11 @@ struct ArticleToolbarContent: View {
     @ObservedObject var viewModel: ArticleDetailViewModel
     
     private var isLiked: Bool {
-        viewModel.articleDetail?.clientsAction.like == true
+        viewModel.articleDetail?.clientsAction.isLiked == true
     }
     
     private var isKept: Bool {
-        viewModel.articleDetail?.clientsAction.keep == true
+        viewModel.articleDetail?.clientsAction.isKept == true
     }
     
     var body: some View {
@@ -23,9 +23,16 @@ struct ArticleToolbarContent: View {
                 Image(systemName: isLiked ? "heart.fill" : "heart")
                     .font(.system(size: 20))
                     .foregroundColor(isLiked ? .red : .gray)
-                    .scaleEffect(isLiked ? 1.1 : 1.0)
             }
-            .animation(.spring(response: 0.3), value: isLiked)
+            .overlay {
+                if let message = viewModel.likeMessage {
+                    Text(message)
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                        .offset(y: -25)
+                        .transition(.opacity)
+                }
+            }
             
             // Keep button
             Button {
@@ -36,9 +43,16 @@ struct ArticleToolbarContent: View {
                 Image(systemName: isKept ? "bookmark.fill" : "bookmark")
                     .font(.system(size: 20))
                     .foregroundColor(isKept ? .blue : .gray)
-                    .scaleEffect(isKept ? 1.1 : 1.0)
             }
-            .animation(.spring(response: 0.3), value: isKept)
+            .overlay {
+                if let message = viewModel.keepMessage {
+                    Text(message)
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                        .offset(y: -25)
+                        .transition(.opacity)
+                }
+            }
         }
         .frame(height: 44)
         .buttonStyle(.plain)

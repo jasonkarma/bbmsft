@@ -12,9 +12,8 @@ struct ArticleFooterView: View {
                 keywordsView
             }
             
-            if !comments.isEmpty {
-                commentsSection
-            }
+            // Comments section always visible
+            commentsSection
             
             if !article.suggests.isEmpty {
                 suggestedArticlesView
@@ -43,10 +42,13 @@ struct ArticleFooterView: View {
                 .font(.headline)
                 .foregroundColor(.primary)
             
-            ForEach(comments, id: \.created_at) { comment in
-                commentView(comment)
+            if !comments.isEmpty {
+                ForEach(comments, id: \.created_at) { comment in
+                    commentView(comment)
+                }
             }
             
+            // Comment input always visible
             commentInput
         }
     }
@@ -71,8 +73,9 @@ struct ArticleFooterView: View {
     
     private var commentInput: some View {
         HStack {
-            TextField("Add a comment...", text: $viewModel.commentText)
+            TextField("請輸入留言", text: $viewModel.commentText)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                .foregroundColor(AppColors.primary)
             
             Button("Post") {
                 Task {

@@ -9,11 +9,11 @@ import Foundation
 // MARK: - Article Detail Response
 public struct ArticleDetailResponse: Codable {
     public let info: Info
-    public let cnt: [Content]
+    public var cnt: [Content]
     public let keywords: [Keyword]
     public let suggests: [Suggestion]
     public let chapters: [Chapter]
-    public let clientsAction: ClientActions
+    public var clientsAction: ClientActions
     
     private enum CodingKeys: String, CodingKey {
         case info
@@ -95,12 +95,20 @@ public struct ArticleDetailResponse: Codable {
     }
     
     public struct ClientActions: Codable, Equatable {
-        public let keep: Bool
-        public let like: Bool
+        public var keep: Bool
+        public var like: Bool
         
         private enum CodingKeys: String, CodingKey {
             case keep
             case like
+        }
+        
+        public var isLiked: Bool {
+            like
+        }
+        
+        public var isKept: Bool {
+            keep
         }
     }
 }

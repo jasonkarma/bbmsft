@@ -10,7 +10,7 @@ struct ArticleHeaderView: View {
             Text(info.bp_subsection_title)
                 .font(.title2)
                 .fontWeight(.bold)
-                .foregroundColor(.primary)
+                .foregroundColor(AppColors.primary)
                 .fixedSize(horizontal: false, vertical: true)
             
             // Stats section

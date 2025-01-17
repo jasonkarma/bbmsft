@@ -1,66 +1,62 @@
 #if canImport(SwiftUI) && os(iOS)
 import SwiftUI
 
+@available(iOS 13.0, *)
 public struct ArticleDetailView: View {
-    @StateObject private var viewModel: ArticleDetailViewModel
+    @StateObject var viewModel: ArticleDetailViewModel
     
     public init(viewModel: ArticleDetailViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
     
     public var body: some View {
-        contentView
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    toolbarContent
+        ZStack(alignment: .top) {
+            ScrollView {
+                if viewModel.isLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if let error = viewModel.error {
+                    Text(error.localizedDescription)
+                        .foregroundColor(.red)
+                } else if let article = viewModel.articleDetail {
+                    VStack(alignment: .leading, spacing: 16) {
+                        ArticleHeaderView(info: article.info)
+                        if !article.cnt.isEmpty {
+                            ArticleBodyView(article: article)
+                        }
+                        if !article.keywords.isEmpty || !article.suggests.isEmpty || !viewModel.comments.isEmpty {
+                            ArticleFooterView(
+                                article: article,
+                                comments: viewModel.comments,
+                                viewModel: viewModel
+                            )
+                        }
+                    }
+                    .padding()
                 }
             }
-            .task {
+            .refreshable {
                 await viewModel.loadContent()
             }
-    }
-    
-    @ViewBuilder
-    private var contentView: some View {
-        if viewModel.isLoading {
-            ArticleLoadingView(viewModel: viewModel)
-        } else if let error = viewModel.error {
-            ArticleErrorView(viewModel: viewModel)
-        } else if let article = viewModel.articleDetail {
-            articleContent(article)
-        } else {
-            ArticleEmptyView()
+            
+            if viewModel.showToast {
+                ToastView(message: viewModel.toastMessage, isPresented: $viewModel.showToast)
+            }
         }
-    }
-    
-    @ViewBuilder
-    private var toolbarContent: some View {
-        if !viewModel.isLoading, viewModel.error == nil {
-            ArticleToolbarContent(viewModel: viewModel)
-        }
-    }
-    
-    private func articleContent(_ article: ArticleDetailResponse) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                ArticleHeaderView(info: article.info)
-                if !article.cnt.isEmpty {
-                    ArticleBodyView(article: article)
-                }
-                if !article.keywords.isEmpty || !article.suggests.isEmpty || !viewModel.comments.isEmpty {
-                    ArticleFooterView(
-                        article: article,
-                        comments: viewModel.comments,
-                        viewModel: viewModel
-                    )
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                if !viewModel.isLoading, viewModel.error == nil {
+                    ArticleToolbarContent(viewModel: viewModel)
                 }
             }
-            .padding()
         }
-        .scrollDismissesKeyboard(.immediately)
-        .refreshable {
-            await viewModel.loadContent()
+        .onAppear {
+            if viewModel.articleDetail == nil {
+                Task {
+                    await viewModel.loadContent()
+                }
+            }
         }
     }
 }

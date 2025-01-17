@@ -23,7 +23,7 @@ struct ArticleBodyView: View {
                     if !content.title.isEmpty {
                         Text(content.title)
                             .font(.headline)
-                            .foregroundColor(.primary)
+                            .foregroundColor(AppColors.primary)
                     }
                     ArticleContentView(htmlContent: content.cnt)
                         .id("content_\(content.title)")
