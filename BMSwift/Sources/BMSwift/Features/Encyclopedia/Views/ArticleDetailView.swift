@@ -10,41 +10,39 @@ public struct ArticleDetailView: View {
     }
     
     public var body: some View {
-        ZStack(alignment: .top) {
-            ScrollView {
-                switch viewModel.state {
-                case .initial, .loading:
-                    ProgressView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                case .error(let error):
-                    Text(error.localizedDescription)
-                        .foregroundColor(.red)
-                case .loaded(let article):
-                    VStack(alignment: .leading, spacing: 16) {
-                        ArticleHeaderView(info: article.info)
-                        if !article.cnt.isEmpty {
-                            ArticleBodyView(article: article)
-                        }
-                        if !article.keywords.isEmpty || !article.suggests.isEmpty || !viewModel.comments.isEmpty {
-                            ArticleFooterView(
-                                article: article,
-                                token: viewModel.token,
-                                comments: viewModel.comments,
-                                viewModel: viewModel,
-                                onNavigateToArticle: { id in
-                                    // TODO: Implement navigation
-                                    print("Navigate to article: \(id)")
-                                }
-                            )
-                        }
+        ScrollView {
+            switch viewModel.state {
+            case .initial, .loading:
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            case .error(let error):
+                Text(error.localizedDescription)
+                    .foregroundColor(.red)
+            case .loaded(let article):
+                VStack(alignment: .leading, spacing: 16) {
+                    ArticleHeaderView(info: article.info)
+                    if !article.cnt.isEmpty {
+                        ArticleBodyView(article: article)
                     }
-                    .padding()
+                    if !article.keywords.isEmpty || !article.suggests.isEmpty || !viewModel.comments.isEmpty {
+                        ArticleFooterView(
+                            article: article,
+                            token: viewModel.token,
+                            comments: viewModel.comments,
+                            viewModel: viewModel,
+                            onNavigateToArticle: { @MainActor id in
+                                await viewModel.loadContent(forArticleId: id)
+                            }
+                        )
+                    }
                 }
+                .padding()
             }
-            .refreshable {
-                await viewModel.loadContent()
-            }
-            
+        }
+        .refreshable {
+            await viewModel.loadContent()
+        }
+        .overlay {
             if viewModel.showToast {
                 ToastView(message: viewModel.toastMessage, isPresented: $viewModel.showToast)
             }

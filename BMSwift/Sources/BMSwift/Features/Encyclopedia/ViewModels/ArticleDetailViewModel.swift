@@ -47,7 +47,7 @@ public final class ArticleDetailViewModel: ObservableObject, Hashable {
     private let articleId: Int
     private let _token: String
     private let encyclopediaService: EncyclopediaServiceProtocol
-    private var currentTask: Task<Void, Never>?
+    private var currentTask: Task<Bool, Never>?
     
     // MARK: - Initialization
     public init(
@@ -71,44 +71,87 @@ public final class ArticleDetailViewModel: ObservableObject, Hashable {
     }
     
     // MARK: - Public Methods
-    public func loadContent() async {
-        // Cancel any existing task
+    @discardableResult
+    public func loadContent() async -> Bool {
         currentTask?.cancel()
         
-        let task = Task {
+        let task = Task<Bool, Never> { [weak self] in
+            guard let self else { return false }
+            
             state = .loading
             
             do {
-                // Load article first
-                let article = try await encyclopediaService.fetchArticleDetail(id: articleId, authToken: token)
-                if Task.isCancelled { return }
+                async let article = encyclopediaService.fetchArticleDetail(id: articleId, authToken: _token)
+                async let commentsList = encyclopediaService.fetchComments(articleId: articleId, authToken: _token)
                 
-                // Then load comments
-                let commentsList = try await encyclopediaService.fetchComments(articleId: articleId, authToken: token)
-                if Task.isCancelled { return }
+                let (articleResult, commentsResult) = try await (article, commentsList)
+                guard !Task.isCancelled else { return false }
                 
-                // Update state and comments
-                state = .loaded(article)
-                comments = commentsList
+                state = .loaded(articleResult)
+                comments = commentsResult
                 
                 // Record visit
                 if !Task.isCancelled {
-                    try? await encyclopediaService.visitArticle(id: articleId, authToken: token)
+                    try? await encyclopediaService.visitArticle(id: articleId, authToken: _token)
                 }
                 
-            } catch let networkError as BMNetwork.APIError {
-                if !Task.isCancelled {
-                    state = .error(networkError)
-                }
+                return true
+            } catch let error as BMNetwork.APIError {
+                guard !Task.isCancelled else { return false }
+                state = .error(error)
+                return false
             } catch {
-                if !Task.isCancelled {
-                    state = .error(.networkError(error))
-                }
+                guard !Task.isCancelled else { return false }
+                state = .error(.networkError(error))
+                return false
             }
         }
         
         currentTask = task
-        await task.value
+        return await task.value
+    }
+    
+    @discardableResult
+    public func loadContent(forArticleId id: Int) async -> Bool {
+        currentTask?.cancel()
+        
+        let task = Task<Bool, Never> { [weak self] in
+            guard let self else { return false }
+            
+            do {
+                async let article = encyclopediaService.fetchArticleDetail(id: id, authToken: _token)
+                async let commentsList = encyclopediaService.fetchComments(articleId: id, authToken: _token)
+                
+                let (articleResult, commentsResult) = try await (article, commentsList)
+                guard !Task.isCancelled else { return false }
+                
+                state = .loaded(articleResult)
+                comments = commentsResult
+                
+                // Record visit
+                if !Task.isCancelled {
+                    try? await encyclopediaService.visitArticle(id: id, authToken: _token)
+                }
+                
+                return true
+            } catch let error as BMNetwork.APIError {
+                guard !Task.isCancelled else { return false }
+                state = .error(error)
+                return false
+            } catch {
+                guard !Task.isCancelled else { return false }
+                state = .error(.networkError(error))
+                return false
+            }
+        }
+        
+        currentTask = task
+        return await task.value
+    }
+    
+    @discardableResult
+    public func navigateToArticle(_ id: Int) async -> Bool {
+        return await loadContent(forArticleId: id)
     }
     
     public func submitComment() async {

@@ -6,20 +6,23 @@ struct ArticleFooterView: View {
     let token: String
     let comments: [Comment]
     @ObservedObject var viewModel: ArticleDetailViewModel
-    var onNavigateToArticle: (Int) -> Void
-    private let imageBaseURL: String = "https://wiki.kinglyrobot.com/media/beauty_content_banner_image/small/"
+    let onNavigateToArticle: @MainActor (Int) async -> Bool
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            // Keywords section
             if !article.keywords.isEmpty {
                 keywordsView
             }
             
-            // Comments section always visible
-            commentsSection
-            
+            // Suggestions section
             if !article.suggests.isEmpty {
                 suggestionsSection
+            }
+            
+            // Comments section
+            if !comments.isEmpty {
+                commentsSection
             }
         }
         .padding(.vertical)
@@ -41,95 +44,16 @@ struct ArticleFooterView: View {
         }
     }
     
-    private var commentsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("留言")
-                    .font(.headline)
-                    .foregroundColor(.primary)
-                
-                Spacer()
-                
-                if !comments.isEmpty {
-                    Text("\(comments.count) 篇留言")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-            }
-            .padding(.horizontal)
-            
-            if !comments.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(comments, id: \.created_at) { comment in
-                            commentCard(comment)
-                        }
-                    }
-                    .padding(.horizontal)
-                }
-            }
-            
-            // Comment input always visible
-            commentInput
-                .padding(.horizontal)
-        }
-    }
-    
-    private func commentCard(_ comment: Comment) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(comment.user_name)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundColor(.primary)
-            
-            Text(comment.cnt)
-                .font(.body)
-                .foregroundColor(.primary)
-                .lineLimit(3)
-                .multilineTextAlignment(.leading)
-            
-            Text(comment.created_at)
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .frame(width: 150)
-        .padding()
-        .background(Color.gray.opacity(0.5))
-        .cornerRadius(12)
-    }
-    
-    private var commentInput: some View {
-        VStack(spacing: 8) {
-            TextField("請輸入留言", text: $viewModel.commentText)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .foregroundColor(AppColors.primary)
-            
-            Button {
-                Task {
-                    await viewModel.submitComment()
-                }
-            } label: {
-                Text("發佈")
-                    .foregroundColor(.black)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 8)
-                    .background(Color.white)
-                    .cornerRadius(12)
-            }
-            .disabled(viewModel.commentText.isEmpty)
-        }
-    }
-    
     private var suggestionsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("您可能也會感興趣！")
+            Text("查看更多美容攻略！")
                 .font(.headline)
                 .foregroundColor(.primary)
                 .padding(.horizontal)
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(article.suggests) { suggestion in
+                    ForEach(article.suggests, id: \.bp_subsection_id) { suggestion in
                         SuggestionCardView(
                             suggestion: suggestion,
                             token: token,
@@ -137,7 +61,36 @@ struct ArticleFooterView: View {
                         )
                     }
                 }
-                .padding(.horizontal)
+            }
+            .padding(.horizontal)
+        }
+    }
+    
+    private var commentsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("评论")
+                    .font(.headline)
+                Spacer()
+            }
+            .padding(.horizontal)
+            
+            ForEach(comments, id: \.created_at) { comment in
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(comment.user_name)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    Text(comment.cnt)
+                        .font(.body)
+                        .lineLimit(3)
+                    Text(comment.created_at)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .background(Color(.systemBackground))
+                .cornerRadius(12)
+                .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
             }
         }
     }
@@ -146,12 +99,13 @@ struct ArticleFooterView: View {
 private struct SuggestionCardView: View {
     let suggestion: ArticleDetailResponse.Suggestion
     let token: String
-    var onTap: (Int) -> Void
-    private let imageBaseURL: String = "https://wiki.kinglyrobot.com/media/beauty_content_banner_image/"
+    let onTap: @MainActor (Int) async -> Bool
     
     var body: some View {
         Button {
-            onTap(suggestion.bp_subsection_id)
+            Task {
+                let _ = await onTap(suggestion.bp_subsection_id)
+            }
         } label: {
             VStack(alignment: .leading, spacing: 0) {
                 // Top - Image
@@ -183,7 +137,7 @@ private struct SuggestionCardView: View {
                     Text(suggestion.bp_subsection_title)
                         .font(.caption)
                         .fontWeight(.medium)
-                        .foregroundColor(AppColors.primary)
+                        .foregroundColor(.primary)
                         .lineLimit(2)
                     
                     Text(suggestion.bp_subsection_intro)
@@ -201,12 +155,6 @@ private struct SuggestionCardView: View {
             .cornerRadius(12)
             .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
         }
-    }
-}
-
-extension ArticleDetailResponse.Suggestion: Identifiable {
-    public var id: Int {
-        return bp_subsection_id
     }
 }
 #endif
