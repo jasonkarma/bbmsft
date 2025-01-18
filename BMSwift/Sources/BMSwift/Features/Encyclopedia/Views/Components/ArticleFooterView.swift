@@ -10,6 +10,67 @@ struct ArticleFooterView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            // Comments section header and input
+            HStack {
+                Text("留言")
+                    .font(.headline)
+                    .foregroundColor(AppColors.primary)
+                Spacer()
+            }
+            .padding(.horizontal)
+            
+            // Comment input area
+            VStack(spacing: 12) {
+                TextField("請輸入留言", text: $viewModel.commentText)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .foregroundColor(AppColors.primary)
+                
+                Button(action: {
+                    Task {
+                        await viewModel.submitComment()
+                    }
+                }) {
+                    Text("發佈")
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.white)
+                        .cornerRadius(8)
+                }
+                .disabled(viewModel.commentText.isEmpty)
+                .frame(maxWidth: .infinity, alignment: .center)
+            }
+            .padding(.horizontal)
+            
+            // Existing comments display
+            if !comments.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(comments, id: \.created_at) { comment in
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(comment.user_name)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(AppColors.primary)
+                                Text(comment.cnt)
+                                    .font(.body)
+                                    .lineLimit(3)
+                                    .frame(width: 200)
+                                Text(comment.created_at)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding()
+                            .frame(width: 240)
+                            .background(Color(AppColors.secondaryBg))
+                            .cornerRadius(12)
+                            .shadow(color: Color.black.opacity(0.5), radius: 4, x: 0, y: 2)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+            }
+            
             // Keywords section
             if !article.keywords.isEmpty {
                 keywordsView
@@ -18,11 +79,6 @@ struct ArticleFooterView: View {
             // Suggestions section
             if !article.suggests.isEmpty {
                 suggestionsSection
-            }
-            
-            // Comments section
-            if !comments.isEmpty {
-                commentsSection
             }
         }
         .padding(.vertical)
@@ -63,35 +119,6 @@ struct ArticleFooterView: View {
                 }
             }
             .padding(.horizontal)
-        }
-    }
-    
-    private var commentsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("评论")
-                    .font(.headline)
-                Spacer()
-            }
-            .padding(.horizontal)
-            
-            ForEach(comments, id: \.created_at) { comment in
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(comment.user_name)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                    Text(comment.cnt)
-                        .font(.body)
-                        .lineLimit(3)
-                    Text(comment.created_at)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .padding()
-                .background(Color(.systemBackground))
-                .cornerRadius(12)
-                .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
-            }
         }
     }
 }
@@ -137,7 +164,7 @@ private struct SuggestionCardView: View {
                     Text(suggestion.bp_subsection_title)
                         .font(.caption)
                         .fontWeight(.medium)
-                        .foregroundColor(.primary)
+                        .foregroundColor(AppColors.primary)
                         .lineLimit(2)
                     
                     Text(suggestion.bp_subsection_intro)
@@ -145,10 +172,10 @@ private struct SuggestionCardView: View {
                         .foregroundColor(.secondary)
                         .lineLimit(3)
                 }
-                .frame(width: 96)
-                .padding(.horizontal, 12)
+                .frame(width: 110)
+                .padding(.horizontal, 10)
                 .padding(.vertical, 8)
-                .frame(height: 80)
+                .frame(height: 100)
             }
             .frame(width: 120)
             .background(Color(.systemBackground))
