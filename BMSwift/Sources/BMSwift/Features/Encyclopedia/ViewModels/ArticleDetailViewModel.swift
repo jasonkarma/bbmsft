@@ -3,11 +3,26 @@ import SwiftUI
 
 @MainActor
 public final class ArticleDetailViewModel: ObservableObject, Hashable {
-    public enum ViewState {
+    public enum ViewState: Equatable {
         case initial
         case loading
         case loaded(ArticleDetailResponse)
         case error(BMNetwork.APIError)
+        
+        public static func == (lhs: ViewState, rhs: ViewState) -> Bool {
+            switch (lhs, rhs) {
+            case (.initial, .initial):
+                return true
+            case (.loading, .loading):
+                return true
+            case (.loaded(let lhsArticle), .loaded(let rhsArticle)):
+                return lhsArticle.info.bp_subsection_id == rhsArticle.info.bp_subsection_id
+            case (.error(let lhsError), .error(let rhsError)):
+                return lhsError.localizedDescription == rhsError.localizedDescription
+            default:
+                return false
+            }
+        }
     }
     
     // MARK: - Published Properties

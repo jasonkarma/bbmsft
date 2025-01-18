@@ -47,24 +47,30 @@ struct ArticleFooterView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(comments, id: \.created_at) { comment in
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(comment.user_name)
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(AppColors.primary)
-                                Text(comment.cnt)
-                                    .font(.body)
-                                    .lineLimit(3)
-                                    .frame(width: 200)
-                                Text(comment.created_at)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                            if #available(iOS 17.0, *) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(comment.user_name)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(AppColors.primary)
+                                        .padding(.leading, 8)
+                                    Text(comment.cnt)
+                                        .font(.body)
+                                        .lineLimit(3)
+                                        .frame(width: 200)
+                                    Text(comment.created_at)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .padding(.leading, 8)
+                                }
+                                .padding()
+                                .frame(width: 200)
+                                .background(Color.gray.opacity(0.3))
+                                .cornerRadius(12)
+                                .shadow(color: Color.black.opacity(0.5), radius: 4, x: 0, y: 2)
+                            } else {
+                                // Fallback on earlier versions
                             }
-                            .padding()
-                            .frame(width: 240)
-                            .background(Color(AppColors.secondaryBg))
-                            .cornerRadius(12)
-                            .shadow(color: Color.black.opacity(0.5), radius: 4, x: 0, y: 2)
                         }
                     }
                     .padding(.horizontal)
