@@ -169,6 +169,20 @@ public final class ArticleDetailViewModel: ObservableObject, Hashable {
         return await loadContent(forArticleId: id)
     }
     
+    // Add debounced toast handling
+    private func showToastMessage(_ message: String) {
+        // If a toast is already showing, wait for it to finish
+        if showToast {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.toastMessage = message
+                self.showToast = true
+            }
+        } else {
+            toastMessage = message
+            showToast = true
+        }
+    }
+    
     public func submitComment() async {
         guard !commentText.isEmpty else { return }
         
@@ -182,13 +196,11 @@ public final class ArticleDetailViewModel: ObservableObject, Hashable {
             
             // Show success toast
             withAnimation {
-                toastMessage = "發佈成功"
-                showToast = true
+                showToastMessage("發佈成功")
             }
         } catch {
             withAnimation {
-                toastMessage = "發佈失敗"
-                showToast = true
+                showToastMessage("發佈失敗")
             }
             self.state = .error(error as? BMNetwork.APIError ?? .networkError(error))
         }
@@ -205,11 +217,10 @@ public final class ArticleDetailViewModel: ObservableObject, Hashable {
             article.clientsAction.like.toggle()
             state = .loaded(article)
             
-            // Only show message when adding like, not removing
+            // Only show message when liking, not unliking
             if !wasLiked {
                 withAnimation {
-                    toastMessage = "已添加到喜欢"
-                    showToast = true
+                    showToastMessage("已點讚")
                 }
             }
         } catch {
@@ -231,8 +242,7 @@ public final class ArticleDetailViewModel: ObservableObject, Hashable {
             // Only show message when adding to keeps, not removing
             if !wasKept {
                 withAnimation {
-                    toastMessage = "已添加到收藏"
-                    showToast = true
+                    showToastMessage("已添加到收藏")
                 }
             }
         } catch {

@@ -1,6 +1,10 @@
-#if canImport(SwiftUI)
+#if canImport(SwiftUI) && os(iOS)
 import SwiftUI
 
+
+
+
+@available(iOS 13.0, *)
 struct BannerArticleView: View {
     private let articles: [ArticlePreview]
     private let imageBaseURL = "https://wiki.kinglyrobot.com/media/beauty_content_banner_image/small/"
@@ -13,25 +17,25 @@ struct BannerArticleView: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach(articles.indices, id: \.self) { index in
+                ForEach(articles, id: \.id) { article in
                     VStack(spacing: 4) {
-                        if let url = URL(string: imageBaseURL + articles[index].mediaName) {
+                        if let url = URL(string: imageBaseURL + article.mediaName) {
                             AsyncImage(url: url) { image in
                                 image
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
                             } placeholder: {
                                 Rectangle()
-                                    .foregroundColor(.gray.opacity(0.2))
+                                    .bmForegroundColor(AppColors.secondaryBg.opacity(0.2))
                             }
                             .frame(width: 100, height: 100)
                             .clipped()
                             .cornerRadius(8)
                         }
                         
-                        Text(articles[index].title)
+                        Text(article.title)
                             .font(.caption)
-                            .foregroundColor(Color(red: 58/255, green: 181/255, blue: 151/255))
+                            .bmForegroundColor(AppColors.primary)
                             .lineLimit(2)
                             .frame(width: 100)
                     }
@@ -41,7 +45,27 @@ struct BannerArticleView: View {
             .padding(.horizontal, 8)
         }
         .frame(height: 150)
-        .background(Color.black)
+        .bmBackground(AppColors.black)
     }
 }
+
+#if DEBUG
+struct BannerArticleView_Previews: PreviewProvider {
+    static var previews: some View {
+        BannerArticleView(articles: [
+            ArticlePreview(id: 1, 
+                         title: "Preview Article", 
+                         intro: "Preview intro",
+                         mediaName: "preview.jpg",
+                         visitCount: 0,
+                         likeCount: 0,
+                         platform: 1,
+                         clientLike: false,
+                         clientVisit: false,
+                         clientKeep: false)
+        ])
+        .previewLayout(.sizeThatFits)
+    }
+}
+#endif
 #endif

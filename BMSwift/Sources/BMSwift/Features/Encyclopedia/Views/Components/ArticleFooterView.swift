@@ -14,7 +14,7 @@ struct ArticleFooterView: View {
             HStack {
                 Text("留言")
                     .font(.headline)
-                    .foregroundColor(AppColors.primary)
+                    .bmForegroundColor(AppColors.primary)
                 Spacer()
             }
             .padding(.horizontal)
@@ -23,7 +23,7 @@ struct ArticleFooterView: View {
             VStack(spacing: 12) {
                 TextField("請輸入留言", text: $viewModel.commentText)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .foregroundColor(AppColors.primary)
+                    .bmForegroundColor(AppColors.primary)
                 
                 Button(action: {
                     Task {
@@ -31,10 +31,10 @@ struct ArticleFooterView: View {
                     }
                 }) {
                     Text("發佈")
-                        .foregroundColor(.black)
+                        .bmForegroundColor(AppColors.primaryText)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
-                        .background(Color.white)
+                        .background(AppColors.secondaryBg.swiftUIColor)
                         .cornerRadius(8)
                 }
                 .disabled(viewModel.commentText.isEmpty)
@@ -52,22 +52,23 @@ struct ArticleFooterView: View {
                                     Text(comment.user_name)
                                         .font(.subheadline)
                                         .fontWeight(.medium)
-                                        .foregroundColor(AppColors.primary)
+                                        .bmForegroundColor(AppColors.primary)
                                         .padding(.leading, 8)
                                     Text(comment.cnt)
                                         .font(.body)
+                                        .bmForegroundColor(AppColors.primaryText)
                                         .lineLimit(3)
                                         .frame(width: 200)
                                     Text(comment.created_at)
                                         .font(.caption)
-                                        .foregroundColor(.secondary)
+                                        .bmForegroundColor(AppColors.secondaryText)
                                         .padding(.leading, 8)
                                 }
                                 .padding()
                                 .frame(width: 200)
-                                .background(Color.gray.opacity(0.3))
+                                .background(AppColors.secondaryBg.swiftUIColor)
                                 .cornerRadius(12)
-                                .shadow(color: Color.black.opacity(0.5), radius: 4, x: 0, y: 2)
+                                .shadow(color: AppColors.black.swiftUIColor.opacity(0.5), radius: 4, x: 0, y: 2)
                             } else {
                                 // Fallback on earlier versions
                             }
@@ -96,9 +97,10 @@ struct ArticleFooterView: View {
                 ForEach(article.keywords, id: \.bp_tag_id) { keyword in
                     Text("#\(keyword.bp_hashtag)")
                         .font(.caption)
+                        .bmForegroundColor(AppColors.primaryText)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(Color.gray.opacity(0.1))
+                        .background(AppColors.secondaryBg.swiftUIColor)
                         .cornerRadius(12)
                 }
             }
@@ -108,9 +110,9 @@ struct ArticleFooterView: View {
     
     private var suggestionsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("查看更多美容攻略！")
+            Text("您可能也會感興趣！")
                 .font(.headline)
-                .foregroundColor(.primary)
+                .bmForegroundColor(AppColors.primary)
                 .padding(.horizontal)
             
             ScrollView(.horizontal, showsIndicators: false) {
@@ -147,22 +149,22 @@ private struct SuggestionCardView: View {
                         AuthenticatedAsyncImage(url: imageUrl, token: token) { phase in
                             switch phase {
                             case .empty:
-                                Color.gray
+                                AppColors.secondaryBg.swiftUIColor
                             case .success(let image):
                                 image
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
                             case .failure:
-                                Color.gray
+                                AppColors.secondaryBg.swiftUIColor
                             @unknown default:
-                                Color.gray
+                                AppColors.secondaryBg.swiftUIColor
                             }
                         }
                     } else {
-                        Color.gray
+                        AppColors.secondaryBg.swiftUIColor
                     }
                 }
-                .frame(width: 120, height: 120)
+                .frame(width: 130, height: 120)
                 .clipped()
                 
                 // Bottom - Content
@@ -170,12 +172,12 @@ private struct SuggestionCardView: View {
                     Text(suggestion.bp_subsection_title)
                         .font(.caption)
                         .fontWeight(.medium)
-                        .foregroundColor(AppColors.primary)
+                        .bmForegroundColor(AppColors.primary)
                         .lineLimit(2)
                     
                     Text(suggestion.bp_subsection_intro)
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .bmForegroundColor(AppColors.secondaryText)
                         .lineLimit(3)
                 }
                 .frame(width: 110)
@@ -184,9 +186,9 @@ private struct SuggestionCardView: View {
                 .frame(height: 100)
             }
             .frame(width: 120)
-            .background(Color(.systemBackground))
+            .background(AppColors.secondaryBg.swiftUIColor)
             .cornerRadius(12)
-            .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+            .shadow(color: AppColors.black.swiftUIColor.opacity(0.1), radius: 4, x: 0, y: 2)
         }
     }
 }

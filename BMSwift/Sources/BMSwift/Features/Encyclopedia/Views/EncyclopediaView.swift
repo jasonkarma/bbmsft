@@ -1,6 +1,7 @@
 #if canImport(SwiftUI) && os(iOS)
 import SwiftUI
 
+@available(iOS 13.0, *)
 public struct EncyclopediaView: View {
     @StateObject private var viewModel: EncyclopediaViewModel
     @State private var selectedTab = 0
@@ -17,21 +18,21 @@ public struct EncyclopediaView: View {
         NavigationStack {
             GeometryReader { geometry in
                 ZStack(alignment: .top) {
-                    AppColors.primaryBg
+                    AppColors.primaryBg.swiftUIColor
                         .ignoresSafeArea()
                     
                     if viewModel.isLoading {
                         ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .progressViewStyle(CircularProgressViewStyle(tint: AppColors.primaryText.swiftUIColor))
                             .scaleEffect(1.5)
                     } else if let error = viewModel.error {
                         VStack(spacing: 16) {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.system(size: 50))
-                                .foregroundColor(.yellow)
+                                .bmForegroundColor(AppColors.warning)
                             
                             Text(error.localizedDescription)
-                                .foregroundColor(.white)
+                                .bmForegroundColor(AppColors.primaryText)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal)
                             
@@ -41,10 +42,10 @@ public struct EncyclopediaView: View {
                                 }
                             }) {
                                 Text("重試")
-                                    .foregroundColor(.white)
+                                    .bmForegroundColor(AppColors.primaryText)
                                     .padding(.horizontal, 24)
                                     .padding(.vertical, 12)
-                                    .background(AppColors.primary)
+                                    .background(AppColors.primary.swiftUIColor)
                                     .cornerRadius(8)
                             }
                         }
@@ -54,16 +55,16 @@ public struct EncyclopediaView: View {
                                 VStack(spacing: 16) {
                                     if !viewModel.hotArticles.isEmpty {
                                         VStack(alignment: .leading, spacing: 8) {
-                                            Text("热門文章")
+                                            Text("熱門文章")
                                                 .font(.title3)
-                                                .foregroundColor(.white)
+                                                .bmForegroundColor(AppColors.primary)
                                                 .padding(.horizontal)
                                             
                                             LazyVStack(spacing: 8) {
                                                 ForEach(viewModel.hotArticles, id: \.id) { article in
                                                     NavigationLink(value: article) {
                                                         ArticleCardView(article: article, token: token)
-                                                            .background(Color.black.opacity(0.5))
+                                                            .background(AppColors.black.swiftUIColor.opacity(0.5))
                                                             .cornerRadius(12)
                                                     }
                                                 }
@@ -82,10 +83,10 @@ public struct EncyclopediaView: View {
                                 
                                 VStack(spacing: 0) {
                                     voiceCommandArea
-                                        .background(Color.black)
+                                        .background(AppColors.black.swiftUIColor)
                                     
                                     smartDeviceStats
-                                        .background(Color.black)
+                                        .background(AppColors.black.swiftUIColor)
                                     
                                     bottomNavigation
                                 }
@@ -93,10 +94,9 @@ public struct EncyclopediaView: View {
                         }
                     }
                     
-                    // Black overlay for notch area
                     VStack {
                         Rectangle()
-                            .fill(Color.black)
+                            .fill(AppColors.black.swiftUIColor.opacity(0.5))
                             .frame(height: geometry.safeAreaInsets.top)
                         Spacer()
                     }
@@ -116,11 +116,11 @@ public struct EncyclopediaView: View {
     private var voiceCommandArea: some View {
         HStack {
             Image(systemName: "mic.fill")
-                .foregroundColor(.white)
+                .bmForegroundColor(AppColors.primary)
                 .font(.title2)
             
             Text("按住說話")
-                .foregroundColor(.white)
+                .bmForegroundColor(AppColors.primary)
                 .font(.body)
         }
         .frame(maxWidth: .infinity)
@@ -130,13 +130,13 @@ public struct EncyclopediaView: View {
     private var smartDeviceStats: some View {
         HStack {
             Text("智能設備")
-                .foregroundColor(.white)
+                .bmForegroundColor(AppColors.primary)
                 .font(.body)
             
             Spacer()
             
             Text("已連接")
-                .foregroundColor(.green)
+                .bmForegroundColor(AppColors.success)
                 .font(.body)
         }
         .padding()
@@ -149,43 +149,26 @@ public struct EncyclopediaView: View {
                     selectedTab = index
                 }) {
                     VStack {
-                        Image(systemName: tabIcon(for: index))
-                            .font(.title3)
-                        Text(tabTitle(for: index))
+                        Image(systemName: index == 0 ? "house.fill" : index == 1 ? "magnifyingglass" : "person.fill")
+                            .bmForegroundColor(selectedTab == index ? AppColors.primary : AppColors.secondaryText)
+                        
+                        Text(index == 0 ? "首頁" : index == 1 ? "搜尋" : "我的")
                             .font(.caption)
+                            .bmForegroundColor(selectedTab == index ? AppColors.primary : AppColors.secondaryText)
                     }
-                    .foregroundColor(selectedTab == index ? AppColors.primary : .gray)
                     .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
                 }
             }
         }
-        .padding(.vertical, 5)
-        .background(Color.black)
-    }
-    
-    private func tabIcon(for index: Int) -> String {
-        switch index {
-        case 0: return "house.fill"
-        case 1: return "text.book.closed.fill"
-        case 2: return "person.fill"
-        default: return ""
-        }
-    }
-    
-    private func tabTitle(for index: Int) -> String {
-        switch index {
-        case 0: return "首页"
-        case 1: return "百科"
-        case 2: return "我的"
-        default: return ""
-        }
+        .background(AppColors.black.swiftUIColor)
     }
 }
 
 #if DEBUG
 struct EncyclopediaView_Previews: PreviewProvider {
     static var previews: some View {
-        EncyclopediaView(isPresented: .constant(true), token: "preview-token")
+        EncyclopediaView(isPresented: .constant(true), token: "preview_token")
     }
 }
 #endif

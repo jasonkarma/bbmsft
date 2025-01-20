@@ -11,7 +11,7 @@ import SwiftUI
 /// View model for the encyclopedia view
 /// Manages the state and business logic for encyclopedia content
 @MainActor
-public final class EncyclopediaViewModel: ObservableObject {
+public class EncyclopediaViewModel: ObservableObject {
     // MARK: - Published Properties
     
     /// Current state of the view
@@ -34,6 +34,9 @@ public final class EncyclopediaViewModel: ObservableObject {
     
     /// Loading state
     @Published private(set) var isLoading: Bool = false
+    
+    /// Showing skin analysis state
+    @Published var showingSkinAnalysis = false
     
     // MARK: - Private Properties
     private let encyclopediaService: EncyclopediaServiceProtocol

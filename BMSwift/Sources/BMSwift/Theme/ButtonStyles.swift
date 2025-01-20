@@ -17,27 +17,25 @@ public struct PrimaryButtonStyle: ButtonStyle {
             .frame(maxWidth: .infinity)
             .padding()
             .background(
-                backgroundColor(isEnabled: isEnabled, isPrimary: isPrimary)
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(backgroundColor.swiftUIColor)
             )
-            .foregroundColor(
-                foregroundColor(isEnabled: isEnabled, isPrimary: isPrimary)
-            )
-            .cornerRadius(10)
+            .foregroundColor(foregroundColor.swiftUIColor)
             .opacity(configuration.isPressed ? 0.8 : 1.0)
     }
     
-    private func backgroundColor(isEnabled: Bool, isPrimary: Bool) -> Color {
+    private var backgroundColor: BMColor {
         if !isEnabled {
             return AppColors.thirdBg
         }
         return isPrimary ? AppColors.primary : AppColors.secondary
     }
     
-    private func foregroundColor(isEnabled: Bool, isPrimary: Bool) -> Color {
+    private var foregroundColor: BMColor {
         if !isEnabled {
-            return .white
+            return AppColors.lightText
         }
-        return isPrimary ? .black : .white
+        return isPrimary ? AppColors.lightText : AppColors.darkText
     }
 }
 

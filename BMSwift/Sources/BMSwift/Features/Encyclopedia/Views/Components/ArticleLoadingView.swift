@@ -1,26 +1,31 @@
 #if canImport(SwiftUI) && os(iOS)
 import SwiftUI
 
-struct ArticleLoadingView: View {
-    @ObservedObject var viewModel: ArticleDetailViewModel
+@available(iOS 13.0, *)
+public struct ArticleLoadingView: View {
+    @State private var isAnimating = false
     
-    var body: some View {
+    public init() {}
+    
+    public var body: some View {
         VStack(spacing: 16) {
             ProgressView()
-                .scaleEffect(1.5)
-            Text(viewModel.comments.isEmpty ? "Loading Article..." : "Loading Comments...")
+                .progressViewStyle(CircularProgressViewStyle(tint: AppColors.primaryText.swiftUIColor))
+            Text("載入中...")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .bmForegroundColor(AppColors.primaryText)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .bmBackground(AppColors.primaryBg)
     }
 }
 
-struct ArticleEmptyView: View {
+@available(iOS 13.0, *)
+public struct ArticleEmptyView: View {
     let message: String
     let systemImage: String
     
-    init(
+    public init(
         message: String = "No Content Available",
         systemImage: String = "doc.text"
     ) {
@@ -28,21 +33,34 @@ struct ArticleEmptyView: View {
         self.systemImage = systemImage
     }
     
-    var body: some View {
+    public var body: some View {
         VStack(spacing: 12) {
             Image(systemName: systemImage)
                 .font(.system(size: 40))
-                .foregroundColor(.gray)
+                .bmForegroundColor(AppColors.primaryText)
+            
             Text(message)
                 .font(.headline)
-                .foregroundColor(.primary)
+                .bmForegroundColor(AppColors.primary)
+            
             Text("Check back later for updates")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .bmForegroundColor(AppColors.primaryText)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
-        .background(Color.gray.opacity(0.1))
+        .bmBackground(AppColors.primaryBg.opacity(0.1))
     }
 }
+
+#if DEBUG
+@available(iOS 13.0.0, *)
+struct ArticleLoadingView_Previews: PreviewProvider {
+    static var previews: some View {
+        Group {
+            ArticleLoadingView()
+            ArticleEmptyView()
+        }
+    }
+}
+#endif
 #endif

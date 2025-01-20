@@ -22,7 +22,7 @@ public struct ArticleCardView: View {
                             .aspectRatio(contentMode: .fill)
                     } placeholder: {
                         Rectangle()
-                            .foregroundColor(.gray.opacity(0.2))
+                            .bmFill(AppColors.secondaryBg)
                     }
                     .frame(width: 100, height: 100)
                     .clipped()
@@ -32,13 +32,13 @@ public struct ArticleCardView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(article.title)
                         .font(.headline)
-                        .foregroundColor(Color(red: 58/255, green: 181/255, blue: 151/255))
+                        .bmForegroundColor(AppColors.primary)
                         .lineLimit(2)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
                     Text(article.intro)
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .bmForegroundColor(AppColors.secondaryText)
                         .lineLimit(3)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
@@ -48,11 +48,11 @@ public struct ArticleCardView: View {
                 .frame(height: 100)
             }
             .frame(height: 100)
-            .background(Color.black)
+            .bmBackground(AppColors.black)
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.gray.opacity(0.5), lineWidth: 1.5)
+                    .bmStroke(AppColors.secondaryText.opacity(0.5), lineWidth: 1.5)
             )
             .shadow(radius: 4)
         }

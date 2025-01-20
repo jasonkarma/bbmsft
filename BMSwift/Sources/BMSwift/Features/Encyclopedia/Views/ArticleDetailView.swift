@@ -13,46 +13,19 @@ public struct ArticleDetailView: View {
     public var body: some View {
         ScrollView {
             GeometryReader { geometry in
-                Color.clear.preference(
-                    key: ScrollOffsetPreferenceKey.self,
-                    value: geometry.frame(in: .named("scroll")).minY
-                )
+                Rectangle()
+                    .fill(.clear)
+                    .preference(
+                        key: ScrollOffsetPreferenceKey.self,
+                        value: geometry.frame(in: .named("scroll")).minY
+                    )
             }
             .frame(height: 0)
             
-            switch viewModel.state {
-            case .initial, .loading:
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            case .error(let error):
-                Text(error.localizedDescription)
-                    .foregroundColor(.red)
-            case .loaded(let article):
-                VStack(alignment: .leading, spacing: 16) {
-                    ArticleHeaderView(info: article.info)
-                    if !article.cnt.isEmpty {
-                        ArticleBodyView(article: article)
-                    }
-                    if !article.keywords.isEmpty || !article.suggests.isEmpty || !viewModel.comments.isEmpty {
-                        ArticleFooterView(
-                            article: article,
-                            token: viewModel.token,
-                            comments: viewModel.comments,
-                            viewModel: viewModel,
-                            onNavigateToArticle: { @MainActor id in
-                                // Reset scroll position
-                                withAnimation {
-                                    scrollOffset = 0
-                                }
-                                return await viewModel.loadContent(forArticleId: id)
-                            }
-                        )
-                    }
-                }
-                .padding()
-            }
+            contentView
         }
         .coordinateSpace(name: "scroll")
+        .bmBackground(AppColors.primaryBg)
         .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
             scrollOffset = value
         }
@@ -81,6 +54,43 @@ public struct ArticleDetailView: View {
             }
         }
     }
+    
+    @ViewBuilder
+    private var contentView: some View {
+        switch viewModel.state {
+        case .initial, .loading:
+            ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        case .error(let error):
+            Text(error.localizedDescription)
+                .bmForegroundColor(AppColors.error)
+        case .loaded(let article):
+            VStack(alignment: .leading, spacing: 16) {
+                ArticleHeaderView(info: article.info)
+                    .bmBackground(AppColors.primaryBg)
+                if !article.cnt.isEmpty {
+                    ArticleBodyView(article: article)
+                        .bmForegroundColor(AppColors.primary)
+                }
+                if !article.keywords.isEmpty || !article.suggests.isEmpty || !viewModel.comments.isEmpty {
+                    ArticleFooterView(
+                        article: article,
+                        token: viewModel.token,
+                        comments: viewModel.comments,
+                        viewModel: viewModel
+                    ) { @MainActor id in
+                        // Reset scroll position
+                        withAnimation {
+                            scrollOffset = 0
+                        }
+                        let success = await viewModel.loadContent(forArticleId: id)
+                        return success
+                    }
+                }
+            }
+            .padding()
+        }
+    }
 }
 
 private struct ScrollOffsetPreferenceKey: PreferenceKey {
@@ -89,4 +99,15 @@ private struct ScrollOffsetPreferenceKey: PreferenceKey {
         value = nextValue()
     }
 }
+
+#if DEBUG
+struct ArticleDetailView_Previews: PreviewProvider {
+    static var previews: some View {
+        NavigationView {
+            ArticleDetailView(viewModel: ArticleDetailViewModel(articleId: 1, token: "preview-token"))
+                .background(AppColors.primaryBg.swiftUIColor)
+        }
+    }
+}
+#endif
 #endif

@@ -18,7 +18,7 @@ public struct LoginView: View {
     public var body: some View {
         NavigationView {
             ZStack {
-                AppColors.primaryBg
+                AppColors.primaryBg.swiftUIColor
                     .ignoresSafeArea()
                 
                 loginFormView
@@ -55,7 +55,7 @@ public struct LoginView: View {
     
     private var loginFormView: some View {
         ZStack {
-            AppColors.primaryBg
+            AppColors.primaryBg.swiftUIColor
                 .ignoresSafeArea()
             
             ScrollView(showsIndicators: false) {
@@ -66,7 +66,7 @@ public struct LoginView: View {
                     // Title
                     Text("登入")
                         .font(.title)
-                        .foregroundColor(AppColors.primary)
+                        .bmForegroundColor(AppColors.primary)
                         .padding(.bottom, -10)
                     
                     // Image
@@ -80,10 +80,10 @@ public struct LoginView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Image(systemName: "envelope")
-                                .foregroundColor(AppColors.primary)
+                                .bmForegroundColor(AppColors.primary)
                             
                             TextField("請輸入電子郵件", text: $viewModel.email)
-                                .foregroundColor(AppColors.primary)
+                                .bmForegroundColor(AppColors.primary)
                                 .textInputAutocapitalization(.never)
                                 .keyboardType(.emailAddress)
                                 .focused($isEmailFocused)
@@ -91,12 +91,12 @@ public struct LoginView: View {
                         .padding()
                         .background(
                             RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.white.opacity(0.1))
+                                .bmFill(AppColors.secondaryBg.opacity(0.1))
                         )
                         
                         if let error = viewModel.errorMessage {
                             Text(error)
-                                .foregroundColor(error == "成功登入" ? .green : .red)
+                                .bmForegroundColor(error == "成功登入" ? AppColors.success : AppColors.error)
                                 .font(.caption)
                         }
                     }
@@ -105,34 +105,34 @@ public struct LoginView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Image(systemName: "lock")
-                                .foregroundColor(AppColors.primary)
+                                .bmForegroundColor(AppColors.primary)
                             
                             if isPasswordVisible {
                                 TextField("請輸入密碼", text: $viewModel.password)
-                                    .foregroundColor(AppColors.primary)
+                                    .bmForegroundColor(AppColors.primary)
                                     .textInputAutocapitalization(.never)
                                     .focused($isPasswordFocused)
                             } else {
                                 SecureField("請輸入密碼", text: $viewModel.password)
-                                    .foregroundColor(AppColors.primary)
+                                    .bmForegroundColor(AppColors.primary)
                                     .textInputAutocapitalization(.never)
                                     .focused($isPasswordFocused)
                             }
                             
                             Button(action: { isPasswordVisible.toggle() }) {
                                 Image(systemName: isPasswordVisible ? "eye" : "eye.slash")
-                                    .foregroundColor(AppColors.primary)
+                                    .bmForegroundColor(AppColors.primary)
                             }
                         }
                         .padding()
                         .background(
                             RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.white.opacity(0.1))
+                                .bmFill(AppColors.secondaryBg.opacity(0.1))
                         )
                         
                         if viewModel.showPasswordWarning {
                             Text("密碼必須至少包含8個字符，包括大小寫字母")
-                                .foregroundColor(.red)
+                                .bmForegroundColor(AppColors.error)
                                 .font(.caption)
                         }
                     }
@@ -145,16 +145,16 @@ public struct LoginView: View {
                     }) {
                         if viewModel.isLoading {
                             ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .progressViewStyle(CircularProgressViewStyle(tint: AppColors.white.swiftUIColor))
                         } else {
                             Text("登入")
                                 .font(.headline)
-                                .foregroundColor(.white)
+                                .bmForegroundColor(AppColors.white)
                                 .frame(maxWidth: .infinity)
                         }
                     }
                     .padding()
-                    .background(AppColors.primary)
+                    .bmBackground(AppColors.primary)
                     .cornerRadius(8)
                     .disabled(viewModel.isLoading)
                     
@@ -163,7 +163,7 @@ public struct LoginView: View {
                         Button("忘記密碼?") {
                             showForgotPassword = true
                         }
-                        .foregroundColor(AppColors.primary)
+                        .bmForegroundColor(AppColors.primary)
                         .padding(.top, -10)
                         
                         Spacer()
@@ -171,7 +171,7 @@ public struct LoginView: View {
                         Button("註冊") {
                             showRegister = true
                         }
-                        .foregroundColor(AppColors.primary)
+                        .bmForegroundColor(AppColors.primary)
                     }
                 }
                 .padding(.horizontal, 30)

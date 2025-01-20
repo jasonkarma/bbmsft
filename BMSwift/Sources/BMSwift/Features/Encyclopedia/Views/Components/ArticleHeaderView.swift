@@ -10,7 +10,7 @@ struct ArticleHeaderView: View {
             Text(info.bp_subsection_title)
                 .font(.title2)
                 .fontWeight(.bold)
-                .foregroundColor(AppColors.primary)
+                .bmForegroundColor(AppColors.primary)
                 .fixedSize(horizontal: false, vertical: true)
             
             // Stats section
@@ -25,19 +25,19 @@ struct ArticleHeaderView: View {
             // View count
             Label {
                 Text("\(info.visit)")
-                    .foregroundColor(.secondary)
+                    .bmForegroundColor(AppColors.secondaryText)
             } icon: {
                 Image(systemName: "eye.fill")
-                    .foregroundColor(.blue)
+                    .bmForegroundColor(AppColors.primary)
             }
             
             // Like count
             Label {
                 Text("\(info.likecount)")
-                    .foregroundColor(.secondary)
+                    .bmForegroundColor(AppColors.secondaryText)
             } icon: {
                 Image(systemName: "heart.fill")
-                    .foregroundColor(.red)
+                    .bmForegroundColor(AppColors.primary)
             }
             
             Spacer()
@@ -45,7 +45,7 @@ struct ArticleHeaderView: View {
             // Publication date
             Text(formattedDate)
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .bmForegroundColor(AppColors.secondaryText)
         }
         .font(.subheadline)
     }

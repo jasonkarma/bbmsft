@@ -1,6 +1,8 @@
 #if canImport(SwiftUI) && os(iOS)
 import SwiftUI
 
+
+@available(iOS 13.0, *)
 public struct RegisterView: View {
     @StateObject private var viewModel = RegisterViewModel()
     @Binding var isPresented: Bool
@@ -12,23 +14,23 @@ public struct RegisterView: View {
     
     public var body: some View {
         ZStack {
-            AppColors.primaryBg
+            AppColors.primaryBg.swiftUIColor
                 .ignoresSafeArea()
             
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 24) {
+                VStack(spacing: 20) {
                     Spacer()
                         .frame(height: 50)
                         
                     Text("註冊")
                         .font(.title)
-                        .foregroundColor(AppColors.primary)
+                        .bmForegroundColor(AppColors.primary)
                     
                     // Nickname Input
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Image(systemName: "person.crop.circle.fill")
-                                .foregroundColor(AppColors.primary)
+                                .bmForegroundColor(AppColors.primary)
                             TextField("請輸入暱稱", text: $viewModel.username)
                                 .textContentType(.username)
                                 .autocapitalization(.none)
@@ -36,7 +38,7 @@ public struct RegisterView: View {
                         .padding()
                         .background(
                             RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.white.opacity(0.1))
+                                .bmFill(AppColors.white.opacity(0.1))
                         )
                     }
                     
@@ -44,7 +46,7 @@ public struct RegisterView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Image(systemName: "envelope.fill")
-                                .foregroundColor(AppColors.primary)
+                                .bmForegroundColor(AppColors.primary)
                                 .padding(.leading, -2)
                             TextField("請輸入電子郵件", text: $viewModel.email)
                                 .textContentType(.emailAddress)
@@ -55,7 +57,7 @@ public struct RegisterView: View {
                         .padding()
                         .background(
                             RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.white.opacity(0.1))
+                                .bmFill(AppColors.white.opacity(0.1))
                         )
                     }
                     
@@ -63,7 +65,7 @@ public struct RegisterView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Image(systemName: "lock.fill")
-                                .foregroundColor(AppColors.primary)
+                                .bmForegroundColor(AppColors.primary)
                                 .padding(.leading, 3)
                             Group {
                                 if isPasswordVisible {
@@ -86,25 +88,25 @@ public struct RegisterView: View {
                                 isPasswordVisible.toggle()
                             }) {
                                 Image(systemName: isPasswordVisible ? "eye.slash.fill" : "eye.fill")
-                                    .foregroundColor(AppColors.primary)
+                                    .bmForegroundColor(AppColors.primary)
                             }
                         }
                         .padding()
                         .background(
                             RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.white.opacity(0.1))
+                                .bmFill(AppColors.white.opacity(0.1))
                         )
                         
                         if viewModel.showPasswordWarning {
                             Text("密碼需大於8字．且有大小寫英文")
-                                .foregroundColor(.orange)
+                                .bmForegroundColor(AppColors.warning)
                                 .font(.caption)
                         }
                     }
                     
                     if let errorMessage = viewModel.errorMessage {
                         Text(errorMessage)
-                            .foregroundColor(.red)
+                            .bmForegroundColor(AppColors.error)
                             .font(.caption)
                             .multilineTextAlignment(.center)
                     }
@@ -119,13 +121,13 @@ public struct RegisterView: View {
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         } else {
                             Text("註冊")
-                                .foregroundColor(.white)
+                                .bmForegroundColor(AppColors.white)
                                 .font(.headline)
                         }
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(AppColors.primary)
+                    .bmBackground(AppColors.primary)
                     .cornerRadius(8)
                     .disabled(viewModel.isLoading)
                     
@@ -144,7 +146,7 @@ public struct RegisterView: View {
                         Image(systemName: "chevron.left")
                         Text("返回")
                     }
-                    .foregroundColor(AppColors.primary)
+                    .bmForegroundColor(AppColors.primary)
                 }
             }
         }

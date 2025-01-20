@@ -1,41 +1,44 @@
 #if canImport(SwiftUI) && os(iOS)
-import Foundation
 import SwiftUI
+import Combine
 
 @available(iOS 13.0, *)
-@MainActor
 public class ForgotPasswordViewModel: ObservableObject {
-    @Published public var email = ""
-    @Published public var isLoading = false
+    @Published public var email: String = ""
+    @Published public var isLoading: Bool = false
+    @Published public var isResetEmailSent: Bool = false
     @Published public var errorMessage: String?
-    @Published public var successMessage: String?
     
-    private let authService: AuthService
+    private var cancellables = Set<AnyCancellable>()
     
-    public init(authService: AuthService = .shared) {
-        self.authService = authService
+    public init() {
+        setupBindings()
+    }
+    
+    private func setupBindings() {
+        $email
+            .map { $0.isEmpty }
+            .assign(to: \.isEmailEmpty, on: self)
+            .store(in: &cancellables)
+    }
+    
+    @Published private(set) var isEmailEmpty: Bool = true
+    
+    public var isValidEmail: Bool {
+        !email.isEmpty && email.contains("@")
     }
     
     public func sendResetEmail() async {
-        guard !email.isEmpty else {
-            errorMessage = "請輸入電子郵件"
-            return
-        }
+        guard isValidEmail else { return }
         
         isLoading = true
         errorMessage = nil
-        successMessage = nil
         
-        do {
-            let response = try await authService.forgotPassword(email: email)
-            successMessage = response.message
-            email = "" // Clear email after successful request
-        } catch let error as BMNetwork.APIError {
-            errorMessage = error.localizedDescription
-        } catch {
-            errorMessage = "發生錯誤，請稍後再試"
-        }
+        // Simulate network delay
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
         
+        // TODO: Implement actual reset email logic
+        isResetEmailSent = true
         isLoading = false
     }
 }

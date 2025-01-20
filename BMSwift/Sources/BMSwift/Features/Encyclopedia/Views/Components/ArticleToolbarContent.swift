@@ -1,20 +1,26 @@
 #if canImport(SwiftUI) && os(iOS)
 import SwiftUI
 
+@available(iOS 13.0, *)
 public struct ArticleToolbarContent: View {
     @ObservedObject var viewModel: ArticleDetailViewModel
+    
+    public init(viewModel: ArticleDetailViewModel) {
+        self.viewModel = viewModel
+    }
     
     public var body: some View {
         HStack(spacing: 16) {
             if case .loaded(let article) = viewModel.state {
-                Button(action: {
+                // Like button
+                Button {
                     Task {
                         await viewModel.likeArticle()
                     }
-                }) {
+                } label: {
                     Image(systemName: article.clientsAction.like ? "heart.fill" : "heart")
-                        .font(.system(size: 20))
-                        .foregroundColor(article.clientsAction.like ? .red : .gray)
+                        .bmForegroundColor(AppColors.primary)
+                        .font(.title2)
                 }
                 .overlay {
                     if let message = viewModel.likeMessage {
@@ -26,14 +32,15 @@ public struct ArticleToolbarContent: View {
                     }
                 }
                 
-                Button(action: {
+                // Keep button
+                Button {
                     Task {
                         await viewModel.keepArticle()
                     }
-                }) {
+                } label: {
                     Image(systemName: article.clientsAction.keep ? "bookmark.fill" : "bookmark")
-                        .font(.system(size: 20))
-                        .foregroundColor(article.clientsAction.keep ? .blue : .gray)
+                        .bmForegroundColor(AppColors.primary)
+                        .font(.title2)
                 }
                 .overlay {
                     if let message = viewModel.keepMessage {

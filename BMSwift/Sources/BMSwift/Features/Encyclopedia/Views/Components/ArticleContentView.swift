@@ -23,7 +23,7 @@ struct ArticleContentView: View {
                 case .header:
                     Text(item.content)
                         .font(.headline)
-                        .foregroundColor(AppColors.primary)
+                        .bmForegroundColor(AppColors.primary)
                 case .text:
                     HTMLTextView(htmlContent: item.content)
                 }

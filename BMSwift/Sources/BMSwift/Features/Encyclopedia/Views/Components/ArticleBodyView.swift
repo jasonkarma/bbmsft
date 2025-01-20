@@ -23,7 +23,7 @@ struct ArticleBodyView: View {
                     if !content.title.isEmpty {
                         Text(content.title)
                             .font(.headline)
-                            .foregroundColor(AppColors.primary)
+                            .bmForegroundColor(AppColors.primary)
                     }
                     ArticleContentView(htmlContent: content.cnt)
                         .id("content_\(content.title)")
@@ -46,11 +46,11 @@ struct ArticleBodyView: View {
                     .cornerRadius(12)
                     .shadow(radius: 2)
             case .failure:
-                Color.gray.opacity(0.3)
+                AppColors.secondaryBg.swiftUIColor
                     .frame(height: 200)
                     .overlay(
                         Image(systemName: "photo")
-                            .foregroundColor(.gray)
+                            .bmForegroundColor(AppColors.gray)
                     )
             @unknown default:
                 EmptyView()
