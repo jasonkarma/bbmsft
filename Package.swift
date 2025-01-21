@@ -13,7 +13,13 @@ let package = Package(
         .library(
             name: "BMSwift",
             type: .dynamic,  // Make it dynamic to avoid linking issues
-            targets: ["BMSwift"])
+            targets: ["BMSwift"]
+        ),
+        .library(
+            name: "BMNetwork",
+            type: .dynamic,
+            targets: ["BMNetwork"]
+        )
     ],
     dependencies: [
         .package(url: "https://github.com/kishikawakatsumi/KeychainAccess.git", from: "4.2.2")
@@ -22,17 +28,29 @@ let package = Package(
         .target(
             name: "BMSwift",
             dependencies: [
-                "KeychainAccess"
+                "KeychainAccess",
+                "BMNetwork"
             ],
-            path: "BMSwift/Sources/BMSwift",
+            path: "Sources/BMSwift",
             resources: [
                 .process("Resources")
+            ],
+            swiftSettings: [
+                .define("BMSWIFT_MODULE")
+            ]
+        ),
+        .target(
+            name: "BMNetwork",
+            dependencies: [],
+            path: "Sources/BMNetwork",
+            swiftSettings: [
+                .define("BMNETWORK_MODULE")
             ]
         ),
         .testTarget(
             name: "BMSwiftTests",
             dependencies: ["BMSwift"],
-            path: "BMSwift/Tests/BMSwiftTests"
+            path: "Tests/BMSwiftTests"
         )
     ]
 )
