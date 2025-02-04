@@ -2,6 +2,27 @@ import Foundation
 
 /// Namespace for network-related types
 public enum BMNetwork {
+    // MARK: - Configuration
+    public struct Configuration {
+        /// Base URL for the API endpoints
+        public let baseURL: URL
+        
+        /// Default headers to be included in all requests
+        public let defaultHeaders: [String: String]
+        
+        /// Creates a new Configuration instance
+        public init(
+            baseURL: URL,
+            defaultHeaders: [String: String] = [
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            ]
+        ) {
+            self.baseURL = baseURL
+            self.defaultHeaders = defaultHeaders
+        }
+    }
+    
     // MARK: - HTTP Method
     public enum HTTPMethod: String {
         case get = "GET"
@@ -20,6 +41,7 @@ public enum BMNetwork {
         var method: HTTPMethod { get }
         var requiresAuth: Bool { get }
         var headers: [String: String] { get }
+        var baseURL: URL? { get }  // New property for feature-specific base URLs
     }
     
     // MARK: - Empty Response
@@ -81,4 +103,5 @@ public extension BMNetwork.APIEndpoint {
     }
     
     var requiresAuth: Bool { false }
+    var baseURL: URL? { nil }  // Default implementation for baseURL
 }

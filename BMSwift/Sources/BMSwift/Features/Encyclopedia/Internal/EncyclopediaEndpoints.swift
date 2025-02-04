@@ -182,45 +182,45 @@ public enum EncyclopediaEndpoints {
 public extension EncyclopediaEndpoints {
     static func frontPage(authToken: String) -> BMNetwork.APIRequest<FrontPage> {
         let endpoint = FrontPage(authToken: authToken)
-        return BMNetwork.APIRequest(endpoint: endpoint, body: nil)
+        return BMNetwork.APIRequest(endpoint: endpoint, body: nil, authToken: authToken)
     }
     
     static func article(id: Int, authToken: String) -> BMNetwork.APIRequest<Article> {
         let endpoint = Article(id: id, authToken: authToken)
-        return BMNetwork.APIRequest(endpoint: endpoint, body: nil)
+        return BMNetwork.APIRequest(endpoint: endpoint, body: nil, authToken: authToken)
     }
     
     static func like(id: Int, authToken: String) -> BMNetwork.APIRequest<Like> {
         let endpoint = Like(id: id, authToken: authToken)
         let body = endpoint.body
-        return BMNetwork.APIRequest(endpoint: endpoint, body: body)
+        return BMNetwork.APIRequest(endpoint: endpoint, body: body, authToken: authToken)
     }
     
     static func visit(id: Int, authToken: String) -> BMNetwork.APIRequest<Visit> {
         let endpoint = Visit(id: id, authToken: authToken)
-        return BMNetwork.APIRequest(endpoint: endpoint, body: nil)
+        return BMNetwork.APIRequest(endpoint: endpoint, body: nil, authToken: authToken)
     }
     
     static func articleDetail(id: Int, authToken: String) -> BMNetwork.APIRequest<ArticleDetail> {
         let endpoint = ArticleDetail(id: id, authToken: authToken)
-        return BMNetwork.APIRequest(endpoint: endpoint, body: nil)
+        return BMNetwork.APIRequest(endpoint: endpoint, body: nil, authToken: authToken)
     }
     
     static func comments(id: Int, authToken: String) -> BMNetwork.APIRequest<Comments> {
         let endpoint = Comments(id: id, authToken: authToken)
-        return BMNetwork.APIRequest(endpoint: endpoint, body: nil)
+        return BMNetwork.APIRequest(endpoint: endpoint, body: nil, authToken: authToken)
     }
     
     static func postComment(articleId: Int, content: String, authToken: String) -> BMNetwork.APIRequest<PostComment> {
         let endpoint = PostComment(articleId: articleId, content: content, authToken: authToken)
         let body = CommentRequest(bp_subsection_id: articleId, cnt: content)
-        return BMNetwork.APIRequest(endpoint: endpoint, body: body)
+        return BMNetwork.APIRequest(endpoint: endpoint, body: body, authToken: authToken)
     }
     
     static func keep(id: Int, authToken: String) -> BMNetwork.APIRequest<Keep> {
         let endpoint = Keep(id: id, authToken: authToken)
         let body = ClientActionRequest(bp_subsection_id: id)
-        return BMNetwork.APIRequest(endpoint: endpoint, body: body)
+        return BMNetwork.APIRequest(endpoint: endpoint, body: body, authToken: authToken)
     }
 }
 

@@ -11,7 +11,11 @@ public protocol AuthServiceProtocol {
 /// Default implementation of AuthService
 public final class AuthService: AuthServiceProtocol {
     // MARK: - Shared Instance
-    public static let shared = AuthService(client: BMNetwork.NetworkClient(baseURL: URL(string: "https://wiki.kinglyrobot.com")!))
+    public static let shared = AuthService(client: BMNetwork.NetworkClient(
+        configuration: BMNetwork.Configuration(
+            baseURL: URL(string: "https://wiki.kinglyrobot.com")!
+        )
+    ))
     
     // MARK: - Properties
     private let client: BMNetwork.NetworkClient

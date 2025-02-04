@@ -68,7 +68,16 @@ public final class ArticleDetailViewModel: ObservableObject, Hashable {
     public init(
         articleId: Int,
         token: String,
-        encyclopediaService: EncyclopediaServiceProtocol = EncyclopediaService(client: BMNetwork.NetworkClient(baseURL: URL(string: "https://wiki.kinglyrobot.com")!))
+        encyclopediaService: EncyclopediaServiceProtocol = EncyclopediaService(
+            client: BMNetwork.NetworkClient(
+                configuration: BMNetwork.Configuration(
+                    baseURL: URL(string: "https://wiki.kinglyrobot.com")!,
+                    defaultHeaders: [
+                        "Content-Type": "application/json"
+                    ]
+                )
+            )
+        )
     ) {
         self.articleId = articleId
         self._token = token

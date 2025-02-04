@@ -7,16 +7,25 @@ extension BMNetwork {
     
     public final class NetworkClient {
         // MARK: - Properties
-        private let baseURL: URL
+        private let configuration: Configuration
         private let session: URLSession
         
         // MARK: - Shared Instance
-        public static let shared = NetworkClient(baseURL: URL(string: "https://wiki.kinglyrobot.com")!)
+        public static let shared = NetworkClient(
+            configuration: Configuration(
+                baseURL: URL(string: "https://wiki.kinglyrobot.com")!,
+                defaultHeaders: [
+                    "Content-Type": "application/json"
+                ]
+            )
+        )
         
         // MARK: - Initialization
-        public init(baseURL: URL,
-                   session: URLSession = .shared) {
-            self.baseURL = baseURL
+        public init(
+            configuration: Configuration,
+            session: URLSession = .shared
+        ) {
+            self.configuration = configuration
             self.session = session
         }
         
@@ -87,41 +96,45 @@ extension BMNetwork {
         private func createURLRequest<E: BMNetwork.APIEndpoint>(for request: BMNetwork.APIRequest<E>) throws -> URLRequest {
             // Create URL components
             var components = URLComponents()
+            
+            // Use endpoint's baseURL if provided, otherwise use configuration's baseURL
+            let baseURL = request.endpoint.baseURL ?? configuration.baseURL
             components.scheme = baseURL.scheme
             components.host = baseURL.host
             components.path = request.endpoint.path
             components.queryItems = request.queryItems
             
-            // Create URL
             guard let url = components.url else {
                 throw BMNetwork.APIError.invalidURL
             }
             
-            // Create URLRequest
             var urlRequest = URLRequest(url: url)
             urlRequest.httpMethod = request.endpoint.method.rawValue
             
-            // Set Content-Type header for JSON
-            urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            
-            // Add headers
-            request.endpoint.headers.forEach { urlRequest.setValue($1, forHTTPHeaderField: $0) }
-            
-            // Add auth token if required
-            if request.endpoint.requiresAuth, let token = request.authToken {
-                urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            // Apply default headers from configuration
+            configuration.defaultHeaders.forEach { key, value in
+                urlRequest.setValue(value, forHTTPHeaderField: key)
             }
             
-            // Add body if present
+            // Apply endpoint-specific headers (these override defaults)
+            request.endpoint.headers.forEach { key, value in
+                urlRequest.setValue(value, forHTTPHeaderField: key)
+            }
+            
+            // Apply auth token if required
+            if request.endpoint.requiresAuth {
+                if let token = request.authToken {
+                    urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                } else {
+                    throw BMNetwork.APIError.unauthorized
+                }
+            }
+            
+            // Encode body if present
             if let body = request.body {
                 let encoder = JSONEncoder()
                 encoder.keyEncodingStrategy = .convertToSnakeCase
                 urlRequest.httpBody = try encoder.encode(body)
-                
-                // Debug logging
-                if let jsonString = String(data: urlRequest.httpBody!, encoding: .utf8) {
-                    print("Request Body: \(jsonString)")
-                }
             }
             
             // Debug logging

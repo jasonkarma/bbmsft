@@ -1,11 +1,19 @@
 import Foundation
 
 struct SkinAnalysisResponse: Codable {
-    let result: AnalysisResult
-    let cacheTime: Int
-    let status: String
-    let message: String
-    let time: Int
+    let score: Int
+    let skinQualityScore: Int
+    let skinToneScore: Int
+    let skinElasticityScore: Int
+    let recommendations: [String]
+    
+    enum CodingKeys: String, CodingKey {
+        case score = "overall_score"
+        case skinQualityScore = "skin_quality"
+        case skinToneScore = "skin_tone"
+        case skinElasticityScore = "skin_elasticity"
+        case recommendations = "recommendations"
+    }
 }
 
 struct AnalysisResult: Codable {
