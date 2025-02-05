@@ -22,6 +22,10 @@
     <true/>
     <key>MinimumOSVersion</key>
     <string>16.0</string>
+    <key>NSCameraUsageDescription</key>
+    <string>我們需要相機權限來分析您的膚質狀況</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>我們需要相簿權限來分析您的膚質狀況</string>
     <key>UIApplicationSceneManifest</key>
     <dict>
         <key>UIApplicationSupportsMultipleScenes</key>

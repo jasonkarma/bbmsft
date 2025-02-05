@@ -3,6 +3,11 @@ import SwiftUI
 
 @available(iOS 13.0, *)
 public struct EncyclopediaView: View {
+    enum Route: Hashable {
+        case article(ArticlePreview)
+        case skinAnalysis
+    }
+    
     @StateObject private var viewModel: EncyclopediaViewModel
     @State private var selectedTab = 0
     @Binding var isPresented: Bool
@@ -62,7 +67,7 @@ public struct EncyclopediaView: View {
                                             
                                             LazyVStack(spacing: 8) {
                                                 ForEach(viewModel.hotArticles, id: \.id) { article in
-                                                    NavigationLink(value: article) {
+                                                    NavigationLink(value: Route.article(article)) {
                                                         ArticleCardView(article: article, token: token)
                                                             .background(AppColors.black.swiftUIColor.opacity(0.5))
                                                             .cornerRadius(12)
@@ -103,8 +108,13 @@ public struct EncyclopediaView: View {
                     .ignoresSafeArea()
                 }
             }
-            .navigationDestination(for: ArticlePreview.self) { article in
-                ArticleDetailView(viewModel: ArticleDetailViewModel(articleId: article.id, token: token))
+            .navigationDestination(for: Route.self) { route in
+                switch route {
+                case .article(let article):
+                    ArticleDetailView(viewModel: ArticleDetailViewModel(articleId: article.id, token: token))
+                case .skinAnalysis:
+                    SkinAnalysisView(isPresented: $isPresented)
+                }
             }
             .task {
                 print("[EncyclopediaView] Loading content with token: \(token.prefix(10))...")
@@ -116,28 +126,37 @@ public struct EncyclopediaView: View {
     private var voiceCommandArea: some View {
         HStack {
             Image(systemName: "mic.fill")
+                .font(.system(size: 24))
                 .bmForegroundColor(AppColors.primary)
-                .font(.title2)
             
-            Text("按住說話")
-                .bmForegroundColor(AppColors.primary)
-                .font(.body)
+            Text("語音指令")
+                .font(.headline)
+                .bmForegroundColor(AppColors.primaryText)
+            
+            Spacer()
+            
+            Image(systemName: "chevron.right")
+                .font(.system(size: 16))
+                .bmForegroundColor(AppColors.primaryText)
         }
-        .frame(maxWidth: .infinity)
         .padding()
     }
     
     private var smartDeviceStats: some View {
         HStack {
-            Text("智能設備")
+            Image(systemName: "iphone")
+                .font(.system(size: 24))
                 .bmForegroundColor(AppColors.primary)
-                .font(.body)
+            
+            Text("智能設備")
+                .font(.headline)
+                .bmForegroundColor(AppColors.primaryText)
             
             Spacer()
             
-            Text("已連接")
-                .bmForegroundColor(AppColors.success)
-                .font(.body)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 16))
+                .bmForegroundColor(AppColors.primaryText)
         }
         .padding()
     }
@@ -145,19 +164,34 @@ public struct EncyclopediaView: View {
     private var bottomNavigation: some View {
         HStack(spacing: 0) {
             ForEach(0..<3) { index in
-                Button(action: {
-                    selectedTab = index
-                }) {
-                    VStack {
-                        Image(systemName: index == 0 ? "house.fill" : index == 1 ? "magnifyingglass" : "person.fill")
-                            .bmForegroundColor(selectedTab == index ? AppColors.primary : AppColors.secondaryText)
-                        
-                        Text(index == 0 ? "首頁" : index == 1 ? "搜尋" : "我的")
-                            .font(.caption)
-                            .bmForegroundColor(selectedTab == index ? AppColors.primary : AppColors.secondaryText)
+                if index == 0 {
+                    NavigationLink(value: Route.skinAnalysis) {
+                        VStack {
+                            Image(systemName: "camera.fill")
+                                .bmForegroundColor(selectedTab == index ? AppColors.primary : AppColors.secondaryText)
+                            
+                            Text("AI檢測")
+                                .font(.caption)
+                                .bmForegroundColor(selectedTab == index ? AppColors.primary : AppColors.secondaryText)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
+                } else {
+                    Button(action: {
+                        selectedTab = index
+                    }) {
+                        VStack {
+                            Image(systemName: index == 1 ? "magnifyingglass" : "person.fill")
+                                .bmForegroundColor(selectedTab == index ? AppColors.primary : AppColors.secondaryText)
+                            
+                            Text(index == 1 ? "搜尋" : "我的")
+                                .font(.caption)
+                                .bmForegroundColor(selectedTab == index ? AppColors.primary : AppColors.secondaryText)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    }
                 }
             }
         }

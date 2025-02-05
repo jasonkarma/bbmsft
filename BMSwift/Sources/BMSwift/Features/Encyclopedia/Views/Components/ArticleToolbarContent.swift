@@ -18,7 +18,7 @@ public struct ArticleToolbarContent: View {
                         await viewModel.likeArticle()
                     }
                 } label: {
-                    Image(systemName: article.clientsAction.like ? "heart.fill" : "heart")
+                    Image(systemName: article.clientsAction.isLiked ? "heart.fill" : "heart")
                         .bmForegroundColor(AppColors.primary)
                         .font(.title2)
                 }
@@ -38,7 +38,7 @@ public struct ArticleToolbarContent: View {
                         await viewModel.keepArticle()
                     }
                 } label: {
-                    Image(systemName: article.clientsAction.keep ? "bookmark.fill" : "bookmark")
+                    Image(systemName: article.clientsAction.isKept ? "bookmark.fill" : "bookmark")
                         .bmForegroundColor(AppColors.primary)
                         .font(.title2)
                 }

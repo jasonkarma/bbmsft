@@ -219,11 +219,11 @@ public final class ArticleDetailViewModel: ObservableObject, Hashable {
         guard case .loaded(var article) = state else { return }
         
         do {
-            let wasLiked = article.clientsAction.like
+            let wasLiked = article.clientsAction.isLiked
             try await encyclopediaService.likeArticle(id: article.info.bp_subsection_id, authToken: token)
             
             // Update the local state with the new like status
-            article.clientsAction.like.toggle()
+            article.clientsAction.like = !(article.clientsAction.like ?? false)
             state = .loaded(article)
             
             // Only show message when liking, not unliking
@@ -241,11 +241,11 @@ public final class ArticleDetailViewModel: ObservableObject, Hashable {
         guard case .loaded(var article) = state else { return }
         
         do {
-            let wasKept = article.clientsAction.keep
+            let wasKept = article.clientsAction.isKept
             try await encyclopediaService.keepArticle(id: article.info.bp_subsection_id, authToken: token)
             
             // Update the local state with the new keep status
-            article.clientsAction.keep.toggle()
+            article.clientsAction.keep = !(article.clientsAction.keep ?? false)
             state = .loaded(article)
             
             // Only show message when adding to keeps, not removing

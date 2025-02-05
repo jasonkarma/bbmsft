@@ -1,50 +1,65 @@
-#if canImport(SwiftUI) && os(iOS)
-import Foundation
+#if canImport(UIKit) && os(iOS)
 import SwiftUI
-import AVFoundation
+import PhotosUI
 
-@available(iOS 13.0, *)
+@available(iOS 16.0, *)
 @MainActor
-public class SkinAnalysisViewModel: NSObject, ObservableObject {
+public final class SkinAnalysisViewModel: ObservableObject {
+    @Published public var selectedImage: UIImage?
+    @Published public var selectedPhotoItem: PhotosPickerItem?
+    @Published public var analysisResult: SkinAnalysisResponse?
     @Published public var isAnalyzing = false
-    @Published public var results: AnalysisResults?
-    @Published public var showError = false
-    @Published public var isFlashOn = false
+    @Published public var showImagePicker = false
     @Published public var error: Error?
     
-    private let service: any SkinAnalysisService
+    private let service: SkinAnalysisServiceProtocol
     
-    public init(service: some SkinAnalysisService = SkinAnalysisServiceImpl()) {
+    public init(service: SkinAnalysisServiceProtocol = SkinAnalysisServiceImpl()) {
         self.service = service
-        super.init()
     }
     
-    public func analyze(image: UIImage) async {
+    public func analyzeSkin(image: UIImage) async {
         isAnalyzing = true
-        do {
-            let result = try await service.analyzeImage(image)
-            self.results = result
-            self.isAnalyzing = false
-        } catch {
-            self.error = error
-            self.showError = true
-            self.isAnalyzing = false
-        }
-    }
-    
-    public func toggleFlash() {
-        isFlashOn.toggle()
-        guard let device = AVCaptureDevice.default(for: .video) else { return }
+        error = nil
+        analysisResult = nil
         
         do {
-            try device.lockForConfiguration()
-            if device.hasTorch {
-                try device.setTorchModeOn(level: 1.0)
-            }
-            device.unlockForConfiguration()
+            analysisResult = try await service.analyzeSkin(image: image)
         } catch {
-            print("Error toggling flash: \(error.localizedDescription)")
+            self.error = error
         }
+        
+        isAnalyzing = false
+    }
+    
+    public func clearError() {
+        error = nil
+    }
+    
+    public func clearResult() {
+        analysisResult = nil
+    }
+    
+    public func clearSelectedImage() {
+        selectedImage = nil
+    }
+    
+    public func reset() {
+        selectedImage = nil
+        selectedPhotoItem = nil
+        analysisResult = nil
+        isAnalyzing = false
+        error = nil
     }
 }
+
+#if DEBUG
+extension SkinAnalysisViewModel {
+    public static func preview() -> SkinAnalysisViewModel {
+        let viewModel = SkinAnalysisViewModel()
+        viewModel.analysisResult = .preview
+        return viewModel
+    }
+}
+#endif
 #endif

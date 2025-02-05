@@ -32,6 +32,11 @@ public enum BMNetwork {
         case patch = "PATCH"
     }
     
+    // MARK: - Network Client Protocol
+    public protocol NetworkClientProtocol {
+        func send<E: APIEndpoint>(_ request: APIRequest<E>) async throws -> E.ResponseType
+    }
+    
     // MARK: - API Endpoint Protocol
     public protocol APIEndpoint {
         associatedtype RequestType: Encodable
@@ -41,11 +46,17 @@ public enum BMNetwork {
         var method: HTTPMethod { get }
         var requiresAuth: Bool { get }
         var headers: [String: String] { get }
-        var baseURL: URL? { get }  // New property for feature-specific base URLs
+        var baseURL: URL? { get }
     }
     
-    // MARK: - Empty Response
-    public struct EmptyResponse: Codable {}
+    // MARK: - Empty Types
+    public struct EmptyRequest: Codable {
+        public init() {}
+    }
+    
+    public struct EmptyResponse: Codable {
+        public init() {}
+    }
     
     // MARK: - API Request
     public struct APIRequest<Endpoint: APIEndpoint> {

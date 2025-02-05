@@ -95,20 +95,33 @@ public struct ArticleDetailResponse: Codable {
     }
     
     public struct ClientActions: Codable, Equatable {
-        public var keep: Bool
-        public var like: Bool
+        public var keep: Bool?
+        public var like: Bool?
+        public var visit: Bool?
         
         private enum CodingKeys: String, CodingKey {
             case keep
             case like
+            case visit
+        }
+        
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            keep = try container.decodeIfPresent(Bool.self, forKey: .keep) ?? false
+            like = try container.decodeIfPresent(Bool.self, forKey: .like) ?? false
+            visit = try container.decodeIfPresent(Bool.self, forKey: .visit) ?? false
         }
         
         public var isLiked: Bool {
-            like
+            like ?? false
         }
         
         public var isKept: Bool {
-            keep
+            keep ?? false
+        }
+        
+        public var hasVisited: Bool {
+            visit ?? false
         }
     }
 }

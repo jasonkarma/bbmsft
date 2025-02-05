@@ -140,25 +140,44 @@ public struct ArticleInfo: Codable {
     }
 }
 
-public struct ArticleClientActions: Codable {
-    public let keep: Bool
-    public let like: Bool
-    public let visit: Bool
+public struct ArticleClientActions: Codable, Equatable {
+    public var keep: Bool?
+    public var like: Bool?
+    public var visit: Bool?
     
     private enum CodingKeys: String, CodingKey {
         case keep
         case like
         case visit
     }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        keep = try container.decodeIfPresent(Bool.self, forKey: .keep) ?? false
+        like = try container.decodeIfPresent(Bool.self, forKey: .like) ?? false
+        visit = try container.decodeIfPresent(Bool.self, forKey: .visit) ?? false
+    }
+    
+    public var isLiked: Bool {
+        like ?? false
+    }
+    
+    public var isKept: Bool {
+        keep ?? false
+    }
+    
+    public var hasVisited: Bool {
+        visit ?? false
+    }
 }
 
 public struct ArticleResponse: Decodable {
     public let info: ArticleInfo
-    public let content: [ArticleContent]
+    public var content: [ArticleContent]
     public let keywords: [ArticleKeyword]
     public let suggests: [ArticlePreview]
     public let chapters: [ArticleChapter]
-    public let clientsAction: ArticleClientActions
+    public var clientsAction: ArticleClientActions
     
     private enum CodingKeys: String, CodingKey {
         case info
@@ -166,6 +185,6 @@ public struct ArticleResponse: Decodable {
         case keywords
         case suggests
         case chapters
-        case clientsAction = "clientsAction"
+        case clientsAction
     }
 }

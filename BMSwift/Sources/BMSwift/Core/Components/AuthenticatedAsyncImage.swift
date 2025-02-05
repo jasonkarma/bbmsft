@@ -1,7 +1,6 @@
+#if canImport(UIKit) && os(iOS)
 import SwiftUI
-#if os(iOS) || os(tvOS) || os(watchOS)
 import UIKit
-#endif
 
 public struct AuthenticatedAsyncImage<Content: View>: View {
     let url: URL
@@ -94,7 +93,6 @@ public struct AuthenticatedAsyncImage<Content: View>: View {
                         return
                     }
                     
-                    #if os(iOS) || os(tvOS) || os(watchOS)
                     if let image = UIImage(data: responseData) {
                         logImageCreation(image)
                         imagePhase = .success(Image(uiImage: image))
@@ -102,7 +100,6 @@ public struct AuthenticatedAsyncImage<Content: View>: View {
                         logImageError(responseData)
                         imagePhase = .failure(ImageError.invalidData)
                     }
-                    #endif
                 } catch {
                     print("❌ Network error: \(error.localizedDescription)")
                     imagePhase = .failure(ImageError.networkError(error))
@@ -154,4 +151,5 @@ struct AuthenticatedAsyncImage_Previews: PreviewProvider {
         }
     }
 }
+#endif
 #endif

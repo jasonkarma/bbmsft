@@ -2,7 +2,7 @@ name: BMSwiftApp
 options:
   bundleIdPrefix: com.bbmsft
   deploymentTarget:
-    iOS: 15.0
+    iOS: 16.0
   xcodeVersion: "15.0"
   defaultConfig: Debug
   platform: iOS
@@ -26,13 +26,9 @@ targets:
     dependencies:
       - package: BMSwift
         product: BMSwift
-        embed: true
-        link: true
       - package: KeychainAccess
-      - framework: UIKit.framework
-        embed: false
-      - framework: SwiftUI.framework
-        embed: false
+      - sdk: UIKit.framework
+      - sdk: SwiftUI.framework
       - sdk: Foundation.framework
     settings:
       base:
@@ -43,23 +39,13 @@ targets:
         INFOPLIST_FILE: BMSwiftApp/Info.plist
         PRODUCT_NAME: BMSwiftApp
         TARGETED_DEVICE_FAMILY: 1,2
-        ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: NO
-        ENABLE_USER_SCRIPT_SANDBOXING: YES
+        ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: YES
         ENABLE_PREVIEWS: YES
         DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
-        IPHONEOS_DEPLOYMENT_TARGET: 15.0
+        IPHONEOS_DEPLOYMENT_TARGET: 16.0
         SDKROOT: iphoneos
         SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
         SUPPORTS_MACCATALYST: NO
         SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
-        OTHER_LDFLAGS: [-ObjC]
-        SWIFT_INCLUDE_PATHS: $(SRCROOT)/../BMSwift/Sources
-        FRAMEWORK_SEARCH_PATHS:
-          - $(inherited)
-          - $(SDKROOT)/System/Library/Frameworks
-    preBuildScripts:
-      - script: |
-          if [ -d "${DERIVED_DATA_PATH}" ]; then
-            rm -rf "${DERIVED_DATA_PATH}"
-          fi
+

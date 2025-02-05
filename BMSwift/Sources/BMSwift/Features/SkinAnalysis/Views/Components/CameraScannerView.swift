@@ -49,11 +49,11 @@ public struct CameraScannerView: View {
                     Spacer()
                     Button(action: viewModel.capturePhoto) {
                         Circle()
-                            .foregroundColor(AppColors.primary.swiftUIColor)
+                            .fill(AppColors.primary.swiftUIColor)
                             .frame(width: 80, height: 80)
                             .overlay(
                                 Circle()
-                                    .strokeBorder(AppColors.white.swiftUIColor, lineWidth: 4)
+                                    .strokeBorder(AppColors.primary.swiftUIColor, lineWidth: 4)
                                     .frame(width: 60, height: 60)
                             )
                     }
@@ -69,15 +69,17 @@ public struct CameraScannerView: View {
                 onCapture(photo)
             }
         }
-        .alert(isPresented: $viewModel.showPermissionAlert) {
-            Alert(
-                title: Text("需要相機權限"),
-                message: Text("請在設置中允許使用相機"),
-                primaryButton: .default(Text("前往設置")) {
-                    viewModel.openAppSettings()
-                },
-                secondaryButton: .cancel()
-            )
+        .alert("需要相機權限", isPresented: $viewModel.showPermissionAlert) {
+            Button("前往設置", role: .none) {
+                viewModel.openAppSettings()
+            }
+            .foregroundColor(AppColors.primary.swiftUIColor)
+            
+            Button("取消", role: .cancel) {}
+                .foregroundColor(AppColors.primaryText.swiftUIColor)
+        } message: {
+            Text("請在設置中允許使用相機")
+                .foregroundColor(AppColors.secondaryText.swiftUIColor)
         }
     }
 }

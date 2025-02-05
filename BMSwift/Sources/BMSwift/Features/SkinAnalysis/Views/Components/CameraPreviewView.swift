@@ -1,8 +1,8 @@
-#if canImport(SwiftUI) && os(iOS)
-import SwiftUI
+#if canImport(UIKit) && os(iOS)
 import AVFoundation
+import SwiftUI
 
-@available(iOS 13.0, *)
+@available(iOS 16.0, *)
 public struct CameraPreviewView: UIViewRepresentable {
     let session: AVCaptureSession
     
@@ -12,20 +12,21 @@ public struct CameraPreviewView: UIViewRepresentable {
     
     public func makeUIView(context: Context) -> PreviewView {
         let view = PreviewView()
+        view.backgroundColor = AppColors.primaryBg.uiColor
         view.videoPreviewLayer.session = session
+        view.videoPreviewLayer.videoGravity = .resizeAspectFill
         return view
     }
     
     public func updateUIView(_ uiView: PreviewView, context: Context) {}
 }
 
-@available(iOS 13.0, *)
 public class PreviewView: UIView {
-    override public class var layerClass: AnyClass {
+    public override class var layerClass: AnyClass {
         AVCaptureVideoPreviewLayer.self
     }
     
-    var videoPreviewLayer: AVCaptureVideoPreviewLayer {
+    public var videoPreviewLayer: AVCaptureVideoPreviewLayer {
         layer as! AVCaptureVideoPreviewLayer
     }
 }

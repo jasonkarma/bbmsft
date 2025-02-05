@@ -18,6 +18,7 @@ public enum EncyclopediaEndpoints {
         public let method: BMNetwork.HTTPMethod = .get
         public let requiresAuth: Bool = true
         public let headers: [String: String]
+        public let baseURL: URL? = nil
         
         public init(authToken: String) {
             self.headers = [
@@ -37,6 +38,7 @@ public enum EncyclopediaEndpoints {
         public let method: BMNetwork.HTTPMethod = .get
         public let requiresAuth: Bool = true
         public let headers: [String: String]
+        public let baseURL: URL? = nil
         
         public init(id: Int, authToken: String) {
             self.id = id
@@ -58,6 +60,7 @@ public enum EncyclopediaEndpoints {
         public let method: BMNetwork.HTTPMethod = .post
         public let requiresAuth: Bool = true
         public let headers: [String: String]
+        public let baseURL: URL? = nil
         
         public init(id: Int, authToken: String) {
             self.id = id
@@ -82,6 +85,7 @@ public enum EncyclopediaEndpoints {
         public let method: BMNetwork.HTTPMethod = .post
         public let requiresAuth: Bool = true
         public let headers: [String: String]
+        public let baseURL: URL? = nil
         
         public init(id: Int, authToken: String) {
             self.id = id
@@ -103,6 +107,7 @@ public enum EncyclopediaEndpoints {
         public let method: BMNetwork.HTTPMethod = .get
         public let requiresAuth: Bool = true
         public let headers: [String: String]
+        public let baseURL: URL? = nil
         
         public init(id: Int, authToken: String) {
             self.id = id
@@ -124,6 +129,7 @@ public enum EncyclopediaEndpoints {
         public let method: BMNetwork.HTTPMethod = .get
         public let requiresAuth: Bool = false
         public let headers: [String: String]
+        public let baseURL: URL? = nil
         
         public init(id: Int, authToken: String) {
             self.id = id
@@ -146,6 +152,7 @@ public enum EncyclopediaEndpoints {
         public let method: BMNetwork.HTTPMethod = .post
         public let requiresAuth: Bool = true
         public let headers: [String: String]
+        public let baseURL: URL? = nil
         
         public init(articleId: Int, content: String, authToken: String) {
             self.articleId = articleId
@@ -167,6 +174,7 @@ public enum EncyclopediaEndpoints {
         public let method: BMNetwork.HTTPMethod = .post
         public let requiresAuth: Bool = true
         public let headers: [String: String]
+        public let baseURL: URL? = nil
         
         public init(id: Int, authToken: String) {
             self.id = id

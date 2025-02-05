@@ -1,134 +1,69 @@
+#if canImport(UIKit) && os(iOS)
 import Foundation
 
-struct SkinAnalysisResponse: Codable {
-    let score: Int
-    let skinQualityScore: Int
-    let skinToneScore: Int
-    let skinElasticityScore: Int
-    let recommendations: [String]
+public struct SkinAnalysisResponse: Codable {
+    public let overallScore: Double
+    public let detailedScores: [DetailedScore]
+    public let recommendations: [String]
     
-    enum CodingKeys: String, CodingKey {
-        case score = "overall_score"
-        case skinQualityScore = "skin_quality"
-        case skinToneScore = "skin_tone"
-        case skinElasticityScore = "skin_elasticity"
-        case recommendations = "recommendations"
+    public init(overallScore: Double, detailedScores: [DetailedScore], recommendations: [String]) {
+        self.overallScore = overallScore
+        self.detailedScores = detailedScores
+        self.recommendations = recommendations
+    }
+    
+    public init(from rapidAPIResponse: RapidAPI.Response) {
+        let analysis = rapidAPIResponse.result.photoAnalysis
+        let impression = rapidAPIResponse.result.overallImpression
+        
+        self.overallScore = impression.overallScore
+        
+        // Convert API scores to DetailedScore array
+        self.detailedScores = [
+            DetailedScore(category: "構圖", score: analysis.composition.compositionScore),
+            DetailedScore(category: "光線", score: analysis.lighting.lightingScore),
+            DetailedScore(category: "色彩", score: analysis.color.colorScore),
+            DetailedScore(category: "清晰度", score: analysis.technicalQuality.qualityScore),
+            DetailedScore(category: "膚質", score: analysis.facialFeatures.skinQuality.score),
+            DetailedScore(category: "五官平衡", score: analysis.facialFeatures.overallStructure.score)
+        ]
+        
+        self.recommendations = impression.suggestions
     }
 }
 
-struct AnalysisResult: Codable {
-    let photoAnalysis: PhotoAnalysis
-    let overallImpression: OverallImpression
+public struct DetailedScore: Codable, Identifiable {
+    public let id: UUID
+    public let category: String
+    public let score: Double
     
-    enum CodingKeys: String, CodingKey {
-        case photoAnalysis = "photo_analysis"
-        case overallImpression = "overall_impression"
+    public init(id: UUID = UUID(), category: String, score: Double) {
+        self.id = id
+        self.category = category
+        self.score = score
     }
 }
 
-struct PhotoAnalysis: Codable {
-    let composition: Composition
-    let lighting: Lighting
-    let color: Color
-    let technicalQuality: TechnicalQuality
-    let facialFeatures: FacialFeatures
-    
-    enum CodingKeys: String, CodingKey {
-        case composition, lighting, color
-        case technicalQuality = "technical_quality"
-        case facialFeatures = "facial_features"
+#if DEBUG
+extension SkinAnalysisResponse {
+    public static var preview: SkinAnalysisResponse {
+        SkinAnalysisResponse(
+            overallScore: 85.0,
+            detailedScores: [
+                DetailedScore(category: "構圖", score: 88.0),
+                DetailedScore(category: "光線", score: 85.0),
+                DetailedScore(category: "色彩", score: 87.0),
+                DetailedScore(category: "清晰度", score: 90.0),
+                DetailedScore(category: "膚質", score: 82.0),
+                DetailedScore(category: "五官平衡", score: 84.0)
+            ],
+            recommendations: [
+                "調整光線以提升膚質表現",
+                "可以嘗試不同角度以突顯輪廓",
+                "建議使用補光以減少陰影"
+            ]
+        )
     }
 }
-
-struct Composition: Codable {
-    let description: String
-    let notableElements: [String]
-    let compositionScore: Int
-    
-    enum CodingKeys: String, CodingKey {
-        case description
-        case notableElements = "notable_elements"
-        case compositionScore = "composition_score"
-    }
-}
-
-struct Lighting: Codable {
-    let description: String
-    let notableElements: [String]
-    let lightingScore: Int
-    
-    enum CodingKeys: String, CodingKey {
-        case description
-        case notableElements = "notable_elements"
-        case lightingScore = "lighting_score"
-    }
-}
-
-struct Color: Codable {
-    let palette: String
-    let notableElements: [String]
-    let colorScore: Int
-    
-    enum CodingKeys: String, CodingKey {
-        case palette
-        case notableElements = "notable_elements"
-        case colorScore = "color_score"
-    }
-}
-
-struct TechnicalQuality: Codable {
-    let sharpness: String
-    let exposure: String
-    let depthOfField: String
-    let qualityScore: Int
-    
-    enum CodingKeys: String, CodingKey {
-        case sharpness, exposure
-        case depthOfField = "depth_of_field"
-        case qualityScore = "quality_score"
-    }
-}
-
-struct FacialFeatures: Codable {
-    let overallStructure: FeatureDetail
-    let skinQuality: FeatureDetail
-    let eyeArea: FeatureDetail
-    let mouthArea: FeatureDetail
-    let noseArea: FeatureDetail
-    let cheekArea: FeatureDetail
-    let jawArea: FeatureDetail
-    
-    enum CodingKeys: String, CodingKey {
-        case overallStructure = "overall_structure"
-        case skinQuality = "skin_quality"
-        case eyeArea = "eye_area"
-        case mouthArea = "mouth_area"
-        case noseArea = "nose_area"
-        case cheekArea = "cheek_area"
-        case jawArea = "jaw_area"
-    }
-}
-
-struct FeatureDetail: Codable {
-    let description: String
-    let score: Int
-    
-    enum CodingKeys: String, CodingKey {
-        case description
-        case score = "balance_score" // Note: Different features use different score names but same structure
-    }
-}
-
-struct OverallImpression: Codable {
-    let mood: String
-    let uniqueElements: [String]
-    let overallScore: Int
-    let suggestions: [String]
-    
-    enum CodingKeys: String, CodingKey {
-        case mood
-        case uniqueElements = "unique_elements"
-        case overallScore = "overall_score"
-        case suggestions
-    }
-}
+#endif
+#endif

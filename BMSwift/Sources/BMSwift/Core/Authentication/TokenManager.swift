@@ -1,6 +1,6 @@
 #if canImport(SwiftUI) && os(iOS)
 import Foundation
-import Security
+import KeychainAccess
 
 /// Errors that can occur during token operations
 public enum TokenError: LocalizedError {
@@ -43,11 +43,13 @@ public protocol TokenManagerProtocol {
 public class TokenManager: TokenManagerProtocol {
     public static let shared = TokenManager()
     
+    private let keychain: Keychain
     private let tokenKey = "auth_token"
     
-    private let userDefaults = UserDefaults.standard
-    
-    private init() {}
+    private init() {
+        self.keychain = Keychain(service: "com.bbmsft.BMSwiftApp")
+            .accessibility(.whenUnlocked)
+    }
     
     public var isTokenValid: Bool {
         do {
@@ -67,51 +69,30 @@ public class TokenManager: TokenManagerProtocol {
     }
     
     public func saveToken(_ token: String) {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: tokenKey,
-            kSecValueData as String: token.data(using: .utf8)!,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
-        ]
-        
-        // First try to delete any existing token
-        SecItemDelete(query as CFDictionary)
-        
-        // Then save the new token
-        let status = SecItemAdd(query as CFDictionary, nil)
-        if status != errSecSuccess {
-            print("Failed to save token with status: \(status)")
+        do {
+            try keychain.set(token, key: tokenKey)
+        } catch {
+            print("Failed to save token: \(error)")
         }
     }
     
     public func getToken() throws -> String {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: tokenKey,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        
-        var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-        
-        guard status == errSecSuccess,
-              let data = result as? Data,
-              let token = String(data: data, encoding: .utf8)
-        else {
-            throw TokenError.notFound
+        do {
+            guard let token = try keychain.get(tokenKey) else {
+                throw TokenError.notFound
+            }
+            return token
+        } catch let error as KeychainAccess.Status {
+            throw TokenError.retrievalFailed(error)
         }
-        
-        return token
     }
     
     public func clearToken() {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: tokenKey
-        ]
-        
-        SecItemDelete(query as CFDictionary)
+        do {
+            try keychain.remove(tokenKey)
+        } catch {
+            print("Failed to clear token: \(error)")
+        }
     }
 }
 #endif

@@ -1,121 +1,104 @@
-#if canImport(SwiftUI) && os(iOS)
+#if canImport(UIKit) && os(iOS)
 import SwiftUI
 
-@available(iOS 13.0, *)
+@available(iOS 16.0, *)
 public struct ResultsView: View {
-    private let results: AnalysisResults
+    let result: SkinAnalysisResponse
+    let onDismiss: () -> Void
     
-    public init(results: AnalysisResults) {
-        self.results = results
+    public init(result: SkinAnalysisResponse, onDismiss: @escaping () -> Void) {
+        self.result = result
+        self.onDismiss = onDismiss
     }
     
     public var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                scoreSection
-                detailsSection
-                recommendationsSection
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 32)
-        }
-        .bmBackground(AppColors.primaryBg)
-    }
-    
-    private var scoreSection: some View {
-        VStack(spacing: 16) {
-            Text("分析結果")
-                .font(.title2)
-                .bmForegroundColor(AppColors.primaryText)
-            
-            ZStack {
-                Circle()
-                    .bmStroke(AppColors.primary.opacity(0.3), lineWidth: 8)
-                    .frame(width: 160, height: 160)
+        VStack(spacing: 24) {
+            // Overall Score
+            VStack(spacing: 8) {
+                Text("整體評分")
+                    .font(.headline)
+                    .foregroundColor(AppColors.primaryText.swiftUIColor)
                 
-                Circle()
-                    .trim(from: 0, to: CGFloat(results.score) / 100)
-                    .bmStroke(AppColors.primary, lineWidth: 8)
-                    .frame(width: 160, height: 160)
-                    .rotationEffect(.degrees(-90))
+                Text(String(format: "%.1f", result.overallScore))
+                    .font(.system(size: 48, weight: .bold))
+                    .foregroundColor(AppColors.primary.swiftUIColor)
+            }
+            
+            // Detailed Scores
+            VStack(spacing: 16) {
+                Text("詳細評分")
+                    .font(.headline)
+                    .foregroundColor(AppColors.primaryText.swiftUIColor)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 
-                VStack {
-                    Text("\(results.score)")
-                        .font(.system(size: 48, weight: .bold))
-                        .bmForegroundColor(AppColors.primary)
-                    Text("分")
-                        .font(.subheadline)
-                        .bmForegroundColor(AppColors.secondaryText)
+                ForEach(result.detailedScores, id: \.category) { score in
+                    HStack {
+                        Text(score.category)
+                            .font(.subheadline)
+                            .foregroundColor(AppColors.primaryText.swiftUIColor)
+                        
+                        Spacer()
+                        
+                        Text(String(format: "%.1f", score.score))
+                            .font(.system(.title3, design: .rounded, weight: .semibold))
+                            .foregroundColor(AppColors.primary.swiftUIColor)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(AppColors.secondaryBg.swiftUIColor)
+                    .cornerRadius(8)
                 }
             }
-        }
-    }
-    
-    private var detailsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("詳細分析")
-                .font(.headline)
-                .bmForegroundColor(AppColors.primaryText)
             
-            ForEach(results.details, id: \.category) { detail in
-                HStack {
-                    Text(detail.category)
-                        .font(.subheadline)
-                        .bmForegroundColor(AppColors.primaryText)
+            // Recommendations
+            if !result.recommendations.isEmpty {
+                VStack(spacing: 16) {
+                    Text("建議改善")
+                        .font(.headline)
+                        .foregroundColor(AppColors.primaryText.swiftUIColor)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     
-                    Spacer()
-                    
-                    Text("\(detail.score)分")
-                        .font(.subheadline)
-                        .bmForegroundColor(AppColors.primary)
+                    ForEach(result.recommendations, id: \.self) { recommendation in
+                        HStack(alignment: .top, spacing: 12) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(AppColors.primary.swiftUIColor)
+                                .font(.system(size: 20))
+                            
+                            Text(recommendation)
+                                .font(.subheadline)
+                                .foregroundColor(AppColors.primaryText.swiftUIColor)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(AppColors.secondaryBg.swiftUIColor)
+                        .cornerRadius(8)
+                    }
                 }
-                .padding()
-                .bmBackground(AppColors.secondaryBg)
-                .cornerRadius(8)
             }
-        }
-    }
-    
-    private var recommendationsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("建議")
-                .font(.headline)
-                .bmForegroundColor(AppColors.primaryText)
             
-            ForEach(results.recommendations, id: \.self) { recommendation in
-                HStack(spacing: 12) {
-                    Circle()
-                        .bmFill(AppColors.primary)
-                        .frame(width: 6, height: 6)
-                    
-                    Text(recommendation)
-                        .font(.body)
-                        .bmForegroundColor(AppColors.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+            Button(action: onDismiss) {
+                Text("完成")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(AppColors.primary.swiftUIColor)
+                    .cornerRadius(12)
             }
         }
+        .padding(24)
+        .background(AppColors.primaryBg.swiftUIColor)
     }
 }
 
 #if DEBUG
-@available(iOS 13.0.0, *)
+@available(iOS 16.0, *)
 struct ResultsView_Previews: PreviewProvider {
     static var previews: some View {
         ResultsView(
-            results: AnalysisResults(
-                score: 85,
-                details: [
-                    .init(category: "膚質", score: 90),
-                    .init(category: "色調", score: 80),
-                    .init(category: "彈性", score: 85)
-                ],
-                recommendations: [
-                    "保持良好的防曬習慣",
-                    "增加保濕產品的使用",
-                    "注意清潔步驟的完整性"
-                ]
-            )
+            result: .preview,
+            onDismiss: {}
         )
     }
 }

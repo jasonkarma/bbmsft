@@ -10,21 +10,23 @@ let package = Package(
         .macOS(.v12)  // For development support
     ],
     products: [
-        .library(
-            name: "BMSwift",
-            type: .dynamic,  // Make it dynamic to avoid linking issues
-            targets: ["BMSwift"])
+        .library(name: "BMSwift", targets: ["BMSwift"])
     ],
     dependencies: [
         .package(url: "https://github.com/kishikawakatsumi/KeychainAccess.git", from: "4.2.2")
     ],
     targets: [
+        // Main App Module
         .target(
             name: "BMSwift",
             dependencies: [
                 "KeychainAccess"
             ],
             path: "BMSwift/Sources/BMSwift",
+            exclude: [
+                "Features/Encyclopedia/Views/ArticleDetailView.swift.bak",
+                "Features/SkinAnalysis/README.md"
+            ],
             resources: [
                 .process("Resources")
             ]

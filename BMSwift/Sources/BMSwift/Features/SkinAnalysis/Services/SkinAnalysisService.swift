@@ -1,50 +1,83 @@
-#if canImport(SwiftUI) && os(iOS)
+#if canImport(UIKit) && os(iOS)
 import Foundation
 import UIKit
 
-@available(iOS 13.0, *)
-public protocol SkinAnalysisService {
-    func analyzeImage(_ image: UIImage) async throws -> AnalysisResults
+public protocol SkinAnalysisServiceProtocol {
+    func analyzeSkin(image: UIImage) async throws -> SkinAnalysisResponse
 }
 
-@available(iOS 13.0, *)
-public final class SkinAnalysisServiceImpl: SkinAnalysisService {
-    private let networkClient: BMNetwork.NetworkClient
+public final class SkinAnalysisServiceImpl: SkinAnalysisServiceProtocol {
+    private let client: BMNetwork.NetworkClient
+    private let imageUploader: BMNetwork.ImageUploaderProtocol
     
-    public init(networkClient: BMNetwork.NetworkClient = .shared) {
-        self.networkClient = networkClient
+    public init(
+        client: BMNetwork.NetworkClient = .shared,
+        imageUploader: BMNetwork.ImageUploaderProtocol = BMNetwork.ImageUploader()
+    ) {
+        self.client = client
+        self.imageUploader = imageUploader
     }
     
-    public func analyzeImage(_ image: UIImage) async throws -> AnalysisResults {
-        // 1. Upload image and get URL
-        let imageUrl = try await uploadImage(image)
+    public func analyzeSkin(image: UIImage) async throws -> SkinAnalysisResponse {
+        // Step 1: Upload image to Imgur
+        let uploadResponse = try await imageUploader.uploadImage(image)
+        guard let imageUrl = uploadResponse.data.link else {
+            throw SkinAnalysisError.imageUploadFailed
+        }
         
-        // 2. Create and send RapidAPI request
-        let endpoint = SkinAnalysisEndpoints.AnalyzeEndpoint(imageUrl: imageUrl)
-        let request = BMNetwork.APIRequest(endpoint: endpoint)
-        
-        // 3. Get and map response
-        let response = try await networkClient.send(request)
-        return mapResponse(response)
-    }
-    
-    private func uploadImage(_ image: UIImage) async throws -> String {
-        // TODO: Implement image upload to get a public URL
-        // For testing, return a sample image URL
-        return "https://upload.wikimedia.org/wikipedia/commons/8/83/Angelina_Jolie_at_the_launch_of_the_UK_initiative_on_preventing_sexual_violence_in_conflict%2C_29_May_2012_%28cropped%29.jpg"
-    }
-    
-    private func mapResponse(_ response: SkinAnalysisResponse) -> AnalysisResults {
-        // TODO: Map RapidAPI response to our AnalysisResults model
-        return AnalysisResults(
-            score: response.score,
-            details: [
-                .init(category: "膚質", score: response.skinQualityScore),
-                .init(category: "色調", score: response.skinToneScore),
-                .init(category: "彈性", score: response.skinElasticityScore)
-            ],
-            recommendations: response.recommendations
+        // Step 2: Send image URL to RapidAPI for analysis
+        let endpoint = RapidAPI.Endpoint(imageUrl: imageUrl)
+        let request = BMNetwork.APIRequest(
+            endpoint: endpoint,
+            body: RapidAPI.AnalyzeRequest(imageUrl: imageUrl)
         )
+        
+        do {
+            let response: RapidAPI.Response = try await client.send(request)
+            return SkinAnalysisResponse(from: response)
+        } catch let error as BMNetwork.APIError {
+            switch error {
+            case .invalidResponse, .decodingError:
+                throw SkinAnalysisError.invalidResponse
+            case .unauthorized:
+                throw SkinAnalysisError.requestCreationFailed
+            default:
+                throw SkinAnalysisError.analyzeFailed
+            }
+        } catch {
+            throw SkinAnalysisError.analyzeFailed
+        }
     }
 }
+
+public enum SkinAnalysisError: LocalizedError {
+    case imageCompressionFailed
+    case imageUploadFailed
+    case analyzeFailed
+    case invalidResponse
+    case requestCreationFailed
+    
+    public var errorDescription: String? {
+        switch self {
+        case .imageCompressionFailed:
+            return "無法壓縮圖片以進行分析"
+        case .imageUploadFailed:
+            return "圖片上傳失敗，請稍後再試"
+        case .analyzeFailed:
+            return "皮膚分析失敗，請稍後再試"
+        case .invalidResponse:
+            return "伺服器回應無效，請稍後再試"
+        case .requestCreationFailed:
+            return "建立請求失敗，請稍後再試"
+        }
+    }
+}
+
+#if DEBUG
+extension SkinAnalysisServiceImpl {
+    public func mockAnalyzeSkin() async throws -> SkinAnalysisResponse {
+        return .preview
+    }
+}
+#endif
 #endif
