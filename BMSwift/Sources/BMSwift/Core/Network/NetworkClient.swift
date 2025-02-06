@@ -81,13 +81,16 @@ extension BMNetwork {
                     throw BMNetwork.APIError.serverError(errorResponse.error)
                 }
                 throw BMNetwork.APIError.notFound
+            case 503:
+                throw BMNetwork.APIError.serverError("503")
             default:
+                let statusCode = httpResponse.statusCode
                 if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
-                    throw BMNetwork.APIError.serverError(errorResponse.error)
+                    throw BMNetwork.APIError.serverError("Status " + String(statusCode) + ": " + errorResponse.error)
                 } else if let errorMessage = String(data: data, encoding: .utf8) {
-                    throw BMNetwork.APIError.serverError(errorMessage)
+                    throw BMNetwork.APIError.serverError("Status " + String(statusCode) + ": " + errorMessage)
                 } else {
-                    throw BMNetwork.APIError.serverError("Unknown server error")
+                    throw BMNetwork.APIError.serverError("Status " + String(statusCode) + ": Unknown server error")
                 }
             }
         }

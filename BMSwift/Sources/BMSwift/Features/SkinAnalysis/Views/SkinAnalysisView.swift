@@ -104,7 +104,10 @@ public struct SkinAnalysisView: View {
             }
             .navigationTitle("肌膚分析")
             .navigationBarTitleDisplayMode(.inline)
-            .alert("錯誤", isPresented: .constant(viewModel.error != nil)) {
+            .alert("錯誤", isPresented: Binding(
+                get: { viewModel.error != nil },
+                set: { if !$0 { viewModel.clearError() } }
+            )) {
                 Button("確定", role: .cancel) {
                     viewModel.clearError()
                 }

@@ -31,8 +31,14 @@ extension BMNetwork {
         
         // MARK: - Upload Methods
         public func uploadImage(_ image: UIImage) async throws -> ImgurResponse {
+            // Convert image to data with compression
             guard let imageData = image.jpegData(compressionQuality: 0.8) else {
                 throw ImageUploadError.imageCompressionFailed
+            }
+            
+            // Validate image data size (max 10MB)
+            guard imageData.count <= 10 * 1024 * 1024 else {
+                throw ImageUploadError.imageTooLarge
             }
             
             // Create multipart form data
@@ -56,17 +62,32 @@ extension BMNetwork {
             
             request.httpBody = body
             
-            let (data, response) = try await session.data(for: request)
-            
-            guard let httpResponse = response as? HTTPURLResponse else {
+            do {
+                let (data, response) = try await session.data(for: request)
+                
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw ImageUploadError.invalidResponse
+                }
+                
+                guard (200...299).contains(httpResponse.statusCode) else {
+                    throw ImageUploadError.serverError("Status code: \(httpResponse.statusCode)")
+                }
+                
+                return try JSONDecoder().decode(ImgurResponse.self, from: data)
+            } catch let urlError as URLError {
+                switch urlError.code {
+                case .notConnectedToInternet:
+                    throw ImageUploadError.networkError("網路連線中斷")
+                case .timedOut:
+                    throw ImageUploadError.networkError("網路連線逾時")
+                default:
+                    throw ImageUploadError.networkError("網路連線錯誤")
+                }
+            } catch let decodingError as DecodingError {
                 throw ImageUploadError.invalidResponse
             }
             
-            guard (200...299).contains(httpResponse.statusCode) else {
-                throw ImageUploadError.serverError("Status code: \(httpResponse.statusCode)")
-            }
-            
-            return try JSONDecoder().decode(ImgurResponse.self, from: data)
+
         }
     }
     
@@ -92,20 +113,26 @@ extension BMNetwork {
     // MARK: - Error Types
     public enum ImageUploadError: LocalizedError {
         case imageCompressionFailed
+        case imageTooLarge
         case invalidResponse
         case serverError(String)
         case tokenError(String)
+        case networkError(String)
         
         public var errorDescription: String? {
             switch self {
             case .imageCompressionFailed:
-                return "Failed to compress image"
+                return "無法壓縮圖片"
+            case .imageTooLarge:
+                return "圖片太大，請選擇較小的圖片"
             case .invalidResponse:
-                return "Invalid response from server"
+                return "伺服器回應無效"
             case .serverError(let message):
-                return "Server error: \(message)"
+                return "伺服器錯誤: \(message)"
             case .tokenError(let message):
-                return "Token error: \(message)"
+                return "認證錯誤: \(message)"
+            case .networkError(let message):
+                return message
             }
         }
     }
