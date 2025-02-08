@@ -3,147 +3,187 @@ import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
 
+/// Main view for skin analysis feature that allows users to analyze their skin condition
+/// through photo upload and displays detailed analysis results
 @available(iOS 16.0, *)
 public struct SkinAnalysisView: View {
+    // MARK: - Properties
     @Binding var isPresented: Bool
     @StateObject private var viewModel = SkinAnalysisViewModel()
+    @State private var showingImagePicker = false
+    @State private var showingCameraCapture = false
+    @State private var showingResults = false
+    @State private var analysisResult: SkinAnalysisModels.Response?
+    @State private var analysisError: SkinAnalysisError?
     
+    // MARK: - Initialization
     public init(isPresented: Binding<Bool>) {
         self._isPresented = isPresented
     }
     
+    // MARK: - Body
     public var body: some View {
-            ZStack {
-                AppColors.primaryBg.swiftUIColor
-                    .ignoresSafeArea()
-                
-                VStack {
-                    if let image = viewModel.selectedImage {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxHeight: 300)
-                            .cornerRadius(12)
-                    }
-                    
-                    if viewModel.isAnalyzing {
-                        ProgressView("分析中...")
-                            .progressViewStyle(CircularProgressViewStyle(tint: AppColors.primaryText.swiftUIColor))
-                            .scaleEffect(1.5)
-                    } else if let result = viewModel.analysisResult {
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 16) {
-                                // Overall Score
-                                HStack {
-                                    Text("整體評分")
-                                        .font(.headline)
-                                        .bmForegroundColor(AppColors.primaryText)
-                                    Spacer()
-                                    Text(String(format: "%.1f", result.overallScore))
-                                        .font(.title)
-                                        .bmForegroundColor(AppColors.primary)
-                                }
-                                .padding()
-                                .background(AppColors.secondaryBg.swiftUIColor)
-                                .cornerRadius(8)
-                                
-                                // Detailed Scores
-                                ForEach(result.detailedScores) { score in
-                                    HStack {
-                                        Text(score.category)
-                                            .font(.subheadline)
-                                            .bmForegroundColor(AppColors.primaryText)
-                                        Spacer()
-                                        Text(String(format: "%.1f", score.score))
-                                            .font(.headline)
-                                            .bmForegroundColor(AppColors.primary)
-                                    }
-                                    .padding()
-                                    .background(AppColors.secondaryBg.swiftUIColor)
-                                    .cornerRadius(8)
-                                }
-                                
-                                // Recommendations
-                                if !result.recommendations.isEmpty {
-                                    Text("建議")
-                                        .font(.headline)
-                                        .bmForegroundColor(AppColors.primaryText)
-                                        .padding(.top)
-                                    
-                                    ForEach(result.recommendations, id: \.self) { recommendation in
-                                        Text("• " + recommendation)
-                                            .font(.subheadline)
-                                            .bmForegroundColor(AppColors.primaryText)
-                                            .padding(.vertical, 4)
-                                    }
-                                }
-                            }
-                            .padding()
-                        }
-                    } else {
-                        PhotosPicker(
-                            selection: $viewModel.selectedPhotoItem,
-                            matching: .images
-                        ) {
-                            VStack(spacing: 16) {
-                                Image(systemName: "camera")
-                                    .font(.system(size: 48))
-                                    .bmForegroundColor(AppColors.primary)
-                                Text("選擇照片")
-                                    .font(.headline)
-                                    .bmForegroundColor(AppColors.primaryText)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 48)
-                            .background(AppColors.secondaryBg.swiftUIColor)
-                            .cornerRadius(12)
-                            .padding()
-                        }
-                    }
+        ZStack {
+            backgroundLayer
+            mainContent
+        }
+        .navigationTitle("肌膚分析")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar { navigationToolbar }
+        .alert("錯誤", isPresented: .constant(viewModel.error != nil || analysisError != nil)) {
+            Button("確定", role: .cancel) {
+                viewModel.clearError()
+                analysisError = nil
+            }
+        } message: {
+            if let error = viewModel.error {
+                Text(error.localizedDescription)
+            } else if let error = analysisError {
+                Text(error.localizedDescription)
+            }
+        }
+        .onChange(of: viewModel.selectedPhotoItem) { _ in
+            Task {
+                await viewModel.analyzeSkin(image: viewModel.selectedImage)
+            }
+        }
+        .sheet(isPresented: $showingImagePicker) {
+            PhotosPicker(
+                selection: $viewModel.selectedPhotoItem,
+                matching: .images
+            ) {
+                VStack(spacing: 16) {
+                    Image(systemName: "photo.on.rectangle")
+                        .font(.system(size: 48))
+                    Text("選擇照片")
+                        .font(.headline)
+                        .bmForegroundColor(AppColors.primaryText)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 48)
+                .background(AppColors.secondaryBg.swiftUIColor)
+                .cornerRadius(12)
+                .padding()
+            }
+        }
+        .fullScreenCover(isPresented: $showingCameraCapture) {
+            NavigationView {
+                FaceCaptureView(
+                    isPresented: $showingCameraCapture,
+                    analysisResult: $analysisResult,
+                    analysisError: $analysisError
+                )
+            }
+        }
+        .sheet(isPresented: $showingResults) {
+            NavigationView {
+                if let result = analysisResult {
+                    ResultsView(
+                        isPresented: $showingResults,
+                        result: result
+                    )
                 }
             }
-            .navigationTitle("肌膚分析")
-            .navigationBarTitleDisplayMode(.inline)
-            .alert("錯誤", isPresented: .constant(viewModel.error != nil)) {
-                Button("確定", role: .cancel) {
-                    viewModel.clearError()
-                }
-            } message: {
-                if let error = viewModel.error {
-                    Text(error.localizedDescription)
-                }
+        }
+        .onChange(of: analysisResult) { result in
+            if result != nil {
+                showingResults = true
             }
-            .toolbar {
-                if viewModel.selectedImage != nil {
-                    Button("重新選擇") {
-                        viewModel.reset()
-                    }
-                }
-                Button("關閉") {
-                    isPresented = false
-                }
-            }
-            .onChange(of: viewModel.selectedPhotoItem) { photoItem in
-                guard let photoItem else { return }
+        }
+        .onChange(of: viewModel.selectedImage) { image in
+            if image != nil {
                 Task {
-                    if let data = try? await photoItem.loadTransferable(type: Data.self),
-                       let image = UIImage(data: data) {
-                        viewModel.selectedImage = image
-                        await viewModel.analyzeSkin(image: image)
-                    }
+                    await viewModel.analyzeSkin(image: image)
                 }
             }
-            .navigationTitle("肌膚分析")
-            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+    
+    // MARK: - View Components
+    private var backgroundLayer: some View {
+        AppColors.primaryBg.swiftUIColor.ignoresSafeArea()
+    }
+    
+    private var mainContent: some View {
+        VStack(spacing: 24) {
+            // Title and description
+            VStack(spacing: 8) {
+                Text("拍攝或選擇照片")
+                    .font(.title2)
+                    .bmForegroundColor(AppColors.primaryText)
+                
+                Text("我們將分析您的肌膚狀況，並提供個性化建議")
+                    .font(.subheadline)
+                    .multilineTextAlignment(.center)
+                    .bmForegroundColor(AppColors.secondaryText)
+                    .padding(.horizontal)
+            }
+            
+            // Image source buttons
+            imageSourceButtons
+            
+            // Loading indicator
+            if viewModel.isLoading {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle())
+                    .scaleEffect(1.5)
+            }
+            
+            Spacer()
+        }
+        .padding(.top, 48)
+    }
+    
+    private var imageSourceButtons: some View {
+        HStack(spacing: 16) {
+            Button(action: { showingImagePicker = true }) {
+                VStack(spacing: 8) {
+                    Image(systemName: "photo.on.rectangle")
+                        .font(.system(size: 32))
+                    Text("相簿")
+                        .font(.headline)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+                .background(AppColors.secondaryBg.swiftUIColor)
+                .cornerRadius(12)
+            }
+            
+            Button(action: { showingCameraCapture = true }) {
+                VStack(spacing: 8) {
+                    Image(systemName: "camera")
+                        .font(.system(size: 32))
+                    Text("相機")
+                        .font(.headline)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+                .background(AppColors.secondaryBg.swiftUIColor)
+                .cornerRadius(12)
+            }
+        }
+        .bmForegroundColor(AppColors.primaryText)
+        .padding(.horizontal)
+    }
+    
+    private var navigationToolbar: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarTrailing) {
+            Button("關閉") {
+                isPresented = false
+            }
+            .bmForegroundColor(AppColors.primaryText)
+        }
     }
 }
 
+// MARK: - Preview Provider
 #if DEBUG
 @available(iOS 16.0, *)
 struct SkinAnalysisView_Previews: PreviewProvider {
     static var previews: some View {
-        SkinAnalysisView(isPresented: .constant(true))
-            .environmentObject(SkinAnalysisViewModel.preview())
+        NavigationView {
+            SkinAnalysisView(isPresented: .constant(true))
+        }
     }
 }
 #endif

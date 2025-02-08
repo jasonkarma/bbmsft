@@ -2,93 +2,152 @@
 import SwiftUI
 import AVFoundation
 import UIKit
+import Vision
 
-@available(iOS 13.0, *)
+@available(iOS 16.0, *)
 public struct CameraScannerView: View {
-    private let onCapture: (UIImage) -> Void
     @StateObject private var viewModel: CameraScannerViewModel
+    @Binding private var isPresented: Bool
     
-    public init(onCapture: @escaping (UIImage) -> Void) {
-        self.onCapture = onCapture
-        self._viewModel = StateObject(wrappedValue: CameraScannerViewModel(onCapture: onCapture))
+    // Face detection guide
+    private let guideColor = Color.white
+    private let guideLineWidth: CGFloat = 2
+    private let guideDashPattern: [CGFloat] = [5, 5]
+    private let optimalFaceRatio: CGFloat = 0.6
+    
+    public init(isPresented: Binding<Bool>, onCapture: @escaping (UIImage) -> Void) {
+        self._isPresented = isPresented
+        self._viewModel = StateObject(wrappedValue: CameraScannerViewModel())
+        viewModel.setOnCapture(onCapture)
     }
     
     public var body: some View {
         GeometryReader { geometry in
             ZStack {
-                CameraPreviewView(session: viewModel.session)
-                    .edgesIgnoringSafeArea(.all)
-                
-                // Overlay mask
-                Path { path in
-                    let rect = CGRect(origin: .zero, size: geometry.size)
-                    path.addRect(rect)
-                    
-                    let centerSize = min(geometry.size.width, geometry.size.height) * 0.7
-                    let centerRect = CGRect(
-                        x: (geometry.size.width - centerSize) / 2,
-                        y: (geometry.size.height - centerSize) / 2,
-                        width: centerSize,
-                        height: centerSize
-                    )
-                    path.addRoundedRect(in: centerRect, cornerSize: CGSize(width: 20, height: 20))
+                // Camera preview
+                if viewModel.showCamera {
+                    CameraPreviewView(session: viewModel.session)
+                        .edgesIgnoringSafeArea(.all)
                 }
-                .fill(style: FillStyle(eoFill: true))
-                .foregroundColor(AppColors.primaryBg.swiftUIColor.opacity(0.6))
                 
-                // Scan frame
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(AppColors.primary.swiftUIColor, lineWidth: 3)
-                    .frame(
-                        width: min(geometry.size.width, geometry.size.height) * 0.7,
-                        height: min(geometry.size.width, geometry.size.height) * 0.7
-                    )
+                // Face detection overlay
+                FaceDetectionOverlay(
+                    faceRect: viewModel.detectedFaceRect,
+                    frameSize: geometry.size,
+                    guideColor: guideColor,
+                    lineWidth: guideLineWidth,
+                    dashPattern: guideDashPattern
+                )
                 
-                // Capture button
+                // Controls overlay
                 VStack {
-                    Spacer()
-                    Button(action: viewModel.capturePhoto) {
-                        Circle()
-                            .fill(AppColors.primary.swiftUIColor)
-                            .frame(width: 80, height: 80)
-                            .overlay(
-                                Circle()
-                                    .strokeBorder(AppColors.primary.swiftUIColor, lineWidth: 4)
-                                    .frame(width: 60, height: 60)
-                            )
+                    HStack {
+                        Button(action: { isPresented = false }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title)
+                                .foregroundColor(.white)
+                        }
+                        .padding()
+                        Spacer()
                     }
-                    .padding(.bottom, 40)
+                    
+                    Spacer()
+                    
+                    // Status message
+                    if let status = viewModel.faceDetectionStatus {
+                        Text(status)
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Color.black.opacity(0.7))
+                            .cornerRadius(10)
+                            .padding(.bottom, 20)
+                    }
+                    
+                    // Capture button
+                    if viewModel.showCamera && viewModel.isFacePositionValid {
+                        Button(action: viewModel.capturePhoto) {
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: 70, height: 70)
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white, lineWidth: 2)
+                                        .frame(width: 80, height: 80)
+                                )
+                        }
+                        .disabled(viewModel.state == .capturing)
+                        .padding(.bottom, 30)
+                    }
                 }
             }
         }
+        .alert(
+            "Camera Access Required",
+            isPresented: .constant(viewModel.state.error?.errorDescription != nil),
+            actions: {
+                Button("Settings", action: viewModel.openSettings)
+                Button("Cancel", role: .cancel) { isPresented = false }
+            },
+            message: {
+                if let error = viewModel.state.error {
+                    Text(error.errorDescription ?? "")
+                }
+            }
+        )
         .onAppear {
-            viewModel.checkPermissions()
-        }
-        .onChange(of: viewModel.photo) { photo in
-            if let photo = photo {
-                onCapture(photo)
+            Task {
+                await viewModel.checkCameraAuthorization()
             }
         }
-        .alert("需要相機權限", isPresented: $viewModel.showPermissionAlert) {
-            Button("前往設置", role: .none) {
-                viewModel.openAppSettings()
+    }
+}
+
+struct FaceDetectionOverlay: View {
+    let faceRect: CGRect?
+    let frameSize: CGSize
+    let guideColor: Color
+    let lineWidth: CGFloat
+    let dashPattern: [CGFloat]
+    
+    private let optimalFaceSize: CGSize = CGSize(width: 0.6, height: 0.6)
+    
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                // Guide rectangle
+                Path { path in
+                    let guideRect = CGRect(
+                        x: frameSize.width * (0.5 - optimalFaceSize.width/2),
+                        y: frameSize.height * (0.5 - optimalFaceSize.height/2),
+                        width: frameSize.width * optimalFaceSize.width,
+                        height: frameSize.height * optimalFaceSize.height
+                    )
+                    path.addRect(guideRect)
+                }
+                .stroke(style: StrokeStyle(
+                    lineWidth: lineWidth,
+                    dash: dashPattern
+                ))
+                .foregroundColor(guideColor)
+                
+                // Face rectangle (if detected)
+                if let faceRect = faceRect {
+                    Path { path in
+                        path.addRect(faceRect)
+                    }
+                    .stroke(Color.green, lineWidth: lineWidth)
+                }
             }
-            .foregroundColor(AppColors.primary.swiftUIColor)
-            
-            Button("取消", role: .cancel) {}
-                .foregroundColor(AppColors.primaryText.swiftUIColor)
-        } message: {
-            Text("請在設置中允許使用相機")
-                .foregroundColor(AppColors.secondaryText.swiftUIColor)
         }
     }
 }
 
 #if DEBUG
-@available(iOS 13.0.0, *)
+@available(iOS 16.0.0, *)
 struct CameraScannerView_Previews: PreviewProvider {
     static var previews: some View {
-        CameraScannerView { _ in }
+        CameraScannerView(isPresented: .constant(true)) { _ in }
     }
 }
 #endif

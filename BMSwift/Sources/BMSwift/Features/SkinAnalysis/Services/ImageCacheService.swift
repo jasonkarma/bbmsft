@@ -29,17 +29,15 @@ public final class ImageCacheServiceImpl: ImageCacheService {
     }
     
     public func cacheImage(_ image: UIImage, withIdentifier identifier: String) throws {
-        let fileURL = cacheDirectory.appendingPathComponent(identifier)
-        guard let data = image.jpegData(compressionQuality: 0.8) else {
-            throw ImageCacheError.compressionFailed
-        }
-        try data.write(to: fileURL)
+        let imageData = image.jpegData(compressionQuality: 0.8)
+        let filePath = cacheDirectory.appendingPathComponent(identifier)
+        try imageData?.write(to: filePath)
     }
     
     public func getCachedImage(withIdentifier identifier: String) -> UIImage? {
-        let fileURL = cacheDirectory.appendingPathComponent(identifier)
-        guard let data = try? Data(contentsOf: fileURL) else { return nil }
-        return UIImage(data: data)
+        let filePath = cacheDirectory.appendingPathComponent(identifier)
+        guard let imageData = try? Data(contentsOf: filePath) else { return nil }
+        return UIImage(data: imageData)
     }
     
     public func cacheImageURL(_ url: String, withIdentifier identifier: String) {
@@ -47,18 +45,8 @@ public final class ImageCacheServiceImpl: ImageCacheService {
     }
     
     public func getCachedImageURL(withIdentifier identifier: String) -> String? {
-        return urlCache[identifier]
+        urlCache[identifier]
     }
 }
 
-public enum ImageCacheError: LocalizedError {
-    case compressionFailed
-    
-    public var errorDescription: String? {
-        switch self {
-        case .compressionFailed:
-            return "Failed to compress image for caching"
-        }
-    }
-}
 #endif

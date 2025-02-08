@@ -1,88 +1,253 @@
 #if canImport(SwiftUI) && os(iOS)
 import SwiftUI
 import AVFoundation
+import UIKit
+import Vision
 
+/// ViewModel for handling camera capture functionality in the skin analysis feature.
+/// Manages camera permissions, setup, and photo capture.
 @available(iOS 13.0, *)
-public class CameraScannerViewModel: NSObject, ObservableObject {
-    @Published public var session: AVCaptureSession = AVCaptureSession()
-    @Published public var showPermissionAlert: Bool = false
-    @Published public var openSettings: Bool = false
-    @Published public var photo: UIImage?
+@MainActor
+public final class CameraScannerViewModel: NSObject, ObservableObject {
+    // MARK: - Types
     
-    private let output = AVCapturePhotoOutput()
+    /// Represents the current state of the camera scanner
+    public enum ViewState: Equatable {
+        case initial
+        case requestingPermission
+        case ready
+        case capturing
+        case error(SkinAnalysisError)
+        
+        var isCapturing: Bool {
+            if case .capturing = self { return true }
+            return false
+        }
+        
+        var error: SkinAnalysisError? {
+            if case .error(let error) = self { return error }
+            return nil
+        }
+    }
+    
+    // MARK: - Published Properties
+    @Published public private(set) var state: ViewState = .initial
+    @Published public private(set) var capturedImage: UIImage?
+    @Published public private(set) var showCamera: Bool = false
+    @Published public private(set) var detectedFaceRect: CGRect?
+    @Published public private(set) var faceDetectionStatus: String?
+    @Published public private(set) var isFacePositionValid = false
+    
+    // MARK: - Properties
+    public let session = AVCaptureSession()
+    private var output: AVCapturePhotoOutput?
     private var onCapture: ((UIImage) -> Void)?
     
-    public init(onCapture: @escaping (UIImage) -> Void) {
-        self.onCapture = onCapture
+    // Face detection
+    private let minFaceRatio: CGFloat = 0.4
+    private let maxFaceRatio: CGFloat = 0.8
+    private let optimalFaceRatio: CGFloat = 0.6
+    private let faceDetectionQueue = DispatchQueue(label: "com.bmswift.facedetection")
+    
+    // MARK: - Initialization
+    public override init() {
         super.init()
-        checkPermissions()
     }
     
-    public func checkPermissions() {
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
-        case .authorized:
-            setupCamera()
-        case .notDetermined:
-            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
-                if granted {
-                    DispatchQueue.main.async {
-                        self?.setupCamera()
-                    }
-                }
-            }
-        case .denied, .restricted:
-            DispatchQueue.main.async { [weak self] in
-                self?.showPermissionAlert = true
-            }
-        @unknown default:
-            break
-        }
+    // MARK: - Public Methods
+    
+    /// Sets the callback for when a photo is captured
+    public func setOnCapture(_ callback: @escaping (UIImage) -> Void) {
+        self.onCapture = callback
     }
     
-    private func setupCamera() {
-        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else { return }
-        guard let input = try? AVCaptureDeviceInput(device: device) else { return }
-        
-        session.beginConfiguration()
-        if session.canAddInput(input) {
-            session.addInput(input)
+    /// Opens the app settings
+    public func openSettings() {
+        guard let settingsUrl = URL(string: UIApplication.openSettingsURLString),
+              UIApplication.shared.canOpenURL(settingsUrl) else {
+            return
         }
-        if session.canAddOutput(output) {
-            session.addOutput(output)
-        }
-        session.commitConfiguration()
-        
-        DispatchQueue.global(qos: .background).async { [weak self] in
-            self?.session.startRunning()
+        UIApplication.shared.open(settingsUrl)
+    }
+    
+    /// Starts camera setup and authorization check
+    public func start() {
+        Task { @MainActor in
+            await checkCameraAuthorization()
         }
     }
     
     public func capturePhoto() {
+        guard let output = output else { return }
+        state = .capturing
         let settings = AVCapturePhotoSettings()
         output.capturePhoto(with: settings, delegate: self)
     }
     
-    public func openAppSettings() {
-        guard let url = URL(string: UIApplication.openSettingsURLString),
-              UIApplication.shared.canOpenURL(url) else { return }
-        UIApplication.shared.open(url)
+    /// Checks camera authorization and sets up the camera if authorized
+    @MainActor public func checkCameraAuthorization() async {
+        state = .requestingPermission
+        
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            await setupCamera()
+            showCamera = true
+        case .notDetermined:
+            let granted = await AVCaptureDevice.requestAccess(for: .video)
+            if granted {
+                await setupCamera()
+                showCamera = true
+            } else {
+                state = .error(.permissionDenied)
+            }
+        default:
+            state = .error(.permissionDenied)
+        }
     }
     
-    deinit {
-        session.stopRunning()
+    // MARK: - Private Methods
+    @MainActor private func setupCamera() async {
+        do {
+            guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
+                state = .error(.cameraSetupError)
+                return
+            }
+            
+            let input = try AVCaptureDeviceInput(device: device)
+            let output = AVCapturePhotoOutput()
+            
+            session.beginConfiguration()
+            if session.canAddInput(input) {
+                session.addInput(input)
+            }
+            if session.canAddOutput(output) {
+                session.addOutput(output)
+            }
+            session.commitConfiguration()
+            
+            self.output = output
+            
+            // Add video output for face detection
+            let videoOutput = AVCaptureVideoDataOutput()
+            videoOutput.setSampleBufferDelegate(self, queue: faceDetectionQueue)
+            if session.canAddOutput(videoOutput) {
+                session.addOutput(videoOutput)
+            }
+            
+            // Set session preset
+            session.sessionPreset = .photo
+            
+            session.startRunning()
+            state = .ready
+        } catch {
+            state = .error(.cameraSetupError)
+        }
+    }
+    
+    nonisolated private func detectFace(in image: CVImageBuffer) {
+        let request = VNDetectFaceRectanglesRequest { [weak self] request, error in
+            guard let self = self else { return }
+            
+            Task { @MainActor in
+                if let error = error {
+                    self.faceDetectionStatus = "Error detecting face: \(error.localizedDescription)"
+                    self.detectedFaceRect = nil
+                    self.isFacePositionValid = false
+                    return
+                }
+                
+                guard let observations = request.results as? [VNFaceObservation] else {
+                    self.faceDetectionStatus = "Position your face in the frame"
+                    self.detectedFaceRect = nil
+                    self.isFacePositionValid = false
+                    return
+                }
+                
+                if observations.isEmpty {
+                    self.faceDetectionStatus = "No face detected"
+                    self.detectedFaceRect = nil
+                    self.isFacePositionValid = false
+                    return
+                }
+                
+                if observations.count > 1 {
+                    self.faceDetectionStatus = "Multiple faces detected"
+                    self.detectedFaceRect = nil
+                    self.isFacePositionValid = false
+                    return
+                }
+                
+                let faceObservation = observations[0]
+                let faceRect = faceObservation.boundingBox
+                
+                // Convert normalized coordinates to view coordinates
+                let viewRect = CGRect(
+                    x: faceRect.origin.x,
+                    y: 1 - faceRect.origin.y - faceRect.height,
+                    width: faceRect.width,
+                    height: faceRect.height
+                )
+                
+                self.detectedFaceRect = viewRect
+                
+                // Validate face position and size
+                let faceRatio = faceRect.height
+                if faceRatio > self.maxFaceRatio {
+                    self.faceDetectionStatus = "Move back"
+                    self.isFacePositionValid = false
+                } else if faceRatio < self.minFaceRatio {
+                    self.faceDetectionStatus = "Move closer"
+                    self.isFacePositionValid = false
+                } else {
+                    let centerX = faceRect.midX
+                    let centerY = faceRect.midY
+                    let iscentered = (0.4...0.6).contains(centerX) && (0.4...0.6).contains(centerY)
+                    
+                    if !iscentered {
+                        self.faceDetectionStatus = "Center your face in the frame"
+                        self.isFacePositionValid = false
+                    } else {
+                        self.faceDetectionStatus = "Perfect! Hold still"
+                        self.isFacePositionValid = true
+                    }
+                }
+            }
+        }
+        
+        let handler = VNImageRequestHandler(cvPixelBuffer: image, orientation: .up, options: [:])
+        try? handler.perform([request])
     }
 }
 
-@available(iOS 13.0, *)
+// MARK: - AVCapturePhotoCaptureDelegate
 extension CameraScannerViewModel: AVCapturePhotoCaptureDelegate {
-    public func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-        guard let imageData = photo.fileDataRepresentation(),
-              let image = UIImage(data: imageData) else { return }
-        
-        DispatchQueue.main.async { [weak self] in
-            self?.photo = image
-            self?.onCapture?(image)
+    nonisolated public func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+        Task { @MainActor in
+            if let error = error {
+                self.state = .error(.cameraError(error))
+                print("Error capturing photo: \(error)")
+                return
+            }
+            
+            guard let imageData = photo.fileDataRepresentation(),
+                  let image = UIImage(data: imageData) else {
+                self.state = .error(.imageProcessingError)
+                return
+            }
+            
+            self.capturedImage = image
+            self.onCapture?(image)
+            self.state = .ready
         }
     }
 }
+
+// MARK: - AVCaptureVideoDataOutputSampleBufferDelegate
+extension CameraScannerViewModel: AVCaptureVideoDataOutputSampleBufferDelegate {
+    nonisolated public func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        detectFace(in: imageBuffer)
+    }
+}
+
 #endif

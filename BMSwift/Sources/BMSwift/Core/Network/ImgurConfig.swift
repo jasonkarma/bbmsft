@@ -13,4 +13,5 @@ public enum ImgurConfig {
         ["Authorization": "Bearer \(accessToken)"]
     }
 }
+
 #endif

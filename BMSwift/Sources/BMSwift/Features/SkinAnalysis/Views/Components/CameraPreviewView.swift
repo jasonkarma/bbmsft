@@ -4,7 +4,7 @@ import SwiftUI
 
 @available(iOS 16.0, *)
 public struct CameraPreviewView: UIViewRepresentable {
-    let session: AVCaptureSession
+    public let session: AVCaptureSession
     
     public init(session: AVCaptureSession) {
         self.session = session
