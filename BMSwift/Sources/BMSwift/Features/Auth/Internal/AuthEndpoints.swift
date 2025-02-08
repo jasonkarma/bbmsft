@@ -1,58 +1,78 @@
 import Foundation
 
+
 /// Authentication-related endpoints
 public enum AuthEndpoints {
+    // MARK: - Endpoint Definitions
     
     /// Login endpoint
     public struct Login: BMNetwork.APIEndpoint {
+        // Types
         public typealias RequestType = AuthModels.LoginRequest
         public typealias ResponseType = AuthModels.LoginResponse
         
-        public let path: String = "/api/login"
+        // Required
+        public let path: String = "/auth/login"
         public let method: BMNetwork.HTTPMethod = .post
-        public let requiresAuth: Bool = false
+        
+        // Optional overrides
+        public var headers: [String: String] { ["Content-Type": "application/json"] }
+        public var timeoutInterval: TimeInterval? { 30 }  // 30 second timeout for login
         
         public init() {}
     }
     
     /// Get current session endpoint
     public struct GetCurrentSession: BMNetwork.APIEndpoint {
-        public typealias RequestType = EmptyRequest
+        // Types
+        public typealias RequestType = BMNetwork.EmptyRequest
         public typealias ResponseType = AuthModels.LoginResponse
         
-        public let path: String = "/api/session"
+        // Required
+        public let path: String = "/auth/session"
         public let method: BMNetwork.HTTPMethod = .get
-        public let requiresAuth: Bool = true
         
-        public init() {}
+        // Optional overrides
+        public var headers: [String: String] {
+            ["Content-Type": "application/json", "Authorization": "Bearer \(authToken)"]
+        }
+        public let authToken: String
+        
+        public init(authToken: String) {
+            self.authToken = authToken
+        }
     }
     
     /// Register endpoint
     public struct Register: BMNetwork.APIEndpoint {
-        public typealias RequestType = RegisterRequest
-        public typealias ResponseType = RegisterResponse
+        // Types
+        public typealias RequestType = AuthModels.RegisterRequest
+        public typealias ResponseType = AuthModels.RegisterResponse
         
-        public let path: String = "/api/register"
+        // Required
+        public let path: String = "/auth/register"
         public let method: BMNetwork.HTTPMethod = .post
-        public let requiresAuth: Bool = false
+        
+        // Optional overrides
+        public var headers: [String: String] { ["Content-Type": "application/json"] }
+        public var timeoutInterval: TimeInterval? { 30 }
         
         public init() {}
     }
     
     /// Forgot password endpoint
     public struct ForgotPassword: BMNetwork.APIEndpoint {
-        public typealias RequestType = ForgotPasswordRequest
-        public typealias ResponseType = ForgotPasswordResponse
+        // Types
+        public typealias RequestType = AuthModels.ForgotPasswordRequest
+        public typealias ResponseType = AuthModels.ForgotPasswordResponse
         
-        public let path: String = "/api/password/email"
+        // Required
+        public let path: String = "/auth/forgot-password"
         public let method: BMNetwork.HTTPMethod = .post
-        public let requiresAuth: Bool = false
         
-        public init() {}
-    }
-    
-    /// Empty request type for endpoints that don't need a request body
-    public struct EmptyRequest: Codable {
+        // Optional overrides
+        public var headers: [String: String] { ["Content-Type": "application/json"] }
+        
         public init() {}
     }
 }
@@ -134,25 +154,30 @@ public extension AuthEndpoints {
 
 // MARK: - Factory Methods
 public extension AuthEndpoints {
+    /// Creates a login request
     static func login(email: String, password: String) -> BMNetwork.APIRequest<Login> {
-        let request = Login()
+        let endpoint = Login()
         let body = AuthModels.LoginRequest(email: email, password: password)
-        return BMNetwork.APIRequest(endpoint: request, body: body)
+        return BMNetwork.APIRequest(endpoint: endpoint, body: body)
     }
     
+    /// Creates a get current session request
+    static func getCurrentSession(authToken: String? = nil) -> BMNetwork.APIRequest<GetCurrentSession> {
+        let endpoint = GetCurrentSession(authToken: authToken ?? "")
+        return BMNetwork.APIRequest(endpoint: endpoint)
+    }
+    
+    /// Creates a registration request
     static func register(email: String, password: String, username: String) -> BMNetwork.APIRequest<Register> {
-        let request = RegisterRequest(email: email, username: username, password: password)
-        return BMNetwork.APIRequest(endpoint: Register(), body: request)
+        let endpoint = Register()
+        let body = AuthModels.RegisterRequest(email: email, password: password, username: username)
+        return BMNetwork.APIRequest(endpoint: endpoint, body: body)
     }
     
+    /// Creates a forgot password request
     static func forgotPassword(email: String) -> BMNetwork.APIRequest<ForgotPassword> {
-        let request = ForgotPasswordRequest(email: email)
-        return BMNetwork.APIRequest(endpoint: ForgotPassword(), body: request)
-    }
-    
-    static func getCurrentSession() -> BMNetwork.APIRequest<GetCurrentSession> {
-        let request = GetCurrentSession()
-        let body = EmptyRequest()
-        return BMNetwork.APIRequest(endpoint: request, body: body)
+        let endpoint = ForgotPassword()
+        let body = AuthModels.ForgotPasswordRequest(email: email)
+        return BMNetwork.APIRequest(endpoint: endpoint, body: body)
     }
 }

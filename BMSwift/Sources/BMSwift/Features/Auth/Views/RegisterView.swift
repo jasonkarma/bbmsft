@@ -1,7 +1,6 @@
 #if canImport(SwiftUI) && os(iOS)
 import SwiftUI
 
-
 @available(iOS 13.0, *)
 public struct RegisterView: View {
     @StateObject private var viewModel = RegisterViewModel()
@@ -13,153 +12,126 @@ public struct RegisterView: View {
     }
     
     public var body: some View {
-        ZStack {
-            AppColors.primaryBg.swiftUIColor
-                .ignoresSafeArea()
-            
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 20) {
-                    Spacer()
-                        .frame(height: 50)
-                        
-                    Text("註冊")
-                        .font(.title)
-                        .bmForegroundColor(AppColors.primary)
-                    
-                    // Nickname Input
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Image(systemName: "person.crop.circle.fill")
-                                .bmForegroundColor(AppColors.primary)
-                            TextField("請輸入暱稱", text: $viewModel.username)
-                                .textContentType(.username)
-                                .autocapitalization(.none)
-                        }
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .bmFill(AppColors.white.opacity(0.1))
-                        )
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Error Message
+                    if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                            .font(.footnote)
                     }
                     
-                    // Email Input
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Image(systemName: "envelope.fill")
-                                .bmForegroundColor(AppColors.primary)
-                                .padding(.leading, -2)
-                            TextField("請輸入電子郵件", text: $viewModel.email)
-                                .textContentType(.emailAddress)
-                                .keyboardType(.emailAddress)
-                                .autocapitalization(.none)
-                                .padding(.leading, -3)
-                        }
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .bmFill(AppColors.white.opacity(0.1))
-                        )
+                    // Email Field
+                    VStack(alignment: .leading) {
+                        Text("電郵地址")
+                            .font(.subheadline)
+                        TextField("", text: $viewModel.email)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .textContentType(.emailAddress)
+                            .keyboardType(.emailAddress)
+                            .autocapitalization(.none)
                     }
                     
-                    // Password Input
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Image(systemName: "lock.fill")
-                                .bmForegroundColor(AppColors.primary)
-                                .padding(.leading, 3)
+                    // Username Field
+                    VStack(alignment: .leading) {
+                        Text("用戶名稱")
+                            .font(.subheadline)
+                        TextField("", text: $viewModel.username)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .textContentType(.username)
+                            .autocapitalization(.none)
+                    }
+                    
+                    // Password Field
+                    VStack(alignment: .leading) {
+                        Text("密碼")
+                            .font(.subheadline)
+                        ZStack(alignment: .trailing) {
                             Group {
                                 if isPasswordVisible {
-                                    TextField("請輸入密碼", text: $viewModel.password)
-                                        .padding(.leading, 1)
-                                        .onChange(of: viewModel.password) { _ in
-                                            viewModel.validatePasswordInput()
-                                        }
+                                    TextField("", text: $viewModel.password)
                                 } else {
-                                    SecureField("請輸入密碼", text: $viewModel.password)
-                                        .padding(.leading, 1)
-                                        .onChange(of: viewModel.password) { _ in
-                                            viewModel.validatePasswordInput()
-                                        }
+                                    SecureField("", text: $viewModel.password)
                                 }
                             }
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
                             .textContentType(.newPassword)
                             
                             Button(action: {
                                 isPasswordVisible.toggle()
                             }) {
                                 Image(systemName: isPasswordVisible ? "eye.slash.fill" : "eye.fill")
-                                    .bmForegroundColor(AppColors.primary)
+                                    .foregroundColor(.gray)
                             }
-                        }
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .bmFill(AppColors.white.opacity(0.1))
-                        )
-                        
-                        if viewModel.showPasswordWarning {
-                            Text("密碼需大於8字．且有大小寫英文")
-                                .bmForegroundColor(AppColors.warning)
-                                .font(.caption)
+                            .padding(.trailing, 8)
                         }
                     }
                     
-                    if let errorMessage = viewModel.errorMessage {
-                        Text(errorMessage)
-                            .bmForegroundColor(AppColors.error)
-                            .font(.caption)
-                            .multilineTextAlignment(.center)
+                    // Confirm Password Field
+                    VStack(alignment: .leading) {
+                        Text("確認密碼")
+                            .font(.subheadline)
+                        ZStack(alignment: .trailing) {
+                            Group {
+                                if isPasswordVisible {
+                                    TextField("", text: $viewModel.confirmPassword)
+                                } else {
+                                    SecureField("", text: $viewModel.confirmPassword)
+                                }
+                            }
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .textContentType(.newPassword)
+                            
+                            Button(action: {
+                                isPasswordVisible.toggle()
+                            }) {
+                                Image(systemName: isPasswordVisible ? "eye.slash.fill" : "eye.fill")
+                                    .foregroundColor(.gray)
+                            }
+                            .padding(.trailing, 8)
+                        }
                     }
                     
-                    Button(action: {
+                    // Register Button
+                    Button {
                         Task {
                             await viewModel.register()
                         }
-                    }) {
-                        if viewModel.isLoading {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        } else {
-                            Text("註冊")
-                                .bmForegroundColor(AppColors.white)
-                                .font(.headline)
+                    } label: {
+                        HStack {
+                            if case .loading = viewModel.state {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            } else {
+                                Text("註冊")
+                                    .bmForegroundColor(AppColors.white)
+                                    .font(.headline)
+                            }
                         }
+                        .frame(maxWidth: .infinity)
+                        .padding()
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
                     .bmBackground(AppColors.primary)
                     .cornerRadius(8)
                     .disabled(viewModel.isLoading)
                     
                     Spacer()
                 }
-                .padding(.horizontal, 30)
+                .padding()
             }
-        }
-        .navigationBarBackButtonHidden(true)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button(action: {
+            .onChange(of: viewModel.state) { state in
+                if case .success = state {
                     isPresented = false
-                }) {
-                    HStack {
-                        Image(systemName: "chevron.left")
-                        Text("返回")
-                    }
-                    .bmForegroundColor(AppColors.primary)
                 }
             }
-        }
-        .alert(viewModel.alertMessage, isPresented: $viewModel.showAlert) {
-            Button("確認") {
-                viewModel.dismissAlert()
+            .navigationBarTitle("註冊", displayMode: .inline)
+            .navigationBarItems(leading: Button(action: {
                 isPresented = false
-            }
-        }
-        .onChange(of: viewModel.shouldDismiss) { shouldDismiss in
-            if shouldDismiss {
-                isPresented = false
-            }
+            }) {
+                Image(systemName: "xmark")
+                    .foregroundColor(.primary)
+            })
         }
     }
 }

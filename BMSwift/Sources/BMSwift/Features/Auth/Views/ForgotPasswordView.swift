@@ -25,7 +25,18 @@ public struct ForgotPasswordView: View {
                 .padding(.horizontal, 24)
             }
         }
-        .toast(message: "重置密碼郵件已發送！", isPresented: $viewModel.isResetEmailSent)
+        .toast(message: "重置密碼郵件已發送！", isPresented: .init(
+            get: { 
+                if case .success = viewModel.state { return true }
+                return false
+            },
+            set: { _ in }
+        ))
+        .onChange(of: viewModel.state) { newState in
+            if case .success = newState {
+                isPresented = false
+            }
+        }
     }
     
     @ViewBuilder
@@ -90,16 +101,18 @@ public struct ForgotPasswordView: View {
                     await viewModel.sendResetEmail()
                 }
             }) {
-                if viewModel.isLoading {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: AppColors.lightText.swiftUIColor))
-                } else {
-                    Text("驗證Email")
-                        .font(.system(size: 17, weight: .semibold))
+                Group {
+                    if case .loading = viewModel.state {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: AppColors.lightText.swiftUIColor))
+                    } else {
+                        Text("驗證Email")
+                            .font(.system(size: 17, weight: .semibold))
+                    }
                 }
             }
-            .primaryButtonStyle(isEnabled: viewModel.isValidEmail)
-            .disabled(viewModel.isLoading || !viewModel.isValidEmail)
+            .primaryButtonStyle(isEnabled: !viewModel.email.isEmpty)
+            .disabled(viewModel.state == .loading || viewModel.email.isEmpty)
             
             Button(action: { isPresented = false }) {
                 Text("返回")
@@ -107,8 +120,8 @@ public struct ForgotPasswordView: View {
                     .bmForegroundColor(AppColors.primary)
             }
             
-            if let error = viewModel.errorMessage {
-                Text(error)
+            if case .error(let error) = viewModel.state {
+                Text(error.localizedDescription)
                     .font(.caption)
                     .bmForegroundColor(AppColors.error)
                     .padding(.top, 8)

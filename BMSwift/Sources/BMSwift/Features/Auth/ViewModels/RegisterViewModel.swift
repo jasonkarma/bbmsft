@@ -1,71 +1,124 @@
 #if canImport(SwiftUI) && os(iOS)
 import Foundation
+import SwiftUI
 
+/// View model for handling user registration
 @MainActor
-public class RegisterViewModel: ObservableObject {
-    @Published var username = ""
-    @Published var password = ""
-    @Published var email = ""
-    @Published var isLoading = false
-    @Published var errorMessage: String?
-    @Published var showAlert = false
-    @Published var alertMessage = ""
-    @Published var shouldDismiss = false
-    @Published var isRegistered = false
-    @Published var showPasswordWarning = false
+public final class RegisterViewModel: ObservableObject {
     
-    private let client: BMNetwork.NetworkClient
-    
-    public init(client: BMNetwork.NetworkClient = BMNetwork.NetworkClient.shared) {
-        self.client = client
+    // MARK: - ViewState Definition
+    public enum ViewState: Equatable {
+        case idle
+        case loading
+        case success(AuthModels.RegisterResponse)
+        case error(AuthModels.AuthError)
     }
     
-    func register() async {
-        isLoading = true
-        errorMessage = nil
-        
-        // Validate password
-        if !isValidPassword(password) {
-            errorMessage = "密碼需大於8字．且有大小寫英文"
-            isLoading = false
-            return
+    // MARK: - Published Properties
+    
+    /// Current state of the registration process
+    @Published private(set) var state: ViewState = .idle
+    
+    /// Email input field
+    @Published var email: String = ""
+    
+    /// Username input field
+    @Published var username: String = ""
+    
+    /// Password input field
+    @Published var password: String = ""
+    
+    /// Confirm password input field
+    @Published var confirmPassword: String = ""
+    
+    // MARK: - Private Properties
+    
+    private let authService: AuthServiceProtocol
+    
+    // MARK: - Initialization
+    
+    public init(authService: AuthServiceProtocol = AuthService(
+        client: BMNetwork.NetworkClient(
+            configuration: BMNetwork.Configuration(
+                baseURL: URL(string: "https://wiki.kinglyrobot.com")!
+            )
+        )
+    )) {
+        self.authService = authService
+    }
+    
+    // MARK: - Public Methods
+    
+    public func validateInput() -> Bool {
+        guard !email.isEmpty,
+              !username.isEmpty,
+              !password.isEmpty,
+              !confirmPassword.isEmpty else {
+            state = .error(AuthModels.AuthError.unknown("All fields are required"))
+            return false
         }
         
+        guard password == confirmPassword else {
+            state = .error(AuthModels.AuthError.unknown("Passwords do not match"))
+            return false
+        }
+        
+        guard password.count >= 8 else {
+            state = .error(AuthModels.AuthError.weakPassword)
+            return false
+        }
+        
+        return true
+    }
+    
+    public func register() async {
+        guard validateInput() else { return }
+        
+        state = .loading
+        
         do {
-            let request = AuthEndpoints.register(
+            let response = try await authService.register(
                 email: email,
                 password: password,
                 username: username
             )
-            let response = try await client.send(request)
-            
-            // Show success alert
-            alertMessage = response.message
-            showAlert = true
-            isRegistered = true
-            
+            state = .success(response)
+        } catch let error as AuthModels.AuthError {
+            state = .error(error)
         } catch {
-            errorMessage = error.localizedDescription
+            state = .error(AuthModels.AuthError.unknown(error.localizedDescription))
         }
-        
-        isLoading = false
     }
     
-    func dismissAlert() {
-        showAlert = false
-        shouldDismiss = true  // Always dismiss when alert is closed
+    public func reset() {
+        state = .idle
+        email = ""
+        username = ""
+        password = ""
+        confirmPassword = ""
     }
     
-    private func isValidPassword(_ password: String) -> Bool {
-        let minLength = 8
-        let hasUppercase = password.contains(where: { $0.isUppercase })
-        let hasLowercase = password.contains(where: { $0.isLowercase })
-        
-        return password.count >= minLength && hasUppercase && hasLowercase
+    // MARK: - Helper Properties
+    
+    public var errorMessage: String? {
+        if case .error(let error) = state {
+            return error.localizedDescription
+        }
+        return nil
     }
     
-    func validatePasswordInput() {
-        showPasswordWarning = !password.isEmpty && !isValidPassword(password)
+    public var isSuccess: Bool {
+        if case .success = state {
+            return true
+        }
+        return false
+    }
+    
+    public var isLoading: Bool {
+        if case .loading = state {
+            return true
+        }
+        return false
     }
 }
 #endif

@@ -5,7 +5,7 @@ extension BMNetwork {
         let error: String
     }
     
-    public final class NetworkClient {
+    public final class NetworkClient: NetworkClientProtocol {
         // MARK: - Properties
         private let configuration: Configuration
         private let session: URLSession
@@ -29,7 +29,11 @@ extension BMNetwork {
             self.session = session
         }
         
-        // MARK: - API Methods
+        // MARK: - Public Methods
+        
+        /// Sends an API request and returns the decoded response
+        /// - Parameter request: The request to send
+        /// - Returns: Decoded response of type specified by the endpoint
         public func send<E: BMNetwork.APIEndpoint>(_ request: BMNetwork.APIRequest<E>) async throws -> E.ResponseType {
             let urlRequest = try createURLRequest(for: request)
             
@@ -81,6 +85,9 @@ extension BMNetwork {
                     throw BMNetwork.APIError.serverError(errorResponse.error)
                 }
                 throw BMNetwork.APIError.notFound
+            case 500...599:
+                let message = String(data: data, encoding: .utf8) ?? "Unknown server error"
+                throw BMNetwork.APIError.serverError(message)
             default:
                 if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
                     throw BMNetwork.APIError.serverError(errorResponse.error)
@@ -92,7 +99,8 @@ extension BMNetwork {
             }
         }
         
-        // MARK: - Helper Methods
+        // MARK: - Private Methods
+        
         private func createURLRequest<E: BMNetwork.APIEndpoint>(for request: BMNetwork.APIRequest<E>) throws -> URLRequest {
             // Create URL components
             var components = URLComponents()
@@ -102,7 +110,7 @@ extension BMNetwork {
             components.scheme = baseURL.scheme
             components.host = baseURL.host
             components.path = request.endpoint.path
-            components.queryItems = request.queryItems
+            components.queryItems = request.queryItems ?? request.endpoint.queryItems
             
             guard let url = components.url else {
                 throw BMNetwork.APIError.invalidURL
@@ -110,6 +118,10 @@ extension BMNetwork {
             
             var urlRequest = URLRequest(url: url)
             urlRequest.httpMethod = request.endpoint.method.rawValue
+            
+            // Set timeout and cache policy
+            urlRequest.timeoutInterval = request.endpoint.timeoutInterval ?? configuration.timeoutInterval
+            urlRequest.cachePolicy = request.endpoint.cachePolicy ?? configuration.cachePolicy
             
             // Apply default headers from configuration
             configuration.defaultHeaders.forEach { key, value in
@@ -130,7 +142,7 @@ extension BMNetwork {
                 }
             }
             
-            // Encode body if present
+            // Add request body if present
             if let body = request.body {
                 let encoder = JSONEncoder()
                 encoder.keyEncodingStrategy = .convertToSnakeCase

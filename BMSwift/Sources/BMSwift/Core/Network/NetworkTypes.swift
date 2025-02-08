@@ -10,16 +10,26 @@ public enum BMNetwork {
         /// Default headers to be included in all requests
         public let defaultHeaders: [String: String]
         
+        /// Default timeout interval for requests
+        public let timeoutInterval: TimeInterval
+        
+        /// Default cache policy for requests
+        public let cachePolicy: URLRequest.CachePolicy
+        
         /// Creates a new Configuration instance
         public init(
             baseURL: URL,
             defaultHeaders: [String: String] = [
                 "Content-Type": "application/json",
                 "Accept": "application/json"
-            ]
+            ],
+            timeoutInterval: TimeInterval = 30,
+            cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy
         ) {
             self.baseURL = baseURL
             self.defaultHeaders = defaultHeaders
+            self.timeoutInterval = timeoutInterval
+            self.cachePolicy = cachePolicy
         }
     }
     
@@ -42,33 +52,44 @@ public enum BMNetwork {
         associatedtype RequestType: Encodable
         associatedtype ResponseType: Decodable
         
+        /// Path component of the endpoint URL
         var path: String { get }
+        
+        /// HTTP method for the request
         var method: HTTPMethod { get }
+        
+        /// Whether the endpoint requires authentication
         var requiresAuth: Bool { get }
-        var headers: [String: String] { get }
+        
+        /// Optional base URL override
         var baseURL: URL? { get }
-    }
-    
-    // MARK: - Empty Types
-    public struct EmptyRequest: Codable {
-        public init() {}
-    }
-    
-    public struct EmptyResponse: Codable {
-        public init() {}
+        
+        /// Additional headers for the request
+        var headers: [String: String] { get }
+        
+        /// Optional timeout interval override
+        var timeoutInterval: TimeInterval? { get }
+        
+        /// Optional cache policy override
+        var cachePolicy: URLRequest.CachePolicy? { get }
+        
+        /// Optional query items
+        var queryItems: [URLQueryItem]? { get }
     }
     
     // MARK: - API Request
-    public struct APIRequest<Endpoint: APIEndpoint> {
-        public let endpoint: Endpoint
-        public let body: Endpoint.RequestType?
+    public struct APIRequest<E: APIEndpoint> {
+        public let endpoint: E
+        public let body: E.RequestType?
         public let authToken: String?
         public let queryItems: [URLQueryItem]?
         
-        public init(endpoint: Endpoint, 
-                   body: Endpoint.RequestType? = nil,
-                   authToken: String? = nil,
-                   queryItems: [URLQueryItem]? = nil) {
+        public init(
+            endpoint: E,
+            body: E.RequestType? = nil,
+            authToken: String? = nil,
+            queryItems: [URLQueryItem]? = nil
+        ) {
             self.endpoint = endpoint
             self.body = body
             self.authToken = authToken
@@ -91,7 +112,7 @@ public enum BMNetwork {
             case .invalidURL:
                 return "Invalid URL"
             case .invalidResponse:
-                return "Invalid response from server"
+                return "Invalid server response"
             case .unauthorized:
                 return "Unauthorized access"
             case .notFound:
@@ -105,14 +126,27 @@ public enum BMNetwork {
             }
         }
     }
-}
-
-// MARK: - Default Implementation
-public extension BMNetwork.APIEndpoint {
-    var headers: [String: String] {
-        ["Content-Type": "application/json"]
+    
+    // MARK: - Empty Types
+    public struct EmptyRequest: Codable {
+        public init() {}
     }
     
+    public struct EmptyResponse: Codable {
+        public init() {}
+    }
+}
+
+// MARK: - Default Implementations
+public extension BMNetwork.APIEndpoint {
+    var baseURL: URL? { nil }
+    var headers: [String: String] { ["Content-Type": "application/json"] }
+    var timeoutInterval: TimeInterval? { nil }
+    var cachePolicy: URLRequest.CachePolicy? { nil }
+    var queryItems: [URLQueryItem]? { nil }
     var requiresAuth: Bool { false }
-    var baseURL: URL? { nil }  // Default implementation for baseURL
+    
+    func encode(_ request: RequestType) throws -> Data? {
+        try JSONEncoder().encode(request)
+    }
 }

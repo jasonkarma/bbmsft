@@ -1,6 +1,7 @@
 #if canImport(SwiftUI) && os(iOS)
 import SwiftUI
 
+@available(iOS 13.0, *)
 public struct LoginView: View {
     @StateObject private var viewModel: LoginViewModel
     @State private var showEncyclopedia = false
@@ -24,14 +25,8 @@ public struct LoginView: View {
                 loginFormView
             }
             .navigationBarHidden(true)
-            .task {
-                print("[LoginView] Checking authentication status...")
-                await viewModel.checkAuthenticationStatus()
-            }
-            .onChange(of: viewModel.token) { newToken in
-                print("[LoginView] Token changed: \(newToken != nil)")
-                if newToken != nil {
-                    print("[LoginView] Have token, showing encyclopedia")
+            .onChange(of: viewModel.state) { newState in
+                if case .success = newState {
                     showEncyclopedia = true
                 }
             }
@@ -44,16 +39,28 @@ public struct LoginView: View {
                 RegisterView(isPresented: $showRegister)
             }
         }
-        .fullScreenCover(isPresented: $showEncyclopedia) {
-            if let token = viewModel.token {
+        .fullScreenCover(isPresented: .init(
+            get: { 
+                if case .success = viewModel.state { return true }
+                return false
+            },
+            set: { _ in }
+        )) {
+            if case .success(let response) = viewModel.state {
                 NavigationView {
-                    EncyclopediaView(isPresented: $showEncyclopedia, token: token)
+                    EncyclopediaView(token: response.token, isPresented: $showEncyclopedia)
                 }
             }
         }
+        .onDisappear {
+            showEncyclopedia = false
+        }
+        .onAppear {
+            showEncyclopedia = false
+        }
     }
     
-    private var loginFormView: some View {
+    public var loginFormView: some View {
         ZStack {
             AppColors.primaryBg.swiftUIColor
                 .ignoresSafeArea()
@@ -94,9 +101,9 @@ public struct LoginView: View {
                                 .bmFill(AppColors.secondaryBg.opacity(0.1))
                         )
                         
-                        if let error = viewModel.errorMessage {
-                            Text(error)
-                                .bmForegroundColor(error == "成功登入" ? AppColors.success : AppColors.error)
+                        if case .error(let error) = viewModel.state {
+                            Text(error.localizedDescription)
+                                .bmForegroundColor(AppColors.error)
                                 .font(.caption)
                         }
                     }
@@ -143,7 +150,7 @@ public struct LoginView: View {
                             await viewModel.login()
                         }
                     }) {
-                        if viewModel.isLoading {
+                        if case .loading = viewModel.state {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: AppColors.white.swiftUIColor))
                         } else {
@@ -156,7 +163,7 @@ public struct LoginView: View {
                     .padding()
                     .bmBackground(AppColors.primary)
                     .cornerRadius(8)
-                    .disabled(viewModel.isLoading)
+                    .disabled(viewModel.state == .loading)
                     
                     // Additional Options
                     HStack {
@@ -185,6 +192,7 @@ public struct LoginView: View {
 }
 
 #if DEBUG
+@available(iOS 13.0, *)
 struct LoginView_Previews: PreviewProvider {
     static var previews: some View {
         LoginView()
