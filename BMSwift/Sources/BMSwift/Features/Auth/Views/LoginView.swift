@@ -48,7 +48,7 @@ public struct LoginView: View {
         )) {
             if case .success(let response) = viewModel.state {
                 NavigationView {
-                    EncyclopediaView(token: response.token, isPresented: $showEncyclopedia)
+                    EncyclopediaView(isPresented: $showEncyclopedia, token: response.token)
                 }
             }
         }

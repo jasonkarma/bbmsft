@@ -12,7 +12,7 @@ public enum AuthEndpoints {
         public typealias ResponseType = AuthModels.LoginResponse
         
         // Required
-        public let path: String = "/auth/login"
+        public let path: String = "/api/login"
         public let method: BMNetwork.HTTPMethod = .post
         
         // Optional overrides
@@ -29,7 +29,7 @@ public enum AuthEndpoints {
         public typealias ResponseType = AuthModels.LoginResponse
         
         // Required
-        public let path: String = "/auth/session"
+        public let path: String = "/api/getCurrentSession"
         public let method: BMNetwork.HTTPMethod = .get
         
         // Optional overrides
@@ -50,7 +50,7 @@ public enum AuthEndpoints {
         public typealias ResponseType = AuthModels.RegisterResponse
         
         // Required
-        public let path: String = "/auth/register"
+        public let path: String = "/api/register"
         public let method: BMNetwork.HTTPMethod = .post
         
         // Optional overrides
@@ -67,7 +67,7 @@ public enum AuthEndpoints {
         public typealias ResponseType = AuthModels.ForgotPasswordResponse
         
         // Required
-        public let path: String = "/auth/forgot-password"
+        public let path: String = "/api/password/email"
         public let method: BMNetwork.HTTPMethod = .post
         
         // Optional overrides
