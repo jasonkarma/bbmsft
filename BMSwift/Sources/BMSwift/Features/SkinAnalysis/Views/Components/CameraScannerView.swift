@@ -3,8 +3,9 @@ import SwiftUI
 import AVFoundation
 
 public struct CameraScannerView: View {
-    @StateObject private var viewModel: CameraScannerViewModel
+    @StateObject private var viewModel = CameraScannerViewModel()
     @Binding private var isPresented: Bool
+    private var onCapture: (UIImage) -> Void
     
     // Face detection guide
     private let guideColor = AppColors.primary.swiftUIColor
@@ -13,8 +14,7 @@ public struct CameraScannerView: View {
     
     public init(isPresented: Binding<Bool>, onCapture: @escaping (UIImage) -> Void) {
         self._isPresented = isPresented
-        self._viewModel = StateObject(wrappedValue: CameraScannerViewModel())
-        viewModel.setOnCapture(onCapture)
+        self.onCapture = onCapture
     }
     
     public var body: some View {
@@ -97,6 +97,9 @@ public struct CameraScannerView: View {
                     .padding(.top, 20)
                 Spacer()
             }
+        }
+        .onAppear {
+            viewModel.setOnCapture(onCapture)
         }
     }
 }

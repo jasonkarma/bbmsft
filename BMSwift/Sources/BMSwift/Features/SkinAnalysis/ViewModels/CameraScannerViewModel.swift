@@ -52,28 +52,77 @@ public final class CameraScannerViewModel: NSObject, ObservableObject {
     // MARK: - Initialization
     public override init() {
         super.init()
-        initializeCamera()
+        Task {
+            await checkCameraAuthorization()
+        }
     }
     
-    private func initializeCamera() {
-        Task { @MainActor in
-            let status = AVCaptureDevice.authorizationStatus(for: .video)
-            switch status {
-            case .authorized:
+    private func checkCameraAuthorization() async {
+        state = .requestingPermission
+        
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            await setupCamera()
+        case .notDetermined:
+            let granted = await AVCaptureDevice.requestAccess(for: .video)
+            if granted {
                 await setupCamera()
-            case .notDetermined:
-                let granted = await AVCaptureDevice.requestAccess(for: .video)
-                if granted {
-                    await setupCamera()
-                } else {
-                    state = .error(.permissionDenied)
-                }
-            case .denied, .restricted:
-                state = .error(.permissionDenied)
-            @unknown default:
+            } else {
                 state = .error(.permissionDenied)
             }
+        case .denied, .restricted:
+            state = .error(.permissionDenied)
+        @unknown default:
+            state = .error(.permissionDenied)
         }
+    }
+    
+    private nonisolated func setupCameraSession() async -> AVCaptureSession? {
+        let session = AVCaptureSession()
+        
+        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
+              let input = try? AVCaptureDeviceInput(device: device) else {
+            return nil
+        }
+        
+        session.beginConfiguration()
+        
+        if session.canAddInput(input) {
+            session.addInput(input)
+        }
+        
+        let output = AVCapturePhotoOutput()
+        if session.canAddOutput(output) {
+            session.addOutput(output)
+        }
+        
+        // Add video output for face detection
+        let videoOutput = AVCaptureVideoDataOutput()
+        videoOutput.setSampleBufferDelegate(self, queue: faceDetectionQueue)
+        if session.canAddOutput(videoOutput) {
+            session.addOutput(videoOutput)
+        }
+        
+        session.commitConfiguration()
+        return session
+    }
+    
+    private func setupCamera() async {
+        guard let session = await setupCameraSession() else {
+            state = .error(.cameraSetupError)
+            return
+        }
+        
+        self.session = session
+        self.output = session.outputs.first { $0 is AVCapturePhotoOutput } as? AVCapturePhotoOutput
+        
+        // Start session on background thread
+        Task.detached {
+            session.startRunning()
+        }
+        
+        showCamera = true
+        state = .ready
     }
     
     // MARK: - Public Methods
@@ -106,67 +155,7 @@ public final class CameraScannerViewModel: NSObject, ObservableObject {
         output.capturePhoto(with: settings, delegate: self)
     }
     
-    /// Checks camera authorization and sets up the camera if authorized
-    @MainActor public func checkCameraAuthorization() async {
-        state = .requestingPermission
-        
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
-        case .authorized:
-            await setupCamera()
-            showCamera = true
-        case .notDetermined:
-            let granted = await AVCaptureDevice.requestAccess(for: .video)
-            if granted {
-                await setupCamera()
-                showCamera = true
-            } else {
-                state = .error(.permissionDenied)
-            }
-        default:
-            state = .error(.permissionDenied)
-        }
-    }
-    
     // MARK: - Private Methods
-    private func setupCamera() async {
-        session = AVCaptureSession()
-        guard let session = session else { return }
-        
-        session.beginConfiguration()
-        
-        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
-              let input = try? AVCaptureDeviceInput(device: device) else {
-            state = .error(.cameraSetupError)
-            return
-        }
-        
-        if session.canAddInput(input) {
-            session.addInput(input)
-        }
-        
-        output = AVCapturePhotoOutput()
-        if let output = output, session.canAddOutput(output) {
-            session.addOutput(output)
-        }
-        
-        // Add video output for face detection
-        let videoOutput = AVCaptureVideoDataOutput()
-        videoOutput.setSampleBufferDelegate(self, queue: faceDetectionQueue)
-        if session.canAddOutput(videoOutput) {
-            session.addOutput(videoOutput)
-        }
-        
-        session.commitConfiguration()
-        
-        Task {
-            session.startRunning()
-            await MainActor.run {
-                showCamera = true
-                state = .ready
-            }
-        }
-    }
-    
     nonisolated private func detectFace(in image: CVImageBuffer) {
         let request = VNDetectFaceRectanglesRequest { [weak self] request, error in
             guard let self = self else { return }
