@@ -10,11 +10,11 @@ public struct SkinAnalysisView: View {
     // MARK: - Properties
     @Binding var isPresented: Bool
     @StateObject private var viewModel = SkinAnalysisViewModel()
-    @State private var showingImagePicker = false
     @State private var showingCameraCapture = false
     @State private var showingResults = false
     @State private var analysisResult: SkinAnalysisModels.Response?
     @State private var analysisError: SkinAnalysisError?
+    @State private var photoPickerItem: PhotosPickerItem? = nil
     
     // MARK: - Initialization
     public init(isPresented: Binding<Bool>) {
@@ -29,7 +29,7 @@ public struct SkinAnalysisView: View {
         }
         .navigationTitle("肌膚分析")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar { navigationToolbar }
+        // .toolbar { navigationToolbar }
         .alert("錯誤", isPresented: .constant(viewModel.error != nil || analysisError != nil)) {
             Button("確定", role: .cancel) {
                 viewModel.clearError()
@@ -42,37 +42,20 @@ public struct SkinAnalysisView: View {
                 Text(error.localizedDescription)
             }
         }
-        .onChange(of: viewModel.selectedPhotoItem) { _ in
+        .onChange(of: photoPickerItem) { _ in
             Task {
-                await viewModel.analyzeSkin(image: viewModel.selectedImage)
-            }
-        }
-        .sheet(isPresented: $showingImagePicker) {
-            PhotosPicker(
-                selection: $viewModel.selectedPhotoItem,
-                matching: .images
-            ) {
-                VStack(spacing: 16) {
-                    Image(systemName: "photo.on.rectangle")
-                        .font(.system(size: 48))
-                    Text("選擇照片")
-                        .font(.headline)
-                        .bmForegroundColor(AppColors.primaryText)
+                if let photoPickerItem = photoPickerItem,
+                   let data = try? await photoPickerItem.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    await viewModel.analyzeSkin(image: image)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 48)
-                .background(AppColors.secondaryBg.swiftUIColor)
-                .cornerRadius(12)
-                .padding()
             }
         }
         .fullScreenCover(isPresented: $showingCameraCapture) {
-            NavigationView {
-                FaceCaptureView(
-                    isPresented: $showingCameraCapture,
-                    analysisResult: $analysisResult,
-                    analysisError: $analysisError
-                )
+            CameraScannerView(isPresented: $showingCameraCapture) { image in
+                Task {
+                    await viewModel.analyzeSkin(image: image)
+                }
             }
         }
         .sheet(isPresented: $showingResults) {
@@ -110,7 +93,7 @@ public struct SkinAnalysisView: View {
             VStack(spacing: 8) {
                 Text("拍攝或選擇照片")
                     .font(.title2)
-                    .bmForegroundColor(AppColors.primaryText)
+                    .bmForegroundColor(AppColors.primary)
                 
                 Text("我們將分析您的肌膚狀況，並提供個性化建議")
                     .font(.subheadline)
@@ -136,7 +119,7 @@ public struct SkinAnalysisView: View {
     
     private var imageSourceButtons: some View {
         HStack(spacing: 16) {
-            Button(action: { showingImagePicker = true }) {
+            PhotosPicker(selection: $photoPickerItem, matching: .images) {
                 VStack(spacing: 8) {
                     Image(systemName: "photo.on.rectangle")
                         .font(.system(size: 32))
@@ -151,9 +134,9 @@ public struct SkinAnalysisView: View {
             
             Button(action: { showingCameraCapture = true }) {
                 VStack(spacing: 8) {
-                    Image(systemName: "camera")
+                    Image(systemName: "viewfinder.circle")
                         .font(.system(size: 32))
-                    Text("相機")
+                    Text("AI檢測")
                         .font(.headline)
                 }
                 .frame(maxWidth: .infinity)
@@ -166,14 +149,14 @@ public struct SkinAnalysisView: View {
         .padding(.horizontal)
     }
     
-    private var navigationToolbar: some ToolbarContent {
-        ToolbarItem(placement: .navigationBarTrailing) {
-            Button("關閉") {
-                isPresented = false
-            }
-            .bmForegroundColor(AppColors.primaryText)
-        }
-    }
+    // private var navigationToolbar: some ToolbarContent {
+    //     ToolbarItem(placement: .navigationBarTrailing) {
+    //         Button("關閉") {
+    //             isPresented = false
+    //         }
+    //         .bmForegroundColor(AppColors.primaryText)
+    //     }
+    // }
 }
 
 // MARK: - Preview Provider

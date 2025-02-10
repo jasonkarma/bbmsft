@@ -25,11 +25,11 @@ public struct ResultsView: View {
                     
                     Text(result.result.overallImpression.mood)
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.primary)
                 }
                 .padding()
                 .frame(maxWidth: .infinity)
-                .background(AppColors.secondaryBg.swiftUIColor)
+                .background(AppColors.primaryBg.swiftUIColor)
                 .cornerRadius(12)
                 
                 // Photo Analysis
@@ -61,7 +61,7 @@ public struct ResultsView: View {
                     TechnicalQualityView(quality: result.result.photoAnalysis.technicalQuality)
                 }
                 .padding()
-                .background(AppColors.secondaryBg.swiftUIColor)
+                .background(AppColors.primaryBg.swiftUIColor)
                 .cornerRadius(12)
                 
                 // Facial Features
@@ -78,7 +78,7 @@ public struct ResultsView: View {
                     FeatureDetailView(title: "下顎", detail: result.result.photoAnalysis.facialFeatures.jawArea)
                 }
                 .padding()
-                .background(AppColors.secondaryBg.swiftUIColor)
+                .background(AppColors.primaryBg.swiftUIColor)
                 .cornerRadius(12)
                 
                 // Recommendations
@@ -109,7 +109,7 @@ public struct ResultsView: View {
                     }
                 }
                 .padding()
-                .background(AppColors.secondaryBg.swiftUIColor)
+                .background(AppColors.primaryBg.swiftUIColor)
                 .cornerRadius(12)
             }
             .padding()
@@ -138,7 +138,7 @@ struct PhotoAnalysisRowView: View {
             HStack {
                 Text(title)
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppColors.primary.swiftUIColor)
                 Spacer()
                 Text("\(score)")
                     .font(.headline)
