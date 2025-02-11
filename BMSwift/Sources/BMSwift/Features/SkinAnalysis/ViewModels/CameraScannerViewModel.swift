@@ -20,7 +20,7 @@ public final class CameraScannerViewModel: NSObject, ObservableObject {
     public override init() {
         super.init()
         Task {
-            try? await setupCamera()
+            await setupCamera()
         }
     }
     
@@ -36,31 +36,42 @@ public final class CameraScannerViewModel: NSObject, ObservableObject {
     }
     
     // MARK: - Private Methods
-    private func setupCamera() async throws {
-        let session = AVCaptureSession()
-        session.sessionPreset = .photo
-        
-        // Get front camera
-        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) else {
-            throw CameraError.setupError
+    private func setupCamera() async {
+        do {
+            let session = AVCaptureSession()
+            session.sessionPreset = .photo
+            
+            // Get front camera
+            guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) else {
+                throw CameraError.setupError
+            }
+            
+            // Configure input
+            let input = try AVCaptureDeviceInput(device: device)
+            if session.canAddInput(input) {
+                session.addInput(input)
+            }
+            
+            // Configure output
+            let photoOutput = AVCapturePhotoOutput()
+            if session.canAddOutput(photoOutput) {
+                session.addOutput(photoOutput)
+                self.photoOutput = photoOutput
+            }
+            
+            self.session = session
+            
+            // Start session on background thread
+            Task.detached {
+                session.startRunning()
+            }
+            
+            await MainActor.run {
+                self.showCamera = true
+            }
+        } catch {
+            print("Camera setup error: \(error)")
         }
-        
-        // Configure input
-        let input = try AVCaptureDeviceInput(device: device)
-        if session.canAddInput(input) {
-            session.addInput(input)
-        }
-        
-        // Configure output
-        let photoOutput = AVCapturePhotoOutput()
-        if session.canAddOutput(photoOutput) {
-            session.addOutput(photoOutput)
-            self.photoOutput = photoOutput
-        }
-        
-        self.session = session
-        session.startRunning()
-        self.showCamera = true
     }
 }
 
