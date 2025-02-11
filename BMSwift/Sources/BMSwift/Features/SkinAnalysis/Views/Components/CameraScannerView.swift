@@ -10,7 +10,6 @@ public struct CameraScannerView: View {
     // Face detection guide
     private let guideColor = AppColors.primary.swiftUIColor
     private let guideLineWidth: CGFloat = 2
-    private let optimalFaceRatio: CGFloat = 0.6
     
     public init(isPresented: Binding<Bool>, onCapture: @escaping (UIImage) -> Void) {
         self._isPresented = isPresented
@@ -24,42 +23,20 @@ public struct CameraScannerView: View {
                 .ignoresSafeArea()
             
             // Camera preview
-            if viewModel.showCamera {
-                CameraPreviewView(session: viewModel.session)
+            if viewModel.showCamera, let session = viewModel.session {
+                CameraPreviewView(session: session)
                     .ignoresSafeArea()
             }
             
             // Face detection guide overlay
             VStack {
                 Spacer()
-                ZStack {
-                    // Outer border
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(guideColor, lineWidth: guideLineWidth)
-                        .frame(width: 280, height: 280)
-                    
-                    // Face outline
-                    Image(systemName: "person.fill")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 160, height: 160)
-                        .foregroundColor(guideColor.opacity(0.3))
-                    
-                    // Face detection status indicator
-                    if let faceRect = viewModel.detectedFaceRect {
-                        Rectangle()
-                            .stroke(viewModel.isFacePositionValid ? .green : .red, lineWidth: 2)
-                            .frame(
-                                width: faceRect.width * UIScreen.main.bounds.width,
-                                height: faceRect.height * UIScreen.main.bounds.height
-                            )
-                            .position(
-                                x: faceRect.midX * UIScreen.main.bounds.width,
-                                y: faceRect.midY * UIScreen.main.bounds.height
-                            )
-                    }
-                }
-                .padding(.bottom, 100)
+                
+                // Simple circular guide
+                Circle()
+                    .stroke(guideColor, lineWidth: guideLineWidth)
+                    .frame(width: 280, height: 280)
+                    .padding(.bottom, 100)
                 
                 // Status text
                 Text(viewModel.faceDetectionStatus ?? "請保持臉部在框內")
@@ -85,7 +62,6 @@ public struct CameraScannerView: View {
                             .foregroundColor(guideColor)
                     }
                 }
-                .disabled(!viewModel.isFacePositionValid)
                 .padding(.bottom, 40)
             }
             
@@ -99,7 +75,15 @@ public struct CameraScannerView: View {
             }
         }
         .onAppear {
-            viewModel.setOnCapture(onCapture)
+            viewModel.setOnCapture { image in
+                onCapture(image)
+                isPresented = false
+            }
+        }
+        .onChange(of: viewModel.capturedImage) { image in
+            if image != nil {
+                isPresented = false
+            }
         }
     }
 }

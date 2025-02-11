@@ -84,11 +84,8 @@ public final class SkinAnalysisServiceImpl: SkinAnalysisServiceProtocol {
         
         print("DEBUG: Final image - Quality: \(compressionQuality), Size: \(finalImageData.count / 1024)KB")
         
-        // 4. Upload to temporary storage and get URL
-        // TODO: Replace with actual image upload service
-        print("DEBUG: Testing with known working URL")
-        let imageUrl = "https://upload.wikimedia.org/wikipedia/commons/e/e9/Megan_Fox_2014.jpg"
-        let request = SkinAnalysisEndpoints.Analyze.Request(imageUrl: imageUrl)
+        // 4. Make API request with image data
+        let request = SkinAnalysisEndpoints.Analyze.Request(image: finalImageData)
         return try await client.send(SkinAnalysisEndpoints.analyzeSkin(request: request))
     }
     

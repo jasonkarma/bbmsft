@@ -12,8 +12,6 @@ public struct SkinAnalysisView: View {
     @StateObject private var viewModel = SkinAnalysisViewModel()
     @State private var showingCameraCapture = false
     @State private var showingResults = false
-    @State private var analysisResult: SkinAnalysisModels.Response?
-    @State private var analysisError: SkinAnalysisError?
     @State private var photoPickerItem: PhotosPickerItem? = nil
     
     // MARK: - Initialization
@@ -30,15 +28,12 @@ public struct SkinAnalysisView: View {
         .navigationTitle("肌膚分析")
         .navigationBarTitleDisplayMode(.inline)
         // .toolbar { navigationToolbar }
-        .alert("錯誤", isPresented: .constant(viewModel.error != nil || analysisError != nil)) {
+        .alert("錯誤", isPresented: .constant(viewModel.error != nil)) {
             Button("確定", role: .cancel) {
                 viewModel.clearError()
-                analysisError = nil
             }
         } message: {
             if let error = viewModel.error {
-                Text(error.localizedDescription)
-            } else if let error = analysisError {
                 Text(error.localizedDescription)
             }
         }
@@ -60,7 +55,7 @@ public struct SkinAnalysisView: View {
         }
         .sheet(isPresented: $showingResults) {
             NavigationView {
-                if let result = analysisResult {
+                if let result = viewModel.analysisResult {
                     ResultsView(
                         isPresented: $showingResults,
                         result: result
@@ -68,7 +63,7 @@ public struct SkinAnalysisView: View {
                 }
             }
         }
-        .onChange(of: analysisResult) { result in
+        .onChange(of: viewModel.analysisResult) { result in
             if result != nil {
                 showingResults = true
             }

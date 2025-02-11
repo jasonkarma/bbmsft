@@ -18,8 +18,6 @@ public enum SkinAnalysisEndpoints {
         
         public var baseURL: URL? { URL(string: "https://face-beauty-score-api-skin-analyze-attractiveness-test.p.rapidapi.com") }
         
-        private let boundary = "---011000010111000001101001"
-        
         public var headers: [String: String] {
             var headers = [
                 "x-rapidapi-key": "0fc47de525mshb9e37b660469c06p1c82b4jsnc54f0234e207",
@@ -28,13 +26,13 @@ public enum SkinAnalysisEndpoints {
             ]
             
             // For URL method, set Content-Type to false
-            // For image upload, use multipart/form-data
+            // For image upload, use application/json
             if request.imageUrl != nil {
                 headers["Content-Type"] = "false"
                 print("DEBUG: Using URL method with Content-Type: false")
             } else if request.image != nil {
-                headers["Content-Type"] = "multipart/form-data; boundary=\(boundary)"
-                print("DEBUG: Using multipart/form-data with boundary: \(boundary)")
+                headers["Content-Type"] = "application/json"
+                print("DEBUG: Using application/json for image upload")
             }
             
             print("DEBUG: Headers being sent:")
@@ -51,6 +49,13 @@ public enum SkinAnalysisEndpoints {
             let lang: String
             let noqueue: Int
             
+            private enum CodingKeys: String, CodingKey {
+                case imageUrl
+                case image
+                case lang
+                case noqueue
+            }
+            
             public init(imageUrl: String? = nil, image: Data? = nil, lang: String = "en", noqueue: Int = 1) {
                 self.imageUrl = imageUrl
                 self.image = image
@@ -63,6 +68,21 @@ public enum SkinAnalysisEndpoints {
                 print("- lang: \(lang)")
                 print("- noqueue: \(noqueue)")
             }
+            
+            public func encode(to encoder: Encoder) throws {
+                var container = encoder.container(keyedBy: CodingKeys.self)
+                try container.encode(lang, forKey: .lang)
+                try container.encode(noqueue, forKey: .noqueue)
+                
+                if let imageUrl = imageUrl {
+                    try container.encode(imageUrl, forKey: .imageUrl)
+                }
+                
+                if let imageData = image {
+                    let base64String = imageData.base64EncodedString()
+                    try container.encode(base64String, forKey: .image)
+                }
+            }
         }
         
         private let request: Request
@@ -73,56 +93,17 @@ public enum SkinAnalysisEndpoints {
         
         public var queryItems: [URLQueryItem]? {
             var items: [URLQueryItem] = []
-            
-            if let url = request.imageUrl {
-                items.append(URLQueryItem(name: "imageUrl", value: url))
-            }
-            
             items.append(URLQueryItem(name: "lang", value: request.lang))
             return items
         }
         
         public var body: Data? {
-            // Only use body for direct image upload
-            guard let imageData = request.image else {
+            guard request.image != nil else {
                 return nil
             }
             
-            print("DEBUG: Preparing multipart form data request")
-            
-            var bodyData = Data()
-            
-            // Add form data part exactly as specified
-            let formPart = """
-            --\(boundary)\r
-            Content-Disposition:form-data; name="image"\r
-            \r
-            """
-            
-            if let formData = formPart.data(using: .utf8) {
-                bodyData.append(formData)
-                print("DEBUG: Form data header (hex):")
-                print(formData.map { String(format: "%02x", $0) }.joined())
-            }
-            
-            // Add image data
-            bodyData.append(imageData)
-            print("DEBUG: Image data size: \(imageData.count) bytes")
-            print("DEBUG: First 32 bytes of image data (hex):")
-            print(imageData.prefix(32).map { String(format: "%02x", $0) }.joined())
-            
-            // Add closing boundary
-            if let closingBoundary = "\r\n--\(boundary)--".data(using: .utf8) {
-                bodyData.append(closingBoundary)
-                print("DEBUG: Closing boundary (hex):")
-                print(closingBoundary.map { String(format: "%02x", $0) }.joined())
-            }
-            
-            print("DEBUG: Total body size: \(bodyData.count) bytes")
-            print("DEBUG: First 100 bytes of complete body (hex):")
-            print(bodyData.prefix(100).map { String(format: "%02x", $0) }.joined())
-            
-            return bodyData
+            print("DEBUG: Preparing JSON request")
+            return try? JSONEncoder().encode(request)
         }
     }
 }
