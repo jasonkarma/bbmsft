@@ -10,8 +10,23 @@ public final class RegisterViewModel: ObservableObject {
     public enum ViewState: Equatable {
         case idle
         case loading
-        case success(AuthModels.RegisterResponse)
-        case error(AuthModels.AuthError)
+        case success(AuthEndpoints.RegisterResponse)
+        case error(String)
+        
+        public static func == (lhs: ViewState, rhs: ViewState) -> Bool {
+            switch (lhs, rhs) {
+            case (.idle, .idle):
+                return true
+            case (.loading, .loading):
+                return true
+            case (.success(let lhsResponse), .success(let rhsResponse)):
+                return lhsResponse.message == rhsResponse.message && lhsResponse.error == rhsResponse.error
+            case (.error(let lhsError), .error(let rhsError)):
+                return lhsError == rhsError
+            default:
+                return false
+            }
+        }
     }
     
     // MARK: - Published Properties
@@ -50,21 +65,33 @@ public final class RegisterViewModel: ObservableObject {
     // MARK: - Public Methods
     
     public func validateInput() -> Bool {
-        guard !email.isEmpty,
-              !username.isEmpty,
-              !password.isEmpty,
-              !confirmPassword.isEmpty else {
-            state = .error(AuthModels.AuthError.unknown("All fields are required"))
+        guard !email.isEmpty else {
+            state = .error("請輸入電郵地址")
+            return false
+        }
+        
+        guard !username.isEmpty else {
+            state = .error("請輸入用戶名稱")
+            return false
+        }
+        
+        guard !password.isEmpty else {
+            state = .error("請輸入密碼")
+            return false
+        }
+        
+        guard !confirmPassword.isEmpty else {
+            state = .error("請確認密碼")
             return false
         }
         
         guard password == confirmPassword else {
-            state = .error(AuthModels.AuthError.unknown("Passwords do not match"))
+            state = .error("密碼不一致")
             return false
         }
         
         guard password.count >= 8 else {
-            state = .error(AuthModels.AuthError.weakPassword)
+            state = .error("密碼長度至少需要8個字符")
             return false
         }
         
@@ -80,13 +107,19 @@ public final class RegisterViewModel: ObservableObject {
             let response = try await authService.register(
                 email: email,
                 password: password,
-                username: username
+                username: username,
+                from: "beauty_app"
             )
-            state = .success(response)
-        } catch let error as AuthModels.AuthError {
-            state = .error(error)
+            
+            if let error = response.error?.first {
+                state = .error(error)
+            } else if response.message != nil {
+                state = .success(response)
+            } else {
+                state = .error("註冊失敗，請稍後再試")
+            }
         } catch {
-            state = .error(AuthModels.AuthError.unknown(error.localizedDescription))
+            state = .error("註冊失敗，請稍後再試")
         }
     }
     
@@ -99,20 +132,6 @@ public final class RegisterViewModel: ObservableObject {
     }
     
     // MARK: - Helper Properties
-    
-    public var errorMessage: String? {
-        if case .error(let error) = state {
-            return error.localizedDescription
-        }
-        return nil
-    }
-    
-    public var isSuccess: Bool {
-        if case .success = state {
-            return true
-        }
-        return false
-    }
     
     public var isLoading: Bool {
         if case .loading = state {

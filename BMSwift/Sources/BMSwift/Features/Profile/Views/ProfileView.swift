@@ -61,22 +61,22 @@ public struct ProfileView: View {
                     VStack(spacing: 24) {
                         VStack(spacing: 8) {
                             if let mediaName = response.user.mediaName {
-                                AsyncImage(url: URL(string: "https://wiki.kinglyrobot.com/storage/\(mediaName)")) { image in
+                                AsyncImage(url: URL(string: "https://wiki.kinglyrobot.com/media/user_icon_image/\(mediaName)")) { image in
                                     image
                                         .resizable()
                                         .aspectRatio(contentMode: .fill)
-                                        .frame(width: 80, height: 80)
+                                        .frame(width: 120, height: 120)
                                         .clipShape(Circle())
                                 } placeholder: {
                                     Image(systemName: "person.circle.fill")
                                         .resizable()
-                                        .frame(width: 80, height: 80)
+                                        .frame(width: 120, height: 120)
                                         .bmForegroundColor(AppColors.primary)
                                 }
                             } else {
                                 Image(systemName: "person.circle.fill")
                                     .resizable()
-                                    .frame(width: 80, height: 80)
+                                    .frame(width: 120, height: 120)
                                     .bmForegroundColor(AppColors.primary)
                             }
                             
@@ -91,8 +91,8 @@ public struct ProfileView: View {
                         
                         VStack(spacing: 16) {
                             infoRow(title: "姓名", value: response.user.realname ?? "未設定")
-                            infoRow(title: "電話", value: response.user.phone.map(String.init) ?? "未設定")
-                            infoRow(title: "地區", value: response.user.addr ?? "未設定")
+                            infoRow(title: "電話", value: response.user.phone ?? "未設定")
+                            infoRow(title: "地區", value: response.user.city ?? "未設定")
                             infoRow(title: "生日", value: response.user.birth ?? "未設定")
                             infoRow(title: "身高", value: response.user.height.map { "\($0) cm" } ?? "未設定")
                             infoRow(title: "體重", value: response.user.weight.map { "\($0) kg" } ?? "未設定")

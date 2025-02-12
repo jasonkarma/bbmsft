@@ -15,19 +15,6 @@ public enum AuthModels {
         }
     }
     
-    /// Registration request model
-    public struct RegisterRequest: Codable {
-        public let email: String
-        public let password: String
-        public let username: String
-        
-        public init(email: String, password: String, username: String) {
-            self.email = email
-            self.password = password
-            self.username = username
-        }
-    }
-    
     /// Forgot password request model
     public struct ForgotPasswordRequest: Codable {
         public let email: String
@@ -100,30 +87,19 @@ public enum AuthModels {
             formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
             formatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
             
-            guard let date = formatter.date(from: dateString) else {
-                throw AuthError.invalidDateFormat(dateString)
+            if let date = formatter.date(from: dateString) {
+                expiresAt = date
+            } else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .expiresAt,
+                    in: container,
+                    debugDescription: "Date string does not match expected format"
+                )
             }
-            
-            expiresAt = date
         }
         
         public static func == (lhs: LoginResponse, rhs: LoginResponse) -> Bool {
             return lhs.token == rhs.token && lhs.expiresAt == rhs.expiresAt && lhs.firstLogin == rhs.firstLogin
-        }
-    }
-    
-    /// Registration response model
-    public struct RegisterResponse: Codable, Equatable {
-        public let message: String
-        public let userId: Int
-        
-        private enum CodingKeys: String, CodingKey {
-            case message
-            case userId = "user_id"
-        }
-        
-        public static func == (lhs: RegisterResponse, rhs: RegisterResponse) -> Bool {
-            return lhs.message == rhs.message && lhs.userId == rhs.userId
         }
     }
     

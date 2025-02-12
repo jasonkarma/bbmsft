@@ -8,8 +8,8 @@ public struct ProfileResponse: Codable {
 
 public struct User: Codable {
     public let realname: String?
-    public let phone: Int?
-    public let addr: String?
+    public let phone: String?
+    public let city: String?
     public let birth: String?
     public let height: Int?
     public let weight: Int?
@@ -21,7 +21,7 @@ public struct User: Codable {
     public let mediaName: String?
     
     private enum CodingKeys: String, CodingKey {
-        case realname, phone, addr, birth, height, weight, sex, username, email, id
+        case realname, phone, city, birth, height, weight, sex, username, email, id
         case bloodType = "blood_type"
         case mediaName = "media_name"
     }

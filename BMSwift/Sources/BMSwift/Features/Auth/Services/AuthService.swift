@@ -15,9 +15,10 @@ public protocol AuthServiceProtocol {
     ///   - email: User's email address
     ///   - password: User's password
     ///   - username: User's desired username
+    ///   - from: Source of registration (e.g. "beauty_app")
     /// - Returns: RegisterResponse containing the registration result
     /// - Throws: AuthModels.AuthError if registration fails
-    func register(email: String, password: String, username: String) async throws -> AuthModels.RegisterResponse
+    func register(email: String, password: String, username: String, from: String) async throws -> AuthEndpoints.RegisterResponse
     
     /// Initiates the password reset process for the provided email
     /// - Parameter email: Email address to reset password for
@@ -70,9 +71,9 @@ public final class AuthService: AuthServiceProtocol {
         }
     }
     
-    public func register(email: String, password: String, username: String) async throws -> AuthModels.RegisterResponse {
+    public func register(email: String, password: String, username: String, from: String) async throws -> AuthEndpoints.RegisterResponse {
         do {
-            let request = AuthEndpoints.register(email: email, password: password, username: username)
+            let request = AuthEndpoints.register(email: email, password: password, username: username, from: from)
             return try await client.send(request)
         } catch let error as BMNetwork.APIError {
             switch error {

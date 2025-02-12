@@ -46,8 +46,8 @@ public enum AuthEndpoints {
     /// Register endpoint
     public struct Register: BMNetwork.APIEndpoint {
         // Types
-        public typealias RequestType = AuthModels.RegisterRequest
-        public typealias ResponseType = AuthModels.RegisterResponse
+        public typealias RequestType = AuthEndpoints.RegisterRequest
+        public typealias ResponseType = AuthEndpoints.RegisterResponse
         
         // Required
         public let path: String = "/api/register"
@@ -79,6 +79,7 @@ public enum AuthEndpoints {
 
 // MARK: - Request/Response Models
 public extension AuthEndpoints {
+    /// Registration request model
     struct RegisterRequest: Codable {
         public let email: String
         public let username: String
@@ -91,24 +92,20 @@ public extension AuthEndpoints {
             self.password = password
             self.from = from
         }
-        
-        enum CodingKeys: String, CodingKey {
-            case email
-            case username
-            case password
-            case from
-        }
     }
     
-    struct RegisterResponse: Codable {
-        public let message: String
+    /// Registration response model
+    struct RegisterResponse: Codable, Equatable {
+        public let message: String?
+        public let error: [String]?
         
-        public init(message: String) {
+        public init(message: String?, error: [String]?) {
             self.message = message
+            self.error = error
         }
         
-        enum CodingKeys: String, CodingKey {
-            case message
+        public static func == (lhs: RegisterResponse, rhs: RegisterResponse) -> Bool {
+            return lhs.message == rhs.message && lhs.error == rhs.error
         }
     }
     
@@ -170,11 +167,16 @@ public extension AuthEndpoints {
         return BMNetwork.APIRequest(endpoint: endpoint)
     }
     
-    /// Creates a registration request
-    static func register(email: String, password: String, username: String) -> BMNetwork.APIRequest<Register> {
+    /// Creates a register request
+    static func register(email: String, password: String, username: String, from: String) -> BMNetwork.APIRequest<Register> {
         let endpoint = Register()
-        let body = AuthModels.RegisterRequest(email: email, password: password, username: username)
-        return BMNetwork.APIRequest(endpoint: endpoint, body: body)
+        let body = AuthEndpoints.RegisterRequest(
+            email: email,
+            username: username,
+            password: password,
+            from: from
+        )
+        return BMNetwork.APIRequest<Register>(endpoint: endpoint, body: body)
     }
     
     /// Creates a forgot password request
