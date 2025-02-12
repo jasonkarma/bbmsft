@@ -184,6 +184,24 @@ public enum EncyclopediaEndpoints {
             ]
         }
     }
+    
+    /// Profile endpoint
+    public struct Profile: BMNetwork.APIEndpoint {
+        public typealias RequestType = EmptyRequest
+        public typealias ResponseType = ProfileResponse
+        
+        public let path: String = "/api/get-user"
+        public let method: BMNetwork.HTTPMethod = .get
+        public var headers: [String: String] {
+            ["Authorization": "Bearer \(token)"]
+        }
+        
+        private let token: String
+        
+        public init(token: String) {
+            self.token = token
+        }
+    }
 }
 
 // MARK: - Factory Methods
@@ -229,6 +247,11 @@ public extension EncyclopediaEndpoints {
         let endpoint = Keep(id: id, authToken: authToken)
         let body = ClientActionRequest(bp_subsection_id: id)
         return BMNetwork.APIRequest(endpoint: endpoint, body: body, authToken: authToken)
+    }
+    
+    static func profile(token: String) -> BMNetwork.APIRequest<Profile> {
+        let endpoint = Profile(token: token)
+        return BMNetwork.APIRequest(endpoint: endpoint)
     }
 }
 

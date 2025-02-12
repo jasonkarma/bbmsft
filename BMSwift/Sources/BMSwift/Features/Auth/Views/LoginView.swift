@@ -18,17 +18,25 @@ public struct LoginView: View {
     
     public var body: some View {
         NavigationView {
-            ZStack {
-                AppColors.primaryBg.swiftUIColor
-                    .ignoresSafeArea()
-                
-                loginFormView
+            VStack {
+                ZStack {
+                    AppColors.primaryBg.swiftUIColor
+                        .ignoresSafeArea()
+                    
+                    loginFormView
+                }
             }
             .navigationBarHidden(true)
             .onChange(of: viewModel.state) { newState in
                 if case .success = newState {
                     showEncyclopedia = true
                 }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .userDidLogout)) { _ in
+                // Reset any necessary state when user logs out
+                viewModel.email = ""
+                viewModel.password = ""
+                viewModel.reset()
             }
         }
         .sheet(isPresented: $showForgotPassword) {

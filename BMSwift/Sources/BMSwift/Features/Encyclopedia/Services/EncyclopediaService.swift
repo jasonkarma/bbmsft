@@ -59,6 +59,11 @@ public protocol EncyclopediaServiceProtocol {
     ///   - id: Article identifier
     ///   - authToken: Authentication token for the request
     func keepArticle(id: Int, authToken: String) async throws
+    
+    /// Fetches user profile
+    /// - Parameter token: Authentication token for the request
+    /// - Returns: ProfileResponse containing the user's profile information
+    func fetchProfile(token: String) async throws -> ProfileResponse
 }
 
 /// Implementation of the Encyclopedia service
@@ -124,5 +129,10 @@ public final class EncyclopediaService: EncyclopediaServiceProtocol {
         print("[Encyclopedia] Keeping article \(id)...")
         let request = EncyclopediaEndpoints.keep(id: id, authToken: authToken)
         _ = try await client.send(request)
+    }
+    
+    public func fetchProfile(token: String) async throws -> ProfileResponse {
+        let request = EncyclopediaEndpoints.profile(token: token)
+        return try await client.send(request)
     }
 }

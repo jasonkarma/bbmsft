@@ -6,6 +6,7 @@ public struct EncyclopediaView: View {
     enum Route: Hashable {
         case article(ArticlePreview)
         case skinAnalysis
+        case profile
     }
     
     @StateObject private var viewModel: EncyclopediaViewModel
@@ -114,6 +115,8 @@ public struct EncyclopediaView: View {
                     ArticleDetailView(viewModel: ArticleDetailViewModel(articleId: article.id, token: token))
                 case .skinAnalysis:
                     SkinAnalysisView(isPresented: $isPresented)
+                case .profile:
+                    ProfileView(token: token, isPresented: $isPresented)
                 }
             }
             .task {
@@ -177,15 +180,28 @@ public struct EncyclopediaView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                     }
-                } else {
+                } else if index == 1 {
                     Button(action: {
                         selectedTab = index
                     }) {
                         VStack {
-                            Image(systemName: index == 1 ? "magnifyingglass" : "person.fill")
+                            Image(systemName: "magnifyingglass")
                                 .bmForegroundColor(selectedTab == index ? AppColors.primary : AppColors.secondaryText)
                             
-                            Text(index == 1 ? "搜尋" : "我的")
+                            Text("搜尋")
+                                .font(.caption)
+                                .bmForegroundColor(selectedTab == index ? AppColors.primary : AppColors.secondaryText)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    }
+                } else {
+                    NavigationLink(value: Route.profile) {
+                        VStack {
+                            Image(systemName: "person.fill")
+                                .bmForegroundColor(selectedTab == index ? AppColors.primary : AppColors.secondaryText)
+                            
+                            Text("我的")
                                 .font(.caption)
                                 .bmForegroundColor(selectedTab == index ? AppColors.primary : AppColors.secondaryText)
                         }
