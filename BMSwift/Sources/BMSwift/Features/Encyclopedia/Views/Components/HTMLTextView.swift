@@ -80,12 +80,17 @@ private struct WebView: UIViewRepresentable {
             margin: 8px 0;
             line-height: 1.6;
         }
-        ol, ul {
-            padding-left: 20px;
+        ol {
+            padding-left: 40px;
+            margin: 8px 0;
+        }
+        ul {
+            padding-left: 24px;
             margin: 8px 0;
         }
         li {
             margin: 6px 0;
+            padding-left: 8px;
         }
         figure {
             margin: 16px 0;
