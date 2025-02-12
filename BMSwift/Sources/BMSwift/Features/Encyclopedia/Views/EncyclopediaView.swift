@@ -11,6 +11,7 @@ public struct EncyclopediaView: View {
     
     @StateObject private var viewModel: EncyclopediaViewModel
     @State private var selectedTab = 0
+    @State private var path = NavigationPath()
     @Binding var isPresented: Bool
     private let token: String
     
@@ -21,7 +22,7 @@ public struct EncyclopediaView: View {
     }
     
     public var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             GeometryReader { geometry in
                 ZStack(alignment: .top) {
                     AppColors.primaryBg.swiftUIColor
@@ -83,8 +84,10 @@ public struct EncyclopediaView: View {
                             }
                             
                             VStack(spacing: 0) {
-                                if !viewModel.latestArticles.isEmpty {
-                                    BannerArticleView(articles: viewModel.latestArticles)
+                                if let frontPageContent = viewModel.frontPageContent {
+                                    BannerArticleView(articles: frontPageContent.latestContents) { article in
+                                        path.append(Route.article(article))
+                                    }
                                 }
                                 
                                 VStack(spacing: 0) {
@@ -102,7 +105,7 @@ public struct EncyclopediaView: View {
                     
                     VStack {
                         Rectangle()
-                            .fill(AppColors.black.swiftUIColor.opacity(0.5))
+                            .fill(AppColors.black.swiftUIColor.opacity(1))
                             .frame(height: geometry.safeAreaInsets.top)
                         Spacer()
                     }
