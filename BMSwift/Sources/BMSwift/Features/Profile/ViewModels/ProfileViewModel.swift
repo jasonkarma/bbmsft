@@ -48,6 +48,3 @@ public final class ProfileViewModel: ObservableObject {
     }
 }
 
-extension Notification.Name {
-    static let userDidLogout = Notification.Name("userDidLogout")
-}

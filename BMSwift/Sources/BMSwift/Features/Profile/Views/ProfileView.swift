@@ -82,7 +82,7 @@ public struct ProfileView: View {
                             
                             Text(response.user.username)
                                 .font(.title2)
-                                .bmForegroundColor(AppColors.primaryText)
+                                .bmForegroundColor(AppColors.primary)
                             
                             Text(response.user.email)
                                 .font(.subheadline)

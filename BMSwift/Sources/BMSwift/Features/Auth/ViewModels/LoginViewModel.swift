@@ -40,6 +40,7 @@ public final class LoginViewModel: ObservableObject {
             )
         )
     )) {
+        print("🔑 [LoginViewModel] Initializing")
         self.authService = authService
     }
     
@@ -47,28 +48,52 @@ public final class LoginViewModel: ObservableObject {
     
     /// Attempts to log in with the current email and password
     public func login() async {
+        print("🔑 [LoginViewModel] ====== LOGIN STARTED ======")
         guard !email.isEmpty && !password.isEmpty else {
+            print("🔑 [LoginViewModel] Error: Invalid credentials")
             state = .error(AuthModels.AuthError.invalidCredentials)
             return
         }
         
+        await login(email: email, password: password)
+    }
+    
+    public func login(email: String, password: String) async {
+        print("🔑 [LoginViewModel] ====== LOGIN STARTED ======")
         state = .loading
         
         do {
             let response = try await authService.login(email: email, password: password)
+            print("🔑 [LoginViewModel] Got token: \(response.token.prefix(10))...")
+            
+            // Save the token
+            TokenManager.shared.saveToken(response.token)
+            print("🔑 [LoginViewModel] Token saved")
+            
             state = .success(response)
+            print("🔑 [LoginViewModel] ====== LOGIN SUCCESS ======")
+            
+            // Post login success notification
+            NotificationCenter.default.post(name: .userDidLogin, object: nil)
+            
         } catch let error as AuthModels.AuthError {
+            print("🔑 [LoginViewModel] ====== LOGIN FAILED ======")
+            print("🔑 [LoginViewModel] Error: \(error.localizedDescription)")
             state = .error(error)
         } catch {
+            print("🔑 [LoginViewModel] ====== LOGIN FAILED ======")
+            print("🔑 [LoginViewModel] Error: \(error.localizedDescription)")
             state = .error(AuthModels.AuthError.unknown(error.localizedDescription))
         }
     }
     
     /// Resets the view model state
     public func reset() {
+        print("🔑 [LoginViewModel] Resetting state")
         state = .idle
         email = ""
         password = ""
+        showPasswordWarning = false
     }
     
     public func validatePasswordInput() {
