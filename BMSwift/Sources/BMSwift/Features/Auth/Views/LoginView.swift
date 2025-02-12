@@ -121,17 +121,20 @@ public struct LoginView: View {
                         HStack {
                             Image(systemName: "lock")
                                 .bmForegroundColor(AppColors.primary)
+                                .padding(.leading, 2)
                             
                             if isPasswordVisible {
                                 TextField("請輸入密碼", text: $viewModel.password)
                                     .bmForegroundColor(AppColors.primary)
                                     .textInputAutocapitalization(.never)
                                     .focused($isPasswordFocused)
+                                    .padding(.leading, 4)
                             } else {
                                 SecureField("請輸入密碼", text: $viewModel.password)
                                     .bmForegroundColor(AppColors.primary)
                                     .textInputAutocapitalization(.never)
                                     .focused($isPasswordFocused)
+                                    .padding(.leading, 4)
                             }
                             
                             Button(action: { isPasswordVisible.toggle() }) {
