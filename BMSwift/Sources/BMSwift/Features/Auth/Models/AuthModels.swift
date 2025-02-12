@@ -31,9 +31,20 @@ public enum AuthModels {
     /// Forgot password request model
     public struct ForgotPasswordRequest: Codable {
         public let email: String
+        public let locale: String
+        public let env: String
+        public let from: String
         
-        public init(email: String) {
+        public init(
+            email: String,
+            locale: String = "zh-TW",
+            env: String = "",
+            from: String = "beauty"
+        ) {
             self.email = email
+            self.locale = locale
+            self.env = env
+            self.from = from
         }
     }
     
@@ -119,10 +130,22 @@ public enum AuthModels {
     /// Forgot password response model
     public struct ForgotPasswordResponse: Codable, Equatable {
         public let message: String
-        public let success: Bool
+        public let count: Int
+        public let createdAt: String
+        public let expiredAt: String
+        
+        private enum CodingKeys: String, CodingKey {
+            case message
+            case count
+            case createdAt = "created_at"
+            case expiredAt = "expired_at"
+        }
         
         public static func == (lhs: ForgotPasswordResponse, rhs: ForgotPasswordResponse) -> Bool {
-            return lhs.message == rhs.message && lhs.success == rhs.success
+            return lhs.message == rhs.message && 
+                   lhs.count == rhs.count &&
+                   lhs.createdAt == rhs.createdAt &&
+                   lhs.expiredAt == rhs.expiredAt
         }
     }
     

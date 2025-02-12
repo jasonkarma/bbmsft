@@ -116,17 +116,20 @@ public extension AuthEndpoints {
         public let email: String
         public let locale: String
         public let env: String
+        public let from: String
         
-        public init(email: String, locale: String = "zh-TW", env: String = "") {
+        public init(email: String, locale: String = "zh-TW", env: String = "", from: String = "beauty") {
             self.email = email
             self.locale = locale
             self.env = env
+            self.from = from
         }
         
         enum CodingKeys: String, CodingKey {
             case email
             case locale
             case env
+            case from
         }
     }
     
@@ -177,7 +180,12 @@ public extension AuthEndpoints {
     /// Creates a forgot password request
     static func forgotPassword(email: String) -> BMNetwork.APIRequest<ForgotPassword> {
         let endpoint = ForgotPassword()
-        let body = AuthModels.ForgotPasswordRequest(email: email)
+        let body = AuthModels.ForgotPasswordRequest(
+            email: email,
+            locale: "zh-TW",
+            env: "",
+            from: "beauty"
+        )
         return BMNetwork.APIRequest(endpoint: endpoint, body: body)
     }
 }
