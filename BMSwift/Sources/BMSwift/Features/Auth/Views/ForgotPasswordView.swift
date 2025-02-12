@@ -4,8 +4,12 @@ import SwiftUI
 @available(iOS 13.0, *)
 public struct ForgotPasswordView: View {
     @StateObject private var viewModel = ForgotPasswordViewModel()
-    @State private var isEmailFocused: Bool = false
+    @FocusState private var focusedField: Field?
     @Binding var isPresented: Bool
+    
+    private enum Field {
+        case email
+    }
     
     public init(isPresented: Binding<Bool>) {
         self._isPresented = isPresented
@@ -18,14 +22,32 @@ public struct ForgotPasswordView: View {
             
             ScrollView {
                 VStack(spacing: 24) {
+                    Spacer()
+                        .frame(height: UIScreen.main.bounds.height * 0.15)
+                        
                     titleSection
-                    emailSection
+                    
+                    ZStack(alignment: .top) {
+                        emailSection
+                        
+                        if focusedField == .email || !viewModel.email.isEmpty {
+                            Text("")
+                                .font(.caption)
+                                .bmForegroundColor(AppColors.lightText)
+                                .transition(.move(edge: .top).combined(with: .opacity))
+                                .offset(y: -20)
+                        }
+                    }
+                    .animation(.easeInOut, value: focusedField == .email || !viewModel.email.isEmpty)
+                    
                     buttonSection
+                    
+                    Spacer()
                 }
                 .padding(.horizontal, 24)
             }
         }
-        .toast(message: "重置密碼郵件已發送！", isPresented: .init(
+        .toast(message: "成功發送郵件！", isPresented: .init(
             get: { 
                 if case .success = viewModel.state { return true }
                 return false
@@ -34,7 +56,9 @@ public struct ForgotPasswordView: View {
         ))
         .onChange(of: viewModel.state) { newState in
             if case .success = newState {
-                isPresented = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    isPresented = false
+                }
             }
         }
     }
@@ -44,7 +68,7 @@ public struct ForgotPasswordView: View {
         VStack(spacing: 8) {
             Text("忘記密碼？")
                 .font(.title)
-                .bmForegroundColor(AppColors.lightText)
+                .bmForegroundColor(AppColors.primary)
             
             Text("請輸入您的電子郵件地址，我們將發送重置密碼的連結給您。")
                 .font(.subheadline)
@@ -56,13 +80,6 @@ public struct ForgotPasswordView: View {
     @ViewBuilder
     private var emailSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if isEmailFocused || !viewModel.email.isEmpty {
-                Text("電子郵件")
-                    .font(.caption)
-                    .bmForegroundColor(AppColors.lightText)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-            
             HStack {
                 Image(systemName: "envelope")
                     .bmForegroundColor(AppColors.primary)
@@ -71,26 +88,29 @@ public struct ForgotPasswordView: View {
                     .bmForegroundColor(AppColors.primary)
                     .textInputAutocapitalization(.never)
                     .keyboardType(.emailAddress)
-                    .onTapGesture {
-                        isEmailFocused = true
-                    }
+                    .focused($focusedField, equals: .email)
             }
             .padding()
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .bmFill(isEmailFocused ? AppColors.thirdBg : BMColor.clear)
+                    .bmFill(AppColors.secondaryBg.opacity(0.1))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
                     .bmStroke(
-                        isEmailFocused ? 
+                        focusedField == .email ? 
                         AppColors.primary : 
                         AppColors.primary.opacity(0.3),
                         lineWidth: 1
                     )
             )
+            
+            if case .error(_) = viewModel.state {
+                Text("請輸入有效的電子郵件地址")
+                    .bmForegroundColor(AppColors.error)
+                    .font(.caption)
+            }
         }
-        .animation(.easeInOut, value: isEmailFocused)
     }
     
     @ViewBuilder
