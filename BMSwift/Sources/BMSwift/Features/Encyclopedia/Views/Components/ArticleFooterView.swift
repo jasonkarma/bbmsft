@@ -17,7 +17,6 @@ struct ArticleFooterView: View {
                     .bmForegroundColor(AppColors.primary)
                 Spacer()
             }
-            .padding(.horizontal)
             
             // Comment input area
             VStack(spacing: 12) {
@@ -40,7 +39,6 @@ struct ArticleFooterView: View {
                 .disabled(viewModel.commentText.isEmpty)
                 .frame(maxWidth: .infinity, alignment: .center)
             }
-            .padding(.horizontal)
             
             // Existing comments display
             if !comments.isEmpty {
@@ -74,7 +72,6 @@ struct ArticleFooterView: View {
                             }
                         }
                     }
-                    .padding(.horizontal)
                 }
             }
             
@@ -104,7 +101,6 @@ struct ArticleFooterView: View {
                         .cornerRadius(12)
                 }
             }
-            .padding(.horizontal)
         }
     }
     
@@ -113,7 +109,6 @@ struct ArticleFooterView: View {
             Text("您可能也會感興趣！")
                 .font(.headline)
                 .bmForegroundColor(AppColors.primary)
-                .padding(.horizontal)
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
@@ -126,7 +121,6 @@ struct ArticleFooterView: View {
                     }
                 }
             }
-            .padding(.horizontal)
         }
     }
 }

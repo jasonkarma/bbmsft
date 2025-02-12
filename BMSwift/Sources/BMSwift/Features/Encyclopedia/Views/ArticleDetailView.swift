@@ -11,46 +11,54 @@ public struct ArticleDetailView: View {
     }
     
     public var body: some View {
-        ScrollView {
-            GeometryReader { geometry in
-                Rectangle()
-                    .fill(.clear)
-                    .preference(
-                        key: ScrollOffsetPreferenceKey.self,
-                        value: geometry.frame(in: .named("scroll")).minY
-                    )
+        ScrollViewReader { proxy in
+            ScrollView {
+                GeometryReader { geometry in
+                    Rectangle()
+                        .fill(.clear)
+                        .preference(
+                            key: ScrollOffsetPreferenceKey.self,
+                            value: geometry.frame(in: .named("scroll")).minY
+                        )
+                }
+                .frame(height: 0)
+                .id("top")
+                
+                contentView
             }
-            .frame(height: 0)
-            
-            contentView
-        }
-        .coordinateSpace(name: "scroll")
-        .bmBackground(AppColors.primaryBg)
-        .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
-            scrollOffset = value
-        }
-        .refreshable {
-            await viewModel.loadContent()
-        }
-        .overlay {
-            if viewModel.showToast {
-                ToastView(message: viewModel.toastMessage, isPresented: $viewModel.showToast)
+            .coordinateSpace(name: "scroll")
+            .bmBackground(AppColors.primaryBg)
+            .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
+                scrollOffset = value
             }
-        }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                ArticleToolbarContent(viewModel: viewModel)
-            }
-        }
-        .task {
-            if case .initial = viewModel.state {
+            .refreshable {
                 await viewModel.loadContent()
             }
-        }
-        .onChange(of: viewModel.state) { _ in
-            withAnimation {
-                scrollOffset = 0
+            .overlay {
+                if viewModel.showToast {
+                    ToastView(message: viewModel.toastMessage, isPresented: $viewModel.showToast)
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    ArticleToolbarContent(viewModel: viewModel)
+                }
+            }
+            .task {
+                if case .initial = viewModel.state {
+                    await viewModel.loadContent()
+                }
+            }
+            .onChange(of: viewModel.state) { _ in
+                withAnimation {
+                    proxy.scrollTo("top", anchor: .top)
+                }
+            }
+            .onAppear {
+                withAnimation {
+                    proxy.scrollTo("top", anchor: .top)
+                }
             }
         }
     }
@@ -79,11 +87,12 @@ public struct ArticleDetailView: View {
                         comments: viewModel.comments,
                         viewModel: viewModel
                     ) { @MainActor id in
-                        // Reset scroll position
-                        withAnimation {
-                            scrollOffset = 0
-                        }
                         let success = await viewModel.loadContent(forArticleId: id)
+                        if success {
+                            withAnimation {
+                                scrollOffset = 0
+                            }
+                        }
                         return success
                     }
                 }
