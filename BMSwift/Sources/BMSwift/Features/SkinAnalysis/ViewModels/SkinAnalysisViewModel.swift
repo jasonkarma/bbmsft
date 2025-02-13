@@ -8,7 +8,11 @@ import UniformTypeIdentifiers
 @MainActor
 public final class SkinAnalysisViewModel: ObservableObject {
     // MARK: - Published Properties
-    @Published public var selectedPhotoItem: PhotosPickerItem?
+    @Published public var selectedPhotoItem: PhotosPickerItem? {
+        didSet {
+            handleSelectedPhotoItem()
+        }
+    }
     @Published public var selectedImage: UIImage?
     @Published public private(set) var error: Error?
     @Published public private(set) var isLoading = false
@@ -31,6 +35,7 @@ public final class SkinAnalysisViewModel: ObservableObject {
     /// Analyzes the provided image using the skin analysis service
     /// - Parameter image: The image to analyze
     public func analyzeSkin(image: UIImage?) async {
+        guard !isLoading else { return }
         guard let image = image else {
             error = BMSwift.SkinAnalysisError.invalidImage
             return
@@ -51,11 +56,6 @@ public final class SkinAnalysisViewModel: ObservableObject {
         isLoading = false
     }
     
-    func updateFromCamera(result: SkinAnalysisModels.Response?, error: BMSwift.SkinAnalysisError?) {
-        self.analysisResult = result
-        self.error = error
-    }
-    
     /// Resets the view state to idle and clears any selected image or analysis results
     public func reset() {
         isLoading = false
@@ -74,7 +74,6 @@ public final class SkinAnalysisViewModel: ObservableObject {
                 if let data = try await photoItem.loadTransferable(type: Data.self),
                    let image = UIImage(data: data) {
                     selectedImage = image
-                    await analyzeSkin(image: image)
                 }
             } catch {
                 self.error = BMSwift.SkinAnalysisError.imageProcessingError

@@ -17,6 +17,7 @@ public enum SkinAnalysisError: LocalizedError, Equatable {
     case invalidResponse
     case invalidSpecification
     case invalidAspectRatio(CGFloat)
+    case requestInProgress
     
     public var errorDescription: String? {
         switch self {
@@ -49,7 +50,9 @@ public enum SkinAnalysisError: LocalizedError, Equatable {
         case .invalidSpecification:
             return "Invalid analysis specification"
         case .invalidAspectRatio(let ratio):
-            return "Invalid image aspect ratio: \(String(format: "%.2f", ratio))"
+            return "Invalid aspect ratio: \(String(format: "%.2f", ratio))"
+        case .requestInProgress:
+            return "請稍候，正在處理上一個請求"
         }
     }
     
@@ -63,11 +66,14 @@ public enum SkinAnalysisError: LocalizedError, Equatable {
              (.permissionDenied, .permissionDenied),
              (.cameraUnavailable, .cameraUnavailable),
              (.invalidResponse, .invalidResponse),
-             (.invalidSpecification, .invalidSpecification):
+             (.invalidSpecification, .invalidSpecification),
+             (.requestInProgress, .requestInProgress):
             return true
-        case (.cameraError(let lhsError), .cameraError(let rhsError)),
-             (.networkError(let lhsError), .networkError(let rhsError)),
-             (.unknown(let lhsError), .unknown(let rhsError)):
+        case (.cameraError(let lhsError), .cameraError(let rhsError)):
+            return lhsError.localizedDescription == rhsError.localizedDescription
+        case (.unknown(let lhsError), .unknown(let rhsError)):
+            return lhsError.localizedDescription == rhsError.localizedDescription
+        case (.networkError(let lhsError), .networkError(let rhsError)):
             return lhsError.localizedDescription == rhsError.localizedDescription
         case (.analysisError(let lhsMessage), .analysisError(let rhsMessage)):
             return lhsMessage == rhsMessage

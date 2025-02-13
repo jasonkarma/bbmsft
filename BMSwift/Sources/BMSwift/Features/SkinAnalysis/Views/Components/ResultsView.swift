@@ -134,7 +134,7 @@ public struct ResultsView: View {
 @available(iOS 16.0, *)
 struct SkinStatusRowView: View {
     let title: String
-    let value: Double
+    let value: Float
     let icon: String
     let color: Color
     
@@ -150,7 +150,7 @@ struct SkinStatusRowView: View {
                     .font(.headline)
             }
             
-            ProgressView(value: value, total: 100)
+            ProgressView(value: Double(value), total: 100)
                 .tint(color)
         }
     }

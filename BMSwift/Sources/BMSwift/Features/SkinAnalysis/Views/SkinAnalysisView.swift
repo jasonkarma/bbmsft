@@ -42,15 +42,13 @@ public struct SkinAnalysisView: View {
                 if let photoPickerItem = photoPickerItem,
                    let data = try? await photoPickerItem.loadTransferable(type: Data.self),
                    let image = UIImage(data: data) {
-                    await viewModel.analyzeSkin(image: image)
+                    viewModel.selectedImage = image
                 }
             }
         }
         .fullScreenCover(isPresented: $showingCameraCapture) {
             CameraScannerView(isPresented: $showingCameraCapture) { image in
-                Task {
-                    await viewModel.analyzeSkin(image: image)
-                }
+                viewModel.selectedImage = image
             }
         }
         .sheet(isPresented: $showingResults) {

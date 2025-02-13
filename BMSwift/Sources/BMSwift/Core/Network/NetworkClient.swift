@@ -17,7 +17,14 @@ extension BMNetwork {
                 defaultHeaders: [
                     "Content-Type": "application/json"
                 ]
-            )
+            ),
+            session: {
+                let config = URLSessionConfiguration.default
+                config.waitsForConnectivity = false  // Don't wait for connectivity
+                config.timeoutIntervalForRequest = 30  // 30 second timeout
+                config.timeoutIntervalForResource = 30  // 30 second timeout
+                return URLSession(configuration: config)
+            }()
         )
         
         // MARK: - Initialization

@@ -30,6 +30,11 @@ public actor SkinAnalysisServiceImpl: SkinAnalysisServiceProtocol {
     private let maxFaceRatio: CGFloat = 0.8
     private let minFaceRatio: CGFloat = 0.2
     
+    // Rate limiting
+    private var isProcessing = false
+    private var lastRequestTime: Date?
+    private let minRequestInterval: TimeInterval = 1.0 // Minimum 1 second between requests
+    
     // MARK: - Initialization
     public init(client: BMNetwork.NetworkClient = .shared) {
         self.client = client
@@ -37,6 +42,26 @@ public actor SkinAnalysisServiceImpl: SkinAnalysisServiceProtocol {
     
     // MARK: - Public Methods
     public func analyzeSkin(image: UIImage) async throws -> SkinAnalysisModels.Response {
+        // Check if we're already processing a request
+        guard !isProcessing else {
+            throw BMSwift.SkinAnalysisError.requestInProgress
+        }
+        
+        // Check rate limit
+        if let lastTime = lastRequestTime {
+            let timeSinceLastRequest = Date().timeIntervalSince(lastTime)
+            if timeSinceLastRequest < minRequestInterval {
+                let waitTime = minRequestInterval - timeSinceLastRequest
+                try await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
+            }
+        }
+        
+        isProcessing = true
+        defer {
+            isProcessing = false
+            lastRequestTime = Date()
+        }
+        
         print("DEBUG: Original image size: \(image.size)")
         
         // 1. Detect and validate face
@@ -88,6 +113,26 @@ public actor SkinAnalysisServiceImpl: SkinAnalysisServiceProtocol {
     }
     
     public func analyzeSkin(imageUrl: String) async throws -> SkinAnalysisModels.Response {
+        // Check if we're already processing a request
+        guard !isProcessing else {
+            throw BMSwift.SkinAnalysisError.requestInProgress
+        }
+        
+        // Check rate limit
+        if let lastTime = lastRequestTime {
+            let timeSinceLastRequest = Date().timeIntervalSince(lastTime)
+            if timeSinceLastRequest < minRequestInterval {
+                let waitTime = minRequestInterval - timeSinceLastRequest
+                try await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
+            }
+        }
+        
+        isProcessing = true
+        defer {
+            isProcessing = false
+            lastRequestTime = Date()
+        }
+        
         print("DEBUG: Using image URL method with URL: \(imageUrl)")
         let request = SkinAnalysisEndpoints.Analyze.Request(imageUrl: imageUrl)
         return try await client.send(SkinAnalysisEndpoints.analyzeSkin(request: request))
