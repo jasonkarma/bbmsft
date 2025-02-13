@@ -2,42 +2,29 @@
 import Foundation
 
 /// Endpoints for the Skin Analysis feature.
-/// Provides endpoints for analyzing skin images using RapidAPI's face analysis service.
+/// Provides endpoints for analyzing skin images using Face++ API's face analysis service.
 public enum SkinAnalysisEndpoints {
     
     // MARK: - Endpoint Definitions
     
     /// Endpoint for analyzing skin images.
-    /// This endpoint sends image data to RapidAPI's face analysis service and receives detailed analysis results.
+    /// This endpoint sends image data to Face++ API's face analysis service and receives detailed analysis results.
     public struct Analyze: BMNetwork.APIEndpoint {
         public typealias RequestType = Request
         public typealias ResponseType = SkinAnalysisModels.Response
         
-        public let path: String = "/check"
+        public let path: String = "/facepp/v3/detect"
         public let method: BMNetwork.HTTPMethod = .post
         
-        public var baseURL: URL? { URL(string: "https://face-beauty-score-api-skin-analyze-attractiveness-test.p.rapidapi.com") }
+        public var baseURL: URL? { URL(string: "https://api-cn.faceplusplus.com") }
         
         public var headers: [String: String] {
-            var headers = [
-                "x-rapidapi-key": "0fc47de525mshb9e37b660469c06p1c82b4jsnc54f0234e207",
-                "x-rapidapi-host": "face-beauty-score-api-skin-analyze-attractiveness-test.p.rapidapi.com",
-                "Accept": "application/json"
-            ]
+            var headers: [String: String] = [:]
             
-            // For URL method, set Content-Type to false
-            // For image upload, use application/json
-            if request.imageUrl != nil {
-                headers["Content-Type"] = "false"
-                print("DEBUG: Using URL method with Content-Type: false")
-            } else if request.image != nil {
-                headers["Content-Type"] = "application/json"
-                print("DEBUG: Using application/json for image upload")
-            }
-            
-            print("DEBUG: Headers being sent:")
-            headers.forEach { key, value in
-                print("  \(key): \(value)")
+            // Only set Content-Type if we're sending form data
+            if request.image != nil {
+                let boundary = "Boundary-\(UUID().uuidString)"
+                headers["Content-Type"] = "multipart/form-data; boundary=\(boundary)"
             }
             
             return headers
@@ -46,42 +33,21 @@ public enum SkinAnalysisEndpoints {
         public struct Request: Encodable {
             let imageUrl: String?
             let image: Data?
-            let lang: String
-            let noqueue: Int
+            let apiKey: String = "vUphvqXtMmQJXKT91o9U1pvBoGd8RBv9"
+            let apiSecret: String = "BsyR4U3VOqH5jLDbRaXX4KyPVzTp1rGO"
+            let returnAttributes: String = "gender,age,glass,headpose,smile,blur,eyestatus,emotion,facequality,beauty,mouthstatus,eyegaze,skinstatus"
             
-            private enum CodingKeys: String, CodingKey {
-                case imageUrl
-                case image
-                case lang
-                case noqueue
-            }
-            
-            public init(imageUrl: String? = nil, image: Data? = nil, lang: String = "en", noqueue: Int = 1) {
+            public init(imageUrl: String? = nil, image: Data? = nil) {
                 self.imageUrl = imageUrl
                 self.image = image
-                self.lang = lang
-                self.noqueue = noqueue
                 
                 print("DEBUG: Request initialized with:")
                 print("- imageUrl: \(String(describing: imageUrl))")
                 print("- image data size: \(image?.count ?? 0) bytes")
-                print("- lang: \(lang)")
-                print("- noqueue: \(noqueue)")
             }
             
             public func encode(to encoder: Encoder) throws {
-                var container = encoder.container(keyedBy: CodingKeys.self)
-                try container.encode(lang, forKey: .lang)
-                try container.encode(noqueue, forKey: .noqueue)
-                
-                if let imageUrl = imageUrl {
-                    try container.encode(imageUrl, forKey: .imageUrl)
-                }
-                
-                if let imageData = image {
-                    let base64String = imageData.base64EncodedString()
-                    try container.encode(base64String, forKey: .image)
-                }
+                // This will be handled by queryItems and body
             }
         }
         
@@ -92,18 +58,36 @@ public enum SkinAnalysisEndpoints {
         }
         
         public var queryItems: [URLQueryItem]? {
-            var items: [URLQueryItem] = []
-            items.append(URLQueryItem(name: "lang", value: request.lang))
+            var items = [
+                URLQueryItem(name: "api_key", value: request.apiKey),
+                URLQueryItem(name: "api_secret", value: request.apiSecret),
+                URLQueryItem(name: "return_attributes", value: request.returnAttributes)
+            ]
+            
+            if let imageUrl = request.imageUrl {
+                items.append(URLQueryItem(name: "image_url", value: imageUrl))
+            }
+            
             return items
         }
         
         public var body: Data? {
-            guard request.image != nil else {
-                return nil
-            }
+            guard let imageData = request.image else { return nil }
             
-            print("DEBUG: Preparing JSON request")
-            return try? JSONEncoder().encode(request)
+            let boundary = "Boundary-\(UUID().uuidString)"
+            var bodyData = Data()
+            
+            // Add image data
+            bodyData.append("--\(boundary)\r\n".data(using: .utf8)!)
+            bodyData.append("Content-Disposition: form-data; name=\"image_file\"; filename=\"image.jpg\"\r\n".data(using: .utf8)!)
+            bodyData.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
+            bodyData.append(imageData)
+            bodyData.append("\r\n".data(using: .utf8)!)
+            
+            // Add closing boundary
+            bodyData.append("--\(boundary)--\r\n".data(using: .utf8)!)
+            
+            return bodyData
         }
     }
 }

@@ -1,106 +1,96 @@
-import SwiftUI
+#if canImport(UIKit) && os(iOS)
+import Foundation
 import AVFoundation
+import UIKit
 
 @MainActor
-final class FaceCaptureViewModel: NSObject, ObservableObject {
+public final class FaceCaptureViewModel: NSObject, ObservableObject {
     // MARK: - Published Properties
-    @Published private(set) var isProcessing = false
-    @Published private(set) var analysisResult: SkinAnalysisModels.Response?
-    @Published private(set) var error: SkinAnalysisError?
-    @Published private(set) var showCameraAccessAlert = false
+    @Published public private(set) var isProcessing = false
+    @Published public private(set) var error: Error?
+    @Published public private(set) var isSetup = false
+    @Published public private(set) var zoomFactor: CGFloat = 1.0
+    @Published public var session = AVCaptureSession()
     
-    // MARK: - Properties
-    let session = AVCaptureSession()
+    // MARK: - Private Properties
     private var device: AVCaptureDevice?
     private var output: AVCapturePhotoOutput?
-    private let skinAnalysisService: SkinAnalysisServiceProtocol
-    private var captureCompletion: ((Result<SkinAnalysisModels.Response, SkinAnalysisError>) -> Void)?
+    private var previewLayer: AVCaptureVideoPreviewLayer?
+    private var continuation: CheckedContinuation<UIImage, Error>?
     
     // MARK: - Initialization
-    override init() {
-        self.skinAnalysisService = SkinAnalysisServiceImpl()
+    public override init() {
         super.init()
-        checkCameraAuthorization()
+        setupSession()
     }
     
-    // MARK: - Camera Setup
-    func checkCameraAuthorization() {
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
-        case .authorized:
-            setupCamera()
-        case .notDetermined:
-            Task {
-                let granted = await AVCaptureDevice.requestAccess(for: .video)
-                await MainActor.run {
-                    if granted {
-                        self.setupCamera()
-                    } else {
-                        self.showCameraAccessAlert = true
-                    }
-                }
-            }
-        case .denied, .restricted:
-            showCameraAccessAlert = true
-        @unknown default:
-            break
-        }
+    // MARK: - Public Methods
+    public func startSession() {
+        guard !session.isRunning else { return }
+        session.startRunning()
     }
     
-    private func setupCamera() {
-        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) else {
-            return
-        }
-        
-        self.device = device
-        
-        do {
-            let input = try AVCaptureDeviceInput(device: device)
-            let output = AVCapturePhotoOutput()
-            
-            if session.canAddInput(input) && session.canAddOutput(output) {
-                session.beginConfiguration()
-                session.addInput(input)
-                session.addOutput(output)
-                session.commitConfiguration()
-                self.output = output
-            }
-            
-            Task.detached {
-                await self.session.startRunning()
-            }
-        } catch {
-            print("Failed to setup camera: \(error.localizedDescription)")
-        }
+    public func stopSession() {
+        guard session.isRunning else { return }
+        session.stopRunning()
     }
     
-    // MARK: - Camera Controls
-    func captureAndAnalyze() async throws -> SkinAnalysisModels.Response {
-        return try await withCheckedThrowingContinuation { continuation in
+    public func capturePhoto() async throws -> UIImage {
+        try await withCheckedThrowingContinuation { continuation in
             guard let output = output else {
                 continuation.resume(throwing: SkinAnalysisError.cameraSetupError)
                 return
             }
             
             isProcessing = true
+            self.continuation = continuation
+            
             let settings = AVCapturePhotoSettings()
-            captureCompletion = { result in
-                switch result {
-                case .success(let response):
-                    continuation.resume(returning: response)
-                case .failure(let error):
-                    continuation.resume(throwing: error)
-                }
-            }
             output.capturePhoto(with: settings, delegate: self)
         }
     }
     
-    func zoomIn() {
+    public func zoomIn() {
         adjustZoom(factor: 1.5)
     }
     
-    func zoomOut() {
-        adjustZoom(factor: 0.67)
+    public func zoomOut() {
+        adjustZoom(factor: 0.5)
+    }
+    
+    public func resetZoom() {
+        adjustZoom(factor: 1.0)
+    }
+    
+    // MARK: - Private Methods
+    private func setupSession() {
+        session.beginConfiguration()
+        
+        // Add video input
+        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
+            error = SkinAnalysisError.cameraSetupError
+            return
+        }
+        self.device = device
+        
+        guard let input = try? AVCaptureDeviceInput(device: device) else {
+            error = SkinAnalysisError.cameraSetupError
+            return
+        }
+        
+        if session.canAddInput(input) {
+            session.addInput(input)
+        }
+        
+        // Add photo output
+        let output = AVCapturePhotoOutput()
+        if session.canAddOutput(output) {
+            session.addOutput(output)
+            self.output = output
+        }
+        
+        session.commitConfiguration()
+        isSetup = true
     }
     
     private func adjustZoom(factor: CGFloat) {
@@ -108,48 +98,44 @@ final class FaceCaptureViewModel: NSObject, ObservableObject {
         
         do {
             try device.lockForConfiguration()
-            let newZoom = max(1.0, min(device.videoZoomFactor * factor, device.maxAvailableVideoZoomFactor))
-            device.videoZoomFactor = newZoom
+            let newFactor = max(1.0, min(factor * zoomFactor, device.activeFormat.videoMaxZoomFactor))
+            device.videoZoomFactor = newFactor
+            zoomFactor = newFactor
             device.unlockForConfiguration()
         } catch {
-            print("Failed to adjust zoom: \(error.localizedDescription)")
+            print("Could not lock device for configuration: \(error)")
         }
     }
     
-    // MARK: - Settings
-    func openSettings() {
-        if let url = URL(string: UIApplication.openSettingsURLString) {
-            UIApplication.shared.open(url)
+    nonisolated private func handleCapturedPhoto(_ photo: AVCapturePhoto, error: Error?) {
+        Task { @MainActor in
+            defer { 
+                self.isProcessing = false
+                self.continuation = nil
+            }
+            
+            if let error = error {
+                self.continuation?.resume(throwing: SkinAnalysisError.cameraError(error))
+                return
+            }
+            
+            guard let imageData = photo.fileDataRepresentation(),
+                  let image = UIImage(data: imageData) else {
+                self.continuation?.resume(throwing: SkinAnalysisError.imageProcessingError)
+                return
+            }
+            
+            self.continuation?.resume(returning: image)
         }
     }
 }
 
 // MARK: - AVCapturePhotoCaptureDelegate
 extension FaceCaptureViewModel: AVCapturePhotoCaptureDelegate {
-    nonisolated func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-        Task { @MainActor in
-            if let error = error {
-                captureCompletion?(.failure(.cameraError(error)))
-                isProcessing = false
-                return
-            }
-            
-            guard let imageData = photo.fileDataRepresentation(),
-                  let image = UIImage(data: imageData) else {
-                captureCompletion?(.failure(.imageProcessingError))
-                isProcessing = false
-                return
-            }
-            
-            do {
-                let result = try await skinAnalysisService.analyzeSkin(image: image)
-                captureCompletion?(.success(result))
-            } catch let error as SkinAnalysisError {
-                captureCompletion?(.failure(error))
-            } catch {
-                captureCompletion?(.failure(.unknown(error)))
-            }
-            isProcessing = false
-        }
+    nonisolated public func photoOutput(_ output: AVCapturePhotoOutput, 
+                                      didFinishProcessingPhoto photo: AVCapturePhoto, 
+                                      error: Error?) {
+        handleCapturedPhoto(photo, error: error)
     }
 }
+#endif

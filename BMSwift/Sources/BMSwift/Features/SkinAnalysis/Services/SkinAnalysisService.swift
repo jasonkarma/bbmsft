@@ -19,7 +19,7 @@ public protocol SkinAnalysisServiceProtocol {
 }
 
 /// Implementation of the skin analysis service
-public final class SkinAnalysisServiceImpl: SkinAnalysisServiceProtocol {
+public actor SkinAnalysisServiceImpl: SkinAnalysisServiceProtocol {
     // MARK: - Properties
     private let client: BMNetwork.NetworkClient
     
@@ -31,9 +31,7 @@ public final class SkinAnalysisServiceImpl: SkinAnalysisServiceProtocol {
     private let minFaceRatio: CGFloat = 0.2
     
     // MARK: - Initialization
-    public init(
-        client: BMNetwork.NetworkClient = .shared
-    ) {
+    public init(client: BMNetwork.NetworkClient = .shared) {
         self.client = client
     }
     
@@ -75,11 +73,11 @@ public final class SkinAnalysisServiceImpl: SkinAnalysisServiceProtocol {
         }
         
         guard let finalImageData = imageData else {
-            throw SkinAnalysisError.imageCompressionFailed
+            throw BMSwift.SkinAnalysisError.imageCompressionFailed
         }
         
         guard finalImageData.count <= maxFileSize else {
-            throw SkinAnalysisError.imageTooLarge(Double(finalImageData.count) / Double(1024 * 1024))
+            throw BMSwift.SkinAnalysisError.imageTooLarge(Double(finalImageData.count) / Double(1024 * 1024))
         }
         
         print("DEBUG: Final image - Quality: \(compressionQuality), Size: \(finalImageData.count / 1024)KB")
@@ -91,7 +89,6 @@ public final class SkinAnalysisServiceImpl: SkinAnalysisServiceProtocol {
     
     public func analyzeSkin(imageUrl: String) async throws -> SkinAnalysisModels.Response {
         print("DEBUG: Using image URL method with URL: \(imageUrl)")
-        // Use the imageUrl parameter for URL-based analysis
         let request = SkinAnalysisEndpoints.Analyze.Request(imageUrl: imageUrl)
         return try await client.send(SkinAnalysisEndpoints.analyzeSkin(request: request))
     }

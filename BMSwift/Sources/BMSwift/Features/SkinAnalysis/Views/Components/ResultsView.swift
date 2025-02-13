@@ -14,103 +14,108 @@ public struct ResultsView: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                // Overall Score
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("整體評分")
-                        .font(.headline)
-                    
-                    Text("\(result.result.overallImpression.overallScore)")
-                        .font(.largeTitle)
-                        .bold()
-                    
-                    Text(result.result.overallImpression.mood)
-                        .font(.subheadline)
-                        .foregroundColor(.primary)
-                }
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(AppColors.primaryBg.swiftUIColor)
-                .cornerRadius(12)
-                
-                // Photo Analysis
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("照片分析")
-                        .font(.headline)
-                    
-                    PhotoAnalysisRowView(
-                        title: "構圖",
-                        score: result.result.photoAnalysis.composition.compositionScore,
-                        description: result.result.photoAnalysis.composition.description,
-                        elements: result.result.photoAnalysis.composition.notableElements
-                    )
-                    
-                    PhotoAnalysisRowView(
-                        title: "光線",
-                        score: result.result.photoAnalysis.lighting.lightingScore,
-                        description: result.result.photoAnalysis.lighting.description,
-                        elements: result.result.photoAnalysis.lighting.notableElements
-                    )
-                    
-                    PhotoAnalysisRowView(
-                        title: "色彩",
-                        score: result.result.photoAnalysis.color.colorScore,
-                        description: result.result.photoAnalysis.color.palette,
-                        elements: result.result.photoAnalysis.color.notableElements
-                    )
-                    
-                    TechnicalQualityView(quality: result.result.photoAnalysis.technicalQuality)
-                }
-                .padding()
-                .background(AppColors.primaryBg.swiftUIColor)
-                .cornerRadius(12)
-                
-                // Facial Features
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("面部特徵分析")
-                        .font(.headline)
-                    
-                    FeatureDetailView(title: "整體結構", detail: result.result.photoAnalysis.facialFeatures.overallStructure)
-                    FeatureDetailView(title: "膚質", detail: result.result.photoAnalysis.facialFeatures.skinQuality)
-                    FeatureDetailView(title: "眼部", detail: result.result.photoAnalysis.facialFeatures.eyeArea)
-                    FeatureDetailView(title: "嘴部", detail: result.result.photoAnalysis.facialFeatures.mouthArea)
-                    FeatureDetailView(title: "鼻部", detail: result.result.photoAnalysis.facialFeatures.noseArea)
-                    FeatureDetailView(title: "臉頰", detail: result.result.photoAnalysis.facialFeatures.cheekArea)
-                    FeatureDetailView(title: "下顎", detail: result.result.photoAnalysis.facialFeatures.jawArea)
-                }
-                .padding()
-                .background(AppColors.primaryBg.swiftUIColor)
-                .cornerRadius(12)
-                
-                // Recommendations
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("建議")
-                        .font(.headline)
-                    
-                    ForEach(result.result.overallImpression.suggestions, id: \.self) { suggestion in
-                        HStack(alignment: .top, spacing: 8) {
-                            Image(systemName: "lightbulb")
-                                .foregroundColor(.yellow)
-                            Text(suggestion)
-                        }
-                    }
-                    
-                    if !result.result.overallImpression.uniqueElements.isEmpty {
-                        Text("特點")
-                            .font(.subheadline)
-                            .padding(.top, 8)
+                if let face = result.faces.first {
+                    // Beauty Scores
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("美顏評分")
+                            .font(.headline)
                         
-                        ForEach(result.result.overallImpression.uniqueElements, id: \.self) { element in
-                            HStack(alignment: .top, spacing: 8) {
-                                Image(systemName: "star.fill")
-                                    .foregroundColor(.yellow)
-                                Text(element)
+                        HStack(spacing: 20) {
+                            VStack {
+                                Text("\(Int(face.attributes.beauty.femaleScore))")
+                                    .font(.largeTitle)
+                                    .bold()
+                                Text("女性評分")
+                                    .font(.subheadline)
+                            }
+                            
+                            VStack {
+                                Text("\(Int(face.attributes.beauty.maleScore))")
+                                    .font(.largeTitle)
+                                    .bold()
+                                Text("男性評分")
+                                    .font(.subheadline)
                             }
                         }
                     }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(AppColors.primaryBg.swiftUIColor)
+                    .cornerRadius(12)
+                    
+                    // Skin Analysis
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("膚質分析")
+                            .font(.headline)
+                        
+                        SkinStatusRowView(
+                            title: "健康度",
+                            value: face.attributes.skinstatus.health,
+                            icon: "heart.fill",
+                            color: .green
+                        )
+                        
+                        SkinStatusRowView(
+                            title: "色斑",
+                            value: face.attributes.skinstatus.stain,
+                            icon: "circle.fill",
+                            color: .brown
+                        )
+                        
+                        SkinStatusRowView(
+                            title: "痘痘",
+                            value: face.attributes.skinstatus.acne,
+                            icon: "dot.circle.fill",
+                            color: .red
+                        )
+                        
+                        SkinStatusRowView(
+                            title: "黑眼圈",
+                            value: face.attributes.skinstatus.darkCircle,
+                            icon: "eye.fill",
+                            color: .purple
+                        )
+                    }
+                    .padding()
+                    .background(AppColors.primaryBg.swiftUIColor)
+                    .cornerRadius(12)
+                    
+                    // Face Details
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("面部特徵")
+                            .font(.headline)
+                        
+                        DetailRowView(
+                            title: "年齡",
+                            value: "\(face.attributes.age.value)歲"
+                        )
+                        
+                        DetailRowView(
+                            title: "性別",
+                            value: face.attributes.gender.value == "Male" ? "男性" : "女性"
+                        )
+                        
+                        DetailRowView(
+                            title: "眼鏡",
+                            value: {
+                                switch face.attributes.glass.value {
+                                case "None": return "無"
+                                case "Dark": return "墨鏡"
+                                case "Normal": return "普通眼鏡"
+                                default: return face.attributes.glass.value
+                                }
+                            }()
+                        )
+                        
+                        DetailRowView(
+                            title: "微笑程度",
+                            value: "\(Int(face.attributes.smile.value))%"
+                        )
+                    }
+                    .padding()
+                    .background(AppColors.primaryBg.swiftUIColor)
+                    .cornerRadius(12)
                 }
-                .padding()
-                .background(AppColors.primaryBg.swiftUIColor)
-                .cornerRadius(12)
             }
             .padding()
         }
@@ -127,82 +132,42 @@ public struct ResultsView: View {
 }
 
 @available(iOS 16.0, *)
-struct PhotoAnalysisRowView: View {
+struct SkinStatusRowView: View {
     let title: String
-    let score: Int
-    let description: String
-    let elements: [String]
+    let value: Double
+    let icon: String
+    let color: Color
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 4) {
             HStack {
+                Image(systemName: icon)
+                    .foregroundColor(color)
                 Text(title)
                     .font(.subheadline)
-                    .foregroundColor(AppColors.primary.swiftUIColor)
                 Spacer()
-                Text("\(score)")
+                Text("\(Int(value))%")
                     .font(.headline)
             }
             
-            Text(description)
-            
-            if !elements.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    ForEach(elements, id: \.self) { element in
-                        HStack(spacing: 8) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                            Text(element)
-                                .font(.subheadline)
-                        }
-                    }
-                }
-            }
+            ProgressView(value: value, total: 100)
+                .tint(color)
         }
     }
 }
 
 @available(iOS 16.0, *)
-struct TechnicalQualityView: View {
-    let quality: SkinAnalysisModels.TechnicalQuality
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("技術品質")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                Spacer()
-                Text("\(quality.qualityScore)")
-                    .font(.headline)
-            }
-            
-            Text("清晰度: \(quality.sharpness)")
-            Text("曝光: \(quality.exposure)")
-            Text("景深: \(quality.depthOfField)")
-        }
-    }
-}
-
-@available(iOS 16.0, *)
-struct FeatureDetailView: View {
+struct DetailRowView: View {
     let title: String
-    let detail: SkinAnalysisModels.FeatureDetail
+    let value: String
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(title)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                Spacer()
-                if let score = detail.balanceScore ?? detail.clarityScore ?? detail.harmonyScore ?? 
-                              detail.proportionScore ?? detail.contourScore ?? detail.definitionScore {
-                    Text("\(score)")
-                        .font(.headline)
-                }
-            }
-            Text(detail.description)
+        HStack {
+            Text(title)
+                .font(.subheadline)
+            Spacer()
+            Text(value)
+                .font(.headline)
         }
     }
 }
@@ -211,11 +176,8 @@ struct FeatureDetailView: View {
 @available(iOS 16.0, *)
 struct ResultsView_Previews: PreviewProvider {
     static var previews: some View {
-        NavigationView {
-            ResultsView(
-                isPresented: .constant(true),
-                result: .preview
-            )
+        NavigationStack {
+            ResultsView(isPresented: .constant(true), result: .preview)
         }
     }
 }
