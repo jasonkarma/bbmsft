@@ -1,6 +1,87 @@
 import Foundation
 
 extension BMNetwork {
+    // MARK: - URL Form Encoder
+    final class URLFormEncoder {
+        func encode<T: Encodable>(_ value: T) throws -> Data {
+            let encoder = FormValueEncoder()
+            try value.encode(to: encoder)
+            let pairs = encoder.values.map { key, value in
+                let encodedKey = key.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? key
+                let encodedValue = value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? value
+                return "\(encodedKey)=\(encodedValue)"
+            }
+            return pairs.joined(separator: "&").data(using: .utf8) ?? Data()
+        }
+    }
+    
+    private class FormValueEncoder: Encoder {
+        var codingPath: [CodingKey] = []
+        var userInfo: [CodingUserInfoKey : Any] = [:]
+        var values: [String: String] = [:]
+        
+        func container<Key>(keyedBy type: Key.Type) -> KeyedEncodingContainer<Key> where Key : CodingKey {
+            return KeyedEncodingContainer(FormKeyedEncoder(encoder: self))
+        }
+        
+        func unkeyedContainer() -> UnkeyedEncodingContainer {
+            fatalError("Unkeyed encoding not supported for form data")
+        }
+        
+        func singleValueContainer() -> SingleValueEncodingContainer {
+            fatalError("Single value encoding not supported for form data")
+        }
+        
+        private struct FormKeyedEncoder<Key: CodingKey>: KeyedEncodingContainerProtocol {
+            var codingPath: [CodingKey] = []
+            let encoder: FormValueEncoder
+            
+            mutating func encodeNil(forKey key: Key) throws {}
+            
+            mutating func encode(_ value: String, forKey key: Key) throws {
+                encoder.values[key.stringValue] = value
+            }
+            
+            mutating func encode(_ value: Bool, forKey key: Key) throws {
+                encoder.values[key.stringValue] = value ? "true" : "false"
+            }
+            
+            mutating func encode(_ value: Int, forKey key: Key) throws {
+                encoder.values[key.stringValue] = "\(value)"
+            }
+            
+            mutating func encode(_ value: Double, forKey key: Key) throws {
+                encoder.values[key.stringValue] = "\(value)"
+            }
+            
+            mutating func encode<T>(_ value: T, forKey key: Key) throws where T : Encodable {
+                encoder.values[key.stringValue] = "\(value)"
+            }
+            
+            mutating func encodeIfPresent(_ value: String?, forKey key: Key) throws {
+                if let value = value {
+                    try encode(value, forKey: key)
+                }
+            }
+            
+            mutating func nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type, forKey key: Key) -> KeyedEncodingContainer<NestedKey> where NestedKey : CodingKey {
+                fatalError("Nested encoding not supported for form data")
+            }
+            
+            mutating func nestedUnkeyedContainer(forKey key: Key) -> UnkeyedEncodingContainer {
+                fatalError("Nested unkeyed encoding not supported for form data")
+            }
+            
+            mutating func superEncoder() -> Encoder {
+                fatalError("Super encoding not supported for form data")
+            }
+            
+            mutating func superEncoder(forKey key: Key) -> Encoder {
+                fatalError("Super encoding not supported for form data")
+            }
+        }
+    }
+    
     struct ErrorResponse: Codable {
         let error: String
     }
@@ -151,9 +232,15 @@ extension BMNetwork {
             
             // Add request body if present
             if let body = request.body {
-                let encoder = JSONEncoder()
-                encoder.keyEncodingStrategy = .convertToSnakeCase
-                urlRequest.httpBody = try encoder.encode(body)
+                if let customEncoder = request.endpoint as? RequestBodyEncodable {
+                    // Use endpoint's custom encoding if available
+                    urlRequest.httpBody = try customEncoder.encodeRequestBody(request: body)
+                } else {
+                    // Default to JSON encoding
+                    let encoder = JSONEncoder()
+                    encoder.keyEncodingStrategy = .useDefaultKeys // Don't convert to snake case, use the keys as defined
+                    urlRequest.httpBody = try encoder.encode(body)
+                }
             }
             
             // Debug logging

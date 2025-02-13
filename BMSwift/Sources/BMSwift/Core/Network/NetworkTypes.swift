@@ -48,6 +48,14 @@ public enum BMNetwork {
     }
     
     // MARK: - API Endpoint Protocol
+    /// Protocol for endpoints that need custom request body encoding
+    public protocol RequestBodyEncodable {
+        /// Encode the request body according to the endpoint's requirements
+        /// - Parameter request: The request to encode
+        /// - Returns: The encoded request body data
+        func encodeRequestBody<T: Encodable>(request: T) throws -> Data
+    }
+    
     public protocol APIEndpoint {
         associatedtype RequestType: Encodable
         associatedtype ResponseType: Decodable
@@ -106,6 +114,7 @@ public enum BMNetwork {
         case serverError(String)
         case networkError(Error)
         case decodingError(Error)
+        case encodingError(String)
         
         public var errorDescription: String? {
             switch self {
@@ -123,6 +132,8 @@ public enum BMNetwork {
                 return "Network error: \(error.localizedDescription)"
             case .decodingError(let error):
                 return "Failed to decode response: \(error.localizedDescription)"
+            case .encodingError(let message):
+                return "Failed to encode request: \(message)"
             }
         }
     }

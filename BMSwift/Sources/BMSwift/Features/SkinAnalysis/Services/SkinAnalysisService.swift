@@ -18,37 +18,27 @@ public protocol SkinAnalysisServiceProtocol {
     func analyzeSkin(imageUrl: String) async throws -> SkinAnalysisModels.Response
 }
 
-/// Implementation of the skin analysis service
-public actor SkinAnalysisServiceImpl: SkinAnalysisServiceProtocol {
-    // MARK: - Properties
-    private let client: BMNetwork.NetworkClient
+/// Global rate limiter for Face++ API requests
+public actor FacePlusPlusRateLimiter {
+    public static let shared = FacePlusPlusRateLimiter()
     
-    // API requirements
-    private let minImageSize: CGFloat = 500
-    private let maxImageSize: CGFloat = 2000
-    private let maxFileSize: Int = 3 * 1024 * 1024 // 3MB in bytes
-    private let maxFaceRatio: CGFloat = 0.8
-    private let minFaceRatio: CGFloat = 0.2
-    
-    // Rate limiting
-    private var isProcessing = false
-    private var lastRequestTime: Date?
+    @MainActor private var isProcessing = false
+    @MainActor private var lastRequestTime: Date?
     private let minRequestInterval: TimeInterval = 1.0 // Minimum 1 second between requests
+    @MainActor private var requestQueue: [CheckedContinuation<Void, Error>] = []
     
-    // MARK: - Initialization
-    public init(client: BMNetwork.NetworkClient = .shared) {
-        self.client = client
-    }
+    public init() {}
     
-    // MARK: - Public Methods
-    public func analyzeSkin(image: UIImage) async throws -> SkinAnalysisModels.Response {
-        // Check if we're already processing a request
-        guard !isProcessing else {
-            throw BMSwift.SkinAnalysisError.requestInProgress
+    public func waitForTurn() async throws {
+        if await isProcessing {
+            return try await withCheckedThrowingContinuation { continuation in
+                Task { @MainActor in
+                    requestQueue.append(continuation)
+                }
+            }
         }
         
-        // Check rate limit
-        if let lastTime = lastRequestTime {
+        if let lastTime = await lastRequestTime {
             let timeSinceLastRequest = Date().timeIntervalSince(lastTime)
             if timeSinceLastRequest < minRequestInterval {
                 let waitTime = minRequestInterval - timeSinceLastRequest
@@ -56,11 +46,47 @@ public actor SkinAnalysisServiceImpl: SkinAnalysisServiceProtocol {
             }
         }
         
-        isProcessing = true
-        defer {
-            isProcessing = false
-            lastRequestTime = Date()
+        await MainActor.run { isProcessing = true }
+    }
+    
+    @MainActor public func finishRequest() {
+        isProcessing = false
+        lastRequestTime = Date()
+        
+        if let nextRequest = requestQueue.first {
+            requestQueue.removeFirst()
+            nextRequest.resume(returning: ())
         }
+    }
+}
+
+/// Implementation of the skin analysis service
+public actor SkinAnalysisServiceImpl: SkinAnalysisServiceProtocol {
+    // MARK: - Properties
+    private let client: BMNetwork.NetworkClient
+    private let rateLimiter: FacePlusPlusRateLimiter
+    
+    // API requirements
+    private let minImageSize: CGFloat = 500
+    private let maxImageSize: CGFloat = 2000
+    private let maxFileSize: Int = 2 * 1024 * 1024 // 2MB in bytes (Face++ limit)
+    private let maxFaceRatio: CGFloat = 0.8
+    private let minFaceRatio: CGFloat = 0.2
+    
+    // MARK: - Initialization
+    public init(
+        client: BMNetwork.NetworkClient = .shared,
+        rateLimiter: FacePlusPlusRateLimiter = .shared
+    ) {
+        self.client = client
+        self.rateLimiter = rateLimiter
+    }
+    
+    // MARK: - Public Methods
+    public func analyzeSkin(image: UIImage) async throws -> SkinAnalysisModels.Response {
+        // Wait for our turn in the rate limiter
+        try await rateLimiter.waitForTurn()
+        defer { Task { @MainActor in rateLimiter.finishRequest() } }
         
         print("DEBUG: Original image size: \(image.size)")
         
@@ -73,13 +99,33 @@ public actor SkinAnalysisServiceImpl: SkinAnalysisServiceProtocol {
         print("DEBUG: Processed image size: \(processedImage.size)")
         
         // 3. Convert to JPEG with appropriate compression
+        let imageData = try await compressImage(processedImage)
+        print("DEBUG: Final image size: \(imageData.count / 1024)KB")
+        
+        // 4. Make API request with image data
+        let request = SkinAnalysisEndpoints.Analyze.Request(image: imageData)
+        return try await client.send(SkinAnalysisEndpoints.analyzeSkin(request: request))
+    }
+    
+    public func analyzeSkin(imageUrl: String) async throws -> SkinAnalysisModels.Response {
+        // Wait for our turn in the rate limiter
+        try await rateLimiter.waitForTurn()
+        defer { Task { @MainActor in rateLimiter.finishRequest() } }
+        
+        print("DEBUG: Using image URL method with URL: \(imageUrl)")
+        let request = SkinAnalysisEndpoints.Analyze.Request(imageUrl: imageUrl)
+        return try await client.send(SkinAnalysisEndpoints.analyzeSkin(request: request))
+    }
+    
+    // MARK: - Private Methods
+    private func compressImage(_ image: UIImage) async throws -> Data {
         var compressionQuality: CGFloat = 0.9 // Start with high quality
-        var imageData = processedImage.jpegData(compressionQuality: compressionQuality)
+        var imageData = image.jpegData(compressionQuality: compressionQuality)
         
         // Progressive compression strategy
         while let data = imageData, data.count > maxFileSize && compressionQuality > 0.1 {
             compressionQuality -= 0.1
-            imageData = processedImage.jpegData(compressionQuality: compressionQuality)
+            imageData = image.jpegData(compressionQuality: compressionQuality)
             print("DEBUG: Compression attempt - Quality: \(compressionQuality), Size: \(data.count / 1024)KB")
         }
         
@@ -88,7 +134,7 @@ public actor SkinAnalysisServiceImpl: SkinAnalysisServiceProtocol {
             let aggressiveQualities: [CGFloat] = [0.08, 0.05, 0.03]
             
             for quality in aggressiveQualities {
-                imageData = processedImage.jpegData(compressionQuality: quality)
+                imageData = image.jpegData(compressionQuality: quality)
                 if let data = imageData, data.count <= maxFileSize {
                     compressionQuality = quality
                     print("DEBUG: Aggressive compression successful - Quality: \(quality), Size: \(data.count / 1024)KB")
@@ -105,37 +151,7 @@ public actor SkinAnalysisServiceImpl: SkinAnalysisServiceProtocol {
             throw BMSwift.SkinAnalysisError.imageTooLarge(Double(finalImageData.count) / Double(1024 * 1024))
         }
         
-        print("DEBUG: Final image - Quality: \(compressionQuality), Size: \(finalImageData.count / 1024)KB")
-        
-        // 4. Make API request with image data
-        let request = SkinAnalysisEndpoints.Analyze.Request(image: finalImageData)
-        return try await client.send(SkinAnalysisEndpoints.analyzeSkin(request: request))
-    }
-    
-    public func analyzeSkin(imageUrl: String) async throws -> SkinAnalysisModels.Response {
-        // Check if we're already processing a request
-        guard !isProcessing else {
-            throw BMSwift.SkinAnalysisError.requestInProgress
-        }
-        
-        // Check rate limit
-        if let lastTime = lastRequestTime {
-            let timeSinceLastRequest = Date().timeIntervalSince(lastTime)
-            if timeSinceLastRequest < minRequestInterval {
-                let waitTime = minRequestInterval - timeSinceLastRequest
-                try await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
-            }
-        }
-        
-        isProcessing = true
-        defer {
-            isProcessing = false
-            lastRequestTime = Date()
-        }
-        
-        print("DEBUG: Using image URL method with URL: \(imageUrl)")
-        let request = SkinAnalysisEndpoints.Analyze.Request(imageUrl: imageUrl)
-        return try await client.send(SkinAnalysisEndpoints.analyzeSkin(request: request))
+        return finalImageData
     }
     
     private func detectFace(in image: UIImage) async throws -> CGRect {
