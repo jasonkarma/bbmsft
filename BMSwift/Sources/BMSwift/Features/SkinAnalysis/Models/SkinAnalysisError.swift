@@ -18,6 +18,7 @@ public enum SkinAnalysisError: LocalizedError, Equatable {
     case invalidSpecification
     case invalidAspectRatio(CGFloat)
     case requestInProgress
+    case concurrencyLimitExceeded
     
     public var errorDescription: String? {
         switch self {
@@ -49,6 +50,8 @@ public enum SkinAnalysisError: LocalizedError, Equatable {
             return "Received invalid response from server"
         case .invalidSpecification:
             return "Invalid analysis specification"
+        case .concurrencyLimitExceeded:
+            return "Too many requests. Please try again in a moment."
         case .invalidAspectRatio(let ratio):
             return "Invalid aspect ratio: \(String(format: "%.2f", ratio))"
         case .requestInProgress:

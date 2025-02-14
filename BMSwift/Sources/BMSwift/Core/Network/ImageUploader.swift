@@ -36,8 +36,9 @@ extension BMNetwork {
             }
             
             // Create multipart form data
-            let boundary = "Boundary-\(UUID().uuidString)"
-            var request = URLRequest(url: configuration.baseURL.appendingPathComponent("image"))
+            let boundary = "--Boundary-\(UUID().uuidString)"
+            let url = configuration.baseURL.appendingPathComponent("image")
+            var request = URLRequest(url: url)
             request.httpMethod = "POST"
             request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
             
@@ -47,12 +48,17 @@ extension BMNetwork {
             
             // Create body
             var body = Data()
-            body.append("--\(boundary)\r\n")
-            body.append("Content-Disposition: form-data; name=\"image\"; filename=\"image.jpg\"\r\n")
-            body.append("Content-Type: image/jpeg\r\n\r\n")
+            
+            // Add image field
+            body.append(boundary.data(using: .utf8)!)
+            body.append("\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"image\"; filename=\"image.jpg\"\r\n".data(using: .utf8)!)
+            body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
             body.append(imageData)
-            body.append("\r\n")
-            body.append("--\(boundary)--\r\n")
+            body.append("\r\n".data(using: .utf8)!)
+            
+            // Add final boundary
+            body.append("\(boundary)--\r\n".data(using: .utf8)!)
             
             request.httpBody = body
             
@@ -95,6 +101,7 @@ extension BMNetwork {
         case invalidResponse
         case serverError(String)
         case tokenError(String)
+        case invalidURL
         
         public var errorDescription: String? {
             switch self {
@@ -106,6 +113,8 @@ extension BMNetwork {
                 return "Server error: \(message)"
             case .tokenError(let message):
                 return "Token error: \(message)"
+            case .invalidURL:
+                return "Invalid base URL configuration"
             }
         }
     }

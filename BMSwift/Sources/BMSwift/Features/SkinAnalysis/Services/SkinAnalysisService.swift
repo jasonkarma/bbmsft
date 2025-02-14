@@ -104,7 +104,23 @@ public actor SkinAnalysisServiceImpl: SkinAnalysisServiceProtocol {
         
         // 4. Make API request with image data
         let request = SkinAnalysisEndpoints.Analyze.Request(image: imageData)
-        return try await client.send(SkinAnalysisEndpoints.analyzeSkin(request: request))
+        let response = try await client.send(SkinAnalysisEndpoints.analyzeSkin(request: request))
+        
+        // 5. Validate API response
+        if let errorMessage = response.errorMessage {
+            switch errorMessage {
+            case _ where errorMessage.contains("CONCURRENCY_LIMIT_EXCEEDED"):
+                throw SkinAnalysisError.concurrencyLimitExceeded
+            case _ where errorMessage.contains("MISSING_ARGUMENTS"):
+                throw SkinAnalysisError.analysisError("Missing required parameters")
+            case _ where errorMessage.contains("INVALID_IMAGE_SIZE"):
+                throw SkinAnalysisError.imageTooLarge(Double(imageData.count) / Double(1024 * 1024))
+            default:
+                throw SkinAnalysisError.analysisError(errorMessage)
+            }
+        }
+        
+        return response
     }
     
     public func analyzeSkin(imageUrl: String) async throws -> SkinAnalysisModels.Response {
@@ -114,7 +130,23 @@ public actor SkinAnalysisServiceImpl: SkinAnalysisServiceProtocol {
         
         print("DEBUG: Using image URL method with URL: \(imageUrl)")
         let request = SkinAnalysisEndpoints.Analyze.Request(imageUrl: imageUrl)
-        return try await client.send(SkinAnalysisEndpoints.analyzeSkin(request: request))
+        let response = try await client.send(SkinAnalysisEndpoints.analyzeSkin(request: request))
+        
+        // Validate API response
+        if let errorMessage = response.errorMessage {
+            switch errorMessage {
+            case _ where errorMessage.contains("CONCURRENCY_LIMIT_EXCEEDED"):
+                throw SkinAnalysisError.concurrencyLimitExceeded
+            case _ where errorMessage.contains("MISSING_ARGUMENTS"):
+                throw SkinAnalysisError.analysisError("Missing required parameters")
+            case _ where errorMessage.contains("INVALID_IMAGE_URL"):
+                throw SkinAnalysisError.analysisError("Invalid or inaccessible image URL")
+            default:
+                throw SkinAnalysisError.analysisError(errorMessage)
+            }
+        }
+        
+        return response
     }
     
     // MARK: - Private Methods

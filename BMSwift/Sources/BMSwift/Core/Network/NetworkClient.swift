@@ -193,11 +193,17 @@ extension BMNetwork {
             // Create URL components
             var components = URLComponents()
             
-            // Use endpoint's baseURL if provided, otherwise use configuration's baseURL
-            let baseURL = request.endpoint.baseURL ?? configuration.baseURL
-            components.scheme = baseURL.scheme
-            components.host = baseURL.host
-            components.path = request.endpoint.path
+            // Always use endpoint's baseURL if provided
+            if let endpointBaseURL = request.endpoint.baseURL {
+                components.scheme = endpointBaseURL.scheme
+                components.host = endpointBaseURL.host
+                components.path = request.endpoint.path
+            } else {
+                // Fall back to configuration's baseURL
+                components.scheme = configuration.baseURL.scheme
+                components.host = configuration.baseURL.host
+                components.path = request.endpoint.path
+            }
             components.queryItems = request.queryItems ?? request.endpoint.queryItems
             
             guard let url = components.url else {
@@ -211,14 +217,24 @@ extension BMNetwork {
             urlRequest.timeoutInterval = request.endpoint.timeoutInterval ?? configuration.timeoutInterval
             urlRequest.cachePolicy = request.endpoint.cachePolicy ?? configuration.cachePolicy
             
-            // Apply default headers from configuration
-            configuration.defaultHeaders.forEach { key, value in
-                urlRequest.setValue(value, forHTTPHeaderField: key)
-            }
-            
-            // Apply endpoint-specific headers (these override defaults)
-            request.endpoint.headers.forEach { key, value in
-                urlRequest.setValue(value, forHTTPHeaderField: key)
+            // If endpoint provides Content-Type, use only endpoint headers
+            if request.endpoint.headers["Content-Type"] != nil {
+                print("DEBUG: Using endpoint-specific headers only")
+                request.endpoint.headers.forEach { key, value in
+                    urlRequest.setValue(value, forHTTPHeaderField: key)
+                }
+            } else {
+                // Apply endpoint-specific headers first
+                request.endpoint.headers.forEach { key, value in
+                    urlRequest.setValue(value, forHTTPHeaderField: key)
+                }
+                
+                // Only apply default headers if no Content-Type is specified
+                configuration.defaultHeaders.forEach { key, value in
+                    if urlRequest.value(forHTTPHeaderField: key) == nil {
+                        urlRequest.setValue(value, forHTTPHeaderField: key)
+                    }
+                }
             }
             
             // Apply auth token if required
@@ -231,15 +247,28 @@ extension BMNetwork {
             }
             
             // Add request body if present
+            print("DEBUG: Preparing request body")
             if let body = request.body {
+                print("DEBUG: Request body type: \(type(of: body))")
+                print("DEBUG: Endpoint type: \(type(of: request.endpoint))")
                 if let customEncoder = request.endpoint as? RequestBodyEncodable {
+                    print("DEBUG: Using custom request body encoder")
                     // Use endpoint's custom encoding if available
                     urlRequest.httpBody = try customEncoder.encodeRequestBody(request: body)
+                    print("DEBUG: Request body size: \(urlRequest.httpBody?.count ?? 0) bytes")
+                    if let bodyString = String(data: urlRequest.httpBody ?? Data(), encoding: .utf8) {
+                        print("DEBUG: First 500 chars of request body:\n\(String(bodyString.prefix(500)))")
+                    }
                 } else {
+                    print("DEBUG: Using default JSON encoder")
                     // Default to JSON encoding
                     let encoder = JSONEncoder()
                     encoder.keyEncodingStrategy = .useDefaultKeys // Don't convert to snake case, use the keys as defined
                     urlRequest.httpBody = try encoder.encode(body)
+                    print("DEBUG: Request body size: \(urlRequest.httpBody?.count ?? 0) bytes")
+                    if let bodyString = String(data: urlRequest.httpBody ?? Data(), encoding: .utf8) {
+                        print("DEBUG: Request body JSON:\n\(bodyString)")
+                    }
                 }
             }
             
@@ -247,6 +276,16 @@ extension BMNetwork {
             print("Request URL: \(urlRequest.url?.absoluteString ?? "")")
             print("Request Method: \(urlRequest.httpMethod ?? "")")
             print("Request Headers: \(urlRequest.allHTTPHeaderFields ?? [:])")
+            
+            // Final request validation
+            print("DEBUG: Final request validation:")
+            print("- URL: \(urlRequest.url?.absoluteString ?? "nil")")
+            print("- Method: \(urlRequest.httpMethod ?? "nil")")
+            print("- Headers: \(urlRequest.allHTTPHeaderFields ?? [:])")
+            print("- Body size: \(urlRequest.httpBody?.count ?? 0) bytes")
+            if let body = urlRequest.httpBody, let preview = String(data: body.prefix(200), encoding: .utf8) {
+                print("- Body preview: \(preview)")
+            }
             
             return urlRequest
         }
