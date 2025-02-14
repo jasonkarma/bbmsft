@@ -189,6 +189,26 @@ extension BMNetwork {
         
         // MARK: - Private Methods
         
+        private func encodeRequestBody<T: Encodable>(_ body: T, using endpoint: any APIEndpoint) throws -> Data {
+            // Use endpoint's custom encoding if available
+            if let customEncoder = endpoint as? RequestBodyEncodable {
+                let encodedData = try customEncoder.encodeRequestBody(request: body)
+                guard encodedData.count > 0 else {
+                    throw BMNetwork.APIError.encodingError("Encoded request body is empty")
+                }
+                return encodedData
+            }
+            
+            // Default to JSON encoding
+            let encoder = JSONEncoder()
+            encoder.keyEncodingStrategy = .useDefaultKeys
+            let encodedData = try encoder.encode(body)
+            guard encodedData.count > 0 else {
+                throw BMNetwork.APIError.encodingError("JSON encoded request body is empty")
+            }
+            return encodedData
+        }
+        
         private func createURLRequest<E: BMNetwork.APIEndpoint>(for request: BMNetwork.APIRequest<E>) throws -> URLRequest {
             // Create URL components
             var components = URLComponents()
@@ -217,23 +237,58 @@ extension BMNetwork {
             urlRequest.timeoutInterval = request.endpoint.timeoutInterval ?? configuration.timeoutInterval
             urlRequest.cachePolicy = request.endpoint.cachePolicy ?? configuration.cachePolicy
             
-            // If endpoint provides Content-Type, use only endpoint headers
-            if request.endpoint.headers["Content-Type"] != nil {
-                print("DEBUG: Using endpoint-specific headers only")
-                request.endpoint.headers.forEach { key, value in
-                    urlRequest.setValue(value, forHTTPHeaderField: key)
-                }
-            } else {
-                // Apply endpoint-specific headers first
-                request.endpoint.headers.forEach { key, value in
-                    urlRequest.setValue(value, forHTTPHeaderField: key)
+            // Handle request body if present
+            if let body = request.body {
+                print("\nDEBUG: === Encoding Request Body ===\n")
+                print("Request body type: \(type(of: body))")
+                
+                // 1. Encode body
+                let encodedData = try encodeRequestBody(body, using: request.endpoint)
+                
+                // 2. Validate body if endpoint supports validation
+                if let validator = request.endpoint as? RequestBodyValidatable {
+                    print("DEBUG: Validating request body...")
+                    try validator.validateRequestBody(encodedData, headers: urlRequest.allHTTPHeaderFields ?? [:])
+                    print("DEBUG: Request body validation successful")
                 }
                 
-                // Only apply default headers if no Content-Type is specified
-                configuration.defaultHeaders.forEach { key, value in
-                    if urlRequest.value(forHTTPHeaderField: key) == nil {
-                        urlRequest.setValue(value, forHTTPHeaderField: key)
-                    }
+                urlRequest.httpBody = encodedData
+                
+                // Print debug info about the request body
+                #if DEBUG
+                print("\nDEBUG: === Request Body Details ===\n")
+                print("Body size: \(encodedData.count) bytes")
+                if let bodyString = String(data: encodedData, encoding: .utf8) {
+                    print("Complete body content:\n\(bodyString)")
+                }
+                print("\nDEBUG: === Request Headers ===\n")
+                urlRequest.allHTTPHeaderFields?.forEach { key, value in
+                    print("\(key): \(value)")
+                }
+                #endif
+            }
+            
+            // Apply headers in correct order:
+            // 1. First apply endpoint headers
+            request.endpoint.headers.forEach { key, value in
+                print("DEBUG: Setting endpoint header: \(key) = \(value)")
+                urlRequest.setValue(value, forHTTPHeaderField: key)
+            }
+            
+            // 2. Then apply body-specific headers if present
+            if let headerCustomizer = request.endpoint as? HeadersCustomizable,
+               let bodyData = urlRequest.httpBody {
+                headerCustomizer.customizeHeaders(for: bodyData).forEach { key, value in
+                    print("DEBUG: Setting body-specific header: \(key) = \(value)")
+                    urlRequest.setValue(value, forHTTPHeaderField: key)
+                }
+            }
+            
+            // 3. Finally apply default headers for any missing fields
+            configuration.defaultHeaders.forEach { key, value in
+                if urlRequest.value(forHTTPHeaderField: key) == nil {
+                    print("DEBUG: Setting default header: \(key) = \(value)")
+                    urlRequest.setValue(value, forHTTPHeaderField: key)
                 }
             }
             
@@ -246,46 +301,16 @@ extension BMNetwork {
                 }
             }
             
-            // Add request body if present
-            print("DEBUG: Preparing request body")
-            if let body = request.body {
-                print("DEBUG: Request body type: \(type(of: body))")
-                print("DEBUG: Endpoint type: \(type(of: request.endpoint))")
-                if let customEncoder = request.endpoint as? RequestBodyEncodable {
-                    print("DEBUG: Using custom request body encoder")
-                    // Use endpoint's custom encoding if available
-                    urlRequest.httpBody = try customEncoder.encodeRequestBody(request: body)
-                    print("DEBUG: Request body size: \(urlRequest.httpBody?.count ?? 0) bytes")
-                    if let bodyString = String(data: urlRequest.httpBody ?? Data(), encoding: .utf8) {
-                        print("DEBUG: First 500 chars of request body:\n\(String(bodyString.prefix(500)))")
-                    }
-                } else {
-                    print("DEBUG: Using default JSON encoder")
-                    // Default to JSON encoding
-                    let encoder = JSONEncoder()
-                    encoder.keyEncodingStrategy = .useDefaultKeys // Don't convert to snake case, use the keys as defined
-                    urlRequest.httpBody = try encoder.encode(body)
-                    print("DEBUG: Request body size: \(urlRequest.httpBody?.count ?? 0) bytes")
-                    if let bodyString = String(data: urlRequest.httpBody ?? Data(), encoding: .utf8) {
-                        print("DEBUG: Request body JSON:\n\(bodyString)")
-                    }
+            #if DEBUG
+            // Log request details in debug builds only
+            if let url = urlRequest.url {
+                print("[NetworkClient] Request: \(urlRequest.httpMethod ?? "GET") \(url.absoluteString)")
+                print("[NetworkClient] Headers: \(urlRequest.allHTTPHeaderFields ?? [:])")
+                if let bodySize = urlRequest.httpBody?.count {
+                    print("[NetworkClient] Body size: \(bodySize) bytes")
                 }
             }
-            
-            // Debug logging
-            print("Request URL: \(urlRequest.url?.absoluteString ?? "")")
-            print("Request Method: \(urlRequest.httpMethod ?? "")")
-            print("Request Headers: \(urlRequest.allHTTPHeaderFields ?? [:])")
-            
-            // Final request validation
-            print("DEBUG: Final request validation:")
-            print("- URL: \(urlRequest.url?.absoluteString ?? "nil")")
-            print("- Method: \(urlRequest.httpMethod ?? "nil")")
-            print("- Headers: \(urlRequest.allHTTPHeaderFields ?? [:])")
-            print("- Body size: \(urlRequest.httpBody?.count ?? 0) bytes")
-            if let body = urlRequest.httpBody, let preview = String(data: body.prefix(200), encoding: .utf8) {
-                print("- Body preview: \(preview)")
-            }
+            #endif
             
             return urlRequest
         }

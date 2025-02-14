@@ -47,13 +47,32 @@ public enum BMNetwork {
         func send<E: APIEndpoint>(_ request: APIRequest<E>) async throws -> E.ResponseType
     }
     
-    // MARK: - API Endpoint Protocol
+    // MARK: - Request Encoding Protocols
+    
     /// Protocol for endpoints that need custom request body encoding
     public protocol RequestBodyEncodable {
         /// Encode the request body according to the endpoint's requirements
         /// - Parameter request: The request to encode
         /// - Returns: The encoded request body data
         func encodeRequestBody<T: Encodable>(request: T) throws -> Data
+    }
+    
+    /// Protocol for endpoints that need to validate their request body
+    public protocol RequestBodyValidatable {
+        /// Validate the encoded request body before sending
+        /// - Parameters:
+        ///   - body: The encoded body data
+        ///   - headers: The current request headers
+        /// - Throws: APIError if validation fails
+        func validateRequestBody(_ body: Data, headers: [String: String]) throws
+    }
+    
+    /// Protocol for endpoints that need to modify headers based on the request body
+    public protocol HeadersCustomizable {
+        /// Customize headers based on the request body
+        /// - Parameter body: The request body to consider
+        /// - Returns: Additional headers to apply
+        func customizeHeaders(for body: Data) -> [String: String]
     }
     
     public protocol APIEndpoint {

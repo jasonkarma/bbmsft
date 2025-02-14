@@ -9,21 +9,41 @@ public enum SkinAnalysisEndpoints {
     
     /// Endpoint for analyzing skin images.
     /// This endpoint sends image data to Face++ API's face analysis service and receives detailed analysis results.
-    public struct Analyze: BMNetwork.APIEndpoint, BMNetwork.RequestBodyEncodable {
+    public struct Analyze: BMNetwork.APIEndpoint, BMNetwork.RequestBodyEncodable, BMNetwork.RequestBodyValidatable, BMNetwork.HeadersCustomizable {
         // Explicitly declare conformance to RequestBodyEncodable
-        public func encodeRequestBody<T>(request: T) throws -> Data where T : Encodable {
-            print("DEBUG: encodeRequestBody called with type: \(type(of: request))")
-            guard let request = request as? Request else {
+        public func encodeRequestBody<T: Encodable>(request: T) throws -> Data {
+            print("\nDEBUG: === Starting Request Encoding ===\n")
+            print("DEBUG: Request type: \(type(of: request))")
+            
+            guard let typedRequest = request as? Request else {
                 print("DEBUG: Error - Invalid request type: \(type(of: request))")
                 throw BMNetwork.APIError.encodingError("Invalid request type")
             }
-            return try encodeMultipartFormData(request: request)
+            
+            print("DEBUG: Request details:")
+            print("- API Key: \(typedRequest.apiKey)")
+            print("- API Secret: \(typedRequest.apiSecret)")
+            print("- Image URL: \(typedRequest.imageUrl ?? "nil")")
+            print("- Image Data: \(typedRequest.image?.count ?? 0) bytes")
+            
+            let formData = try encodeMultipartFormData(request: typedRequest)
+            
+            // Debug: Print first 1000 chars of form data
+            if let preview = String(data: formData.prefix(1000), encoding: .utf8) {
+                print("\nDEBUG: Form Data Preview (first 1000 chars):")
+                print(preview)
+                print("\nDEBUG: Form Data Size: \(formData.count) bytes")
+            }
+            
+            return formData
         }
         
         public typealias RequestType = Request
         public typealias ResponseType = SkinAnalysisModels.Response
         
 
+        // MARK: - Endpoint Configuration
+        
         // Override default base URL to use Face++ API
         public var baseURL: URL? { URL(string: "https://api-cn.faceplusplus.com") }
         public let path: String = "/facepp/v3/detect"
@@ -32,12 +52,41 @@ public enum SkinAnalysisEndpoints {
         public var timeoutInterval: TimeInterval? { 60 }
         public var cachePolicy: URLRequest.CachePolicy? { .reloadIgnoringLocalAndRemoteCacheData }
         
-        private let boundary = "--Boundary-\(UUID().uuidString)"
+        private let boundary = "Boundary-\(UUID().uuidString)"
         
         public var headers: [String: String] {
-            let headers = ["Content-Type": "multipart/form-data; boundary=\(boundary)"]
-            print("DEBUG: Setting request headers: \(headers)")
-            return headers
+            ["Content-Type": "multipart/form-data; boundary=\(boundary)"]
+        }
+        
+        // MARK: - Request Body Validation
+        
+        public func validateRequestBody(_ body: Data, headers: [String: String]) throws {
+            // Verify Content-Type header exists and has boundary
+            guard let contentType = headers["Content-Type"],
+                  contentType.hasPrefix("multipart/form-data"),
+                  let boundary = contentType.components(separatedBy: "boundary=").last?.trimmingCharacters(in: .whitespaces) else {
+                throw BMNetwork.APIError.encodingError("Invalid Content-Type header for multipart form data")
+            }
+            
+            // Verify boundary exists in body
+            guard let bodyString = String(data: body.prefix(1000), encoding: .utf8),
+                  bodyString.contains(boundary.trimmingCharacters(in: CharacterSet(charactersIn: "-"))) else {
+                throw BMNetwork.APIError.encodingError("Boundary not found in request body")
+            }
+            
+            // Verify required fields
+            let requiredFields = ["api_key", "api_secret"]
+            for field in requiredFields {
+                if !bodyString.contains("name=\"\(field)\"") {
+                    throw BMNetwork.APIError.encodingError("Missing required field: \(field)")
+                }
+            }
+        }
+        
+        // MARK: - Headers Customization
+        
+        public func customizeHeaders(for body: Data) -> [String: String] {
+            [:] // Headers are already set in the endpoint configuration
         }
         
 
@@ -78,6 +127,7 @@ public enum SkinAnalysisEndpoints {
         
         public init(request: Request) {
             self.request = request
+            print("DEBUG: Initialized SkinAnalysisEndpoints.Analyze with request")
         }
         
         public var queryItems: [URLQueryItem]? { nil }
@@ -85,18 +135,24 @@ public enum SkinAnalysisEndpoints {
         public func encode(to encoder: Encoder) throws {}
         
         private func encodeMultipartFormData(request: Request) throws -> Data {
-            guard let request = request as? Request else {
-                throw BMNetwork.APIError.encodingError("Invalid request type")
-            }
-            
             var formData = Data()
             
-            print("DEBUG: Starting form data construction")
-            print("DEBUG: Using boundary: \(boundary)")
+            print("\nDEBUG: === Building Multipart Form Data ===\n")
+            print("DEBUG: Boundary: \(boundary)")
             
             // Add required fields first
+            print("\nDEBUG: Adding API credentials:")
             addFormField(name: "api_key", value: request.apiKey, to: &formData)
             addFormField(name: "api_secret", value: request.apiSecret, to: &formData)
+            
+            // Add final boundary
+            let finalBoundary = "--\(boundary)--\r\n"
+            formData.append(finalBoundary.data(using: .utf8)!)
+            
+            // Debug: Print the entire form data as string
+            if let formDataString = String(data: formData, encoding: .utf8) {
+                print("\nDEBUG: Complete Form Data:\n\(formDataString)\n")
+            }
             
             print("DEBUG: Added authentication fields:")
             print("- api_key: \(request.apiKey)")
@@ -123,9 +179,14 @@ public enum SkinAnalysisEndpoints {
             addFormField(name: "return_attributes", value: request.returnAttributes, to: &formData)
             
             // Add final boundary
-            formData.append("--\(boundary)--\r\n".data(using: .utf8)!)
+            formData.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
             
             print("DEBUG: Final form data size: \(formData.count) bytes")
+            
+            // Verify the form data contains the boundary
+            if let formString = String(data: formData.prefix(1000), encoding: .utf8) {
+                print("DEBUG: First 1000 chars of form data:\n\(formString)")
+            }
             
             return formData
         }
@@ -140,29 +201,54 @@ public enum SkinAnalysisEndpoints {
             return pairs.joined(separator: "&").data(using: .utf8) ?? Data()
         }
         private func addFormField(name: String, value: String, to data: inout Data) {
-            print("DEBUG: Adding form field: \(name)")
-            // Add boundary
-            data.append("--\(boundary)\r\n".data(using: .utf8)!)
-            // Add field header
-            let header = "Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n"
-            data.append(header.data(using: .utf8)!)
-            // Add field value
-            data.append("\(value)\r\n".data(using: .utf8)!)
-            print("DEBUG: Added field value: \(value)")
+            print("\nDEBUG: Adding field: \(name)")
+            
+            let boundaryLine = "--\(boundary)\r\n"
+            let headerLine = "Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n"
+            let valueLine = "\(value)\r\n"
+            
+            print("DEBUG: Field components:")
+            print("1. Boundary: \(boundaryLine)")
+            print("2. Header: \(headerLine)")
+            print("3. Value: \(valueLine)")
+            
+            let fieldData = boundaryLine.data(using: .utf8)! +
+                           headerLine.data(using: .utf8)! +
+                           valueLine.data(using: .utf8)!
+            
+            data.append(fieldData)
+            
+            print("DEBUG: Field added successfully")
+            print("DEBUG: Field data (decoded):\n\(String(data: fieldData, encoding: .utf8) ?? "<failed to decode>")")
         }
         
         private func addFileField(name: String, filename: String, data fileData: Data, to data: inout Data) {
-            print("DEBUG: Adding file field: \(name), filename: \(filename)")
-            // Add boundary
-            data.append("--\(boundary)\r\n".data(using: .utf8)!)
-            // Add file header
-            let header = "Content-Disposition: form-data; name=\"\(name)\"; filename=\"\(filename)\"\r\n"
-            data.append(header.data(using: .utf8)!)
-            data.append("Content-Type: application/octet-stream\r\n\r\n".data(using: .utf8)!)
-            // Add file data
+            print("\nDEBUG: === Adding File Field ===\n")
+            print("DEBUG: Field name: \(name)")
+            print("DEBUG: Filename: \(filename)")
+            print("DEBUG: File size: \(fileData.count) bytes")
+            
+            let boundaryLine = "--\(boundary)\r\n"
+            let headerLine = "Content-Disposition: form-data; name=\"\(name)\"; filename=\"\(filename)\"\r\n"
+            let contentTypeLine = "Content-Type: image/jpeg\r\n\r\n"
+            
+            print("\nDEBUG: File field components:")
+            print("1. Boundary: \(boundaryLine)")
+            print("2. Header: \(headerLine)")
+            print("3. Content-Type: \(contentTypeLine)")
+            
+            data.append(boundaryLine.data(using: .utf8)!)
+            data.append(headerLine.data(using: .utf8)!)
+            data.append(contentTypeLine.data(using: .utf8)!)
             data.append(fileData)
             data.append("\r\n".data(using: .utf8)!)
-            print("DEBUG: Added file data (\(fileData.count) bytes)")
+            
+            print("DEBUG: File field added successfully")
+            
+            // Verify field was added
+            if let preview = String(data: data.suffix(200), encoding: .utf8) {
+                print("DEBUG: Last 200 chars after adding file:\n\(preview)")
+            }
         }
     }
 }
