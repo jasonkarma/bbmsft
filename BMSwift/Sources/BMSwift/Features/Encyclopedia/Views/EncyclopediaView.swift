@@ -143,12 +143,10 @@ public struct EncyclopediaView: View {
                         encyclopediaViewModel: viewModel,
                         isPresented: $showingKeywordSearch
                     )
-                        .frame(maxWidth: .infinity)
-                        .padding(.horizontal)
-                        .transition(.move(edge: .top))
+                    .transition(.opacity)
                 }
             }
-            .animation(.easeInOut, value: showingKeywordSearch)
+            .animation(.easeInOut(duration: 0.2), value: showingKeywordSearch)
         }
     }
     

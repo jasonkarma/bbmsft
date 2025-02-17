@@ -71,47 +71,120 @@ internal struct KeywordSearchView: View {
                 
             case .loaded:
                 VStack(spacing: 16) {
-                    // Hot Keywords Section (Single line)
+                    // Hot Keywords Section
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("熱門關鍵字清單")
-                            .font(.system(size: 14, weight: .medium))
-                            .bmForegroundColor(AppColors.primary)
+                        HStack {
+                            Text("熱門關鍵字清單")
+                                .font(.system(size: 14, weight: .medium))
+                                .bmForegroundColor(AppColors.primary)
+                        }
+                        .padding(.horizontal)
                         
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
                                 ForEach(viewModel.hotKeywords) { keyword in
-                                    KeywordTagButton(hashtag: keyword.bp_hashtag) {
-                                        viewModel.keywordSelected(keyword)
+                                    KeywordTagButton(
+                                        hashtag: keyword.bp_hashtag,
+                                        isSelected: viewModel.selectedHashtag == keyword.bp_hashtag
+                                    ) {
+                                        viewModel.selectHashtag(keyword.bp_hashtag)
                                     }
                                 }
                             }
-                            .padding(.horizontal, 4)
+                            .padding(.horizontal)
                         }
-                        .frame(height: 32)
+                        .frame(height: 50)
                     }
-                    .padding(.horizontal)
+                    .opacity(viewModel.selectedHashtag == nil ? 1.0 : 0.6)
                     
                     Divider()
                         .background(AppColors.gray.swiftUIColor)
                     
                     // All Keywords Section (Three lines with vertical scroll)
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("全部關鍵字清單")
-                            .font(.system(size: 14, weight: .medium))
-                            .bmForegroundColor(AppColors.primary)
+                        HStack {
+                            Text("全部關鍵字清單")
+                                .font(.system(size: 14, weight: .medium))
+                                .bmForegroundColor(AppColors.primary)
+                            
+                            if viewModel.selectedType != nil && viewModel.selectedHashtag == nil {
+                                Text("請選擇關鍵字")
+                                    .font(.system(size: 14))
+                                    .bmForegroundColor(AppColors.primary)
+                            }
+                        }
+                        .padding(.horizontal)
                         
                         ScrollView {
                             FlowLayout(spacing: 8) {
                                 ForEach(viewModel.allKeywords) { keyword in
-                                    KeywordTagButton(hashtag: keyword.bp_hashtag) {
-                                        viewModel.keywordSelected(keyword)
+                                    KeywordTagButton(
+                                        hashtag: keyword.bp_hashtag,
+                                        isSelected: viewModel.selectedHashtag == keyword.bp_hashtag
+                                    ) {
+                                        viewModel.selectHashtag(keyword.bp_hashtag)
                                     }
                                 }
                             }
+                            .padding(.horizontal)
                         }
-                        .frame(height: 96) // 3 lines of tags (32 * 3)
+                        .frame(height: 128)
                     }
-                    .padding(.horizontal)
+                    .opacity(viewModel.selectedHashtag == nil ? 1.0 : 0.6)
+                    
+                    Divider()
+                        .background(AppColors.gray.swiftUIColor)
+                    
+                    // Article Types Section
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("類型")
+                                .font(.system(size: 14, weight: .medium))
+                                .bmForegroundColor(AppColors.primary)
+                            
+                            if viewModel.selectedHashtag != nil && viewModel.selectedType == nil {
+                                Text("請選擇類型")
+                                    .font(.system(size: 14))
+                                    .bmForegroundColor(AppColors.primary)
+                            }
+                        }
+                        .padding(.horizontal)
+                        
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                KeywordTagButton(
+                                    hashtag: "問題",
+                                    isSelected: viewModel.selectedType == 1
+                                ) {
+                                    viewModel.selectType(1)
+                                }
+                                
+                                KeywordTagButton(
+                                    hashtag: "原因",
+                                    isSelected: viewModel.selectedType == 2
+                                ) {
+                                    viewModel.selectType(2)
+                                }
+                                
+                                KeywordTagButton(
+                                    hashtag: "方法",
+                                    isSelected: viewModel.selectedType == 3
+                                ) {
+                                    viewModel.selectType(3)
+                                }
+                                
+                                KeywordTagButton(
+                                    hashtag: "建議",
+                                    isSelected: viewModel.selectedType == 4
+                                ) {
+                                    viewModel.selectType(4)
+                                }
+                            }
+                            .padding(.horizontal)
+                        }
+                        .frame(height: 50)
+                    }
+                    .opacity(viewModel.selectedType == nil ? 1.0 : 0.6)
                 }
             }
         }

@@ -11,12 +11,14 @@ final class KeywordSearchViewModel: ObservableObject {
     @Published private(set) var state: ViewState = .loading
     @Published private(set) var hotKeywords: [KeywordModel] = []
     @Published private(set) var allKeywords: [KeywordModel] = []
+    @Published private(set) var selectedHashtag: String?
+    @Published private(set) var selectedType: Int?
     
-    private let service: EncyclopediaService
+    private let service: EncyclopediaServiceProtocol
     private let token: String
     private let encyclopediaViewModel: EncyclopediaViewModel
     
-    init(service: EncyclopediaService, token: String, encyclopediaViewModel: EncyclopediaViewModel) {
+    init(service: EncyclopediaServiceProtocol, token: String, encyclopediaViewModel: EncyclopediaViewModel) {
         self.service = service
         self.token = token
         self.encyclopediaViewModel = encyclopediaViewModel
@@ -46,5 +48,28 @@ final class KeywordSearchViewModel: ObservableObject {
     
     func keywordSelected(_ keyword: KeywordModel) {
         // Handle keyword selection
+    }
+    
+    func selectHashtag(_ hashtag: String) {
+        if selectedHashtag == hashtag {
+            selectedHashtag = nil
+            // Clear type when deselecting hashtag
+            selectedType = nil
+        } else {
+            selectedHashtag = hashtag
+        }
+    }
+    
+    func selectType(_ type: Int) {
+        if selectedType == type {
+            selectedType = nil
+        } else {
+            selectedType = type
+            // Ensure we have a hashtag selected
+            if selectedHashtag == nil {
+                // Optionally show a toast or alert here
+                print("Please select a hashtag first")
+            }
+        }
     }
 }
