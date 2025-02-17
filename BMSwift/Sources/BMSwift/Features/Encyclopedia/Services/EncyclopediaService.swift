@@ -64,9 +64,14 @@ public protocol EncyclopediaServiceProtocol {
     /// - Parameter token: Authentication token for the request
     /// - Returns: ProfileResponse containing the user's profile information
     func fetchProfile(token: String) async throws -> ProfileResponse
+    
+    /// Fetches keywords for encyclopedia
+    /// - Parameter authToken: Authentication token for the request
+    /// - Returns: KeywordResponse containing hot and all keywords
+    func getKeywords(authToken: String) async throws -> KeywordResponse
 }
 
-/// Implementation of the Encyclopedia service
+/// Implementation of the encyclopedia service
 public final class EncyclopediaService: EncyclopediaServiceProtocol {
     // MARK: - Properties
     
@@ -134,5 +139,20 @@ public final class EncyclopediaService: EncyclopediaServiceProtocol {
     public func fetchProfile(token: String) async throws -> ProfileResponse {
         let request = EncyclopediaEndpoints.profile(token: token)
         return try await client.send(request)
+    }
+    
+    public func getKeywords(authToken: String) async throws -> KeywordResponse {
+        // Load both keyword lists concurrently
+        async let allKeywordsTask = client.send(EncyclopediaEndpoints.allKeywords(authToken: authToken))
+        async let hotKeywordsTask = client.send(EncyclopediaEndpoints.hotKeywords(authToken: authToken))
+        
+        // Await both results
+        let (allKeywords, hotKeywords) = try await (allKeywordsTask, hotKeywordsTask)
+        
+        // Convert to KeywordResponse
+        return KeywordResponse(
+            hot: hotKeywords.map { KeywordModel(bp_tag_id: $0.bp_tag_id, bp_hashtag: $0.bp_hashtag, content_count: $0.content_hashtag_count) },
+            all: allKeywords.map { KeywordModel(bp_tag_id: $0.bp_tag_id, bp_hashtag: $0.bp_hashtag, content_count: $0.content_count) }
+        )
     }
 }

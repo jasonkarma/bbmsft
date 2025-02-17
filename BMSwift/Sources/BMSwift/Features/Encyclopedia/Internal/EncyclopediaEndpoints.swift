@@ -202,6 +202,44 @@ public enum EncyclopediaEndpoints {
             self.token = token
         }
     }
+    
+    /// Hot Keywords endpoint
+    public struct HotKeywords: BMNetwork.APIEndpoint {
+        public typealias RequestType = EmptyRequest?
+        public typealias ResponseType = [HotKeywordTag]
+        
+        public let path: String = "/api/beauty/hotKeyword"
+        public let method: BMNetwork.HTTPMethod = .get
+        public let requiresAuth: Bool = true
+        public let headers: [String: String]
+        public let baseURL: URL? = nil
+        
+        public init(authToken: String) {
+            self.headers = [
+                "Content-Type": "application/json",
+                "Authorization": "Bearer \(authToken)"
+            ]
+        }
+    }
+    
+    /// All Keywords endpoint
+    public struct AllKeywords: BMNetwork.APIEndpoint {
+        public typealias RequestType = EmptyRequest?
+        public typealias ResponseType = [KeywordTag]
+        
+        public let path: String = "/api/beauty/keyword"
+        public let method: BMNetwork.HTTPMethod = .get
+        public let requiresAuth: Bool = true
+        public let headers: [String: String]
+        public let baseURL: URL? = nil
+        
+        public init(authToken: String) {
+            self.headers = [
+                "Content-Type": "application/json",
+                "Authorization": "Bearer \(authToken)"
+            ]
+        }
+    }
 }
 
 // MARK: - Factory Methods
@@ -252,6 +290,16 @@ public extension EncyclopediaEndpoints {
     static func profile(token: String) -> BMNetwork.APIRequest<Profile> {
         let endpoint = Profile(token: token)
         return BMNetwork.APIRequest(endpoint: endpoint)
+    }
+    
+    static func hotKeywords(authToken: String) -> BMNetwork.APIRequest<HotKeywords> {
+        let endpoint = HotKeywords(authToken: authToken)
+        return BMNetwork.APIRequest(endpoint: endpoint, body: nil, authToken: authToken)
+    }
+    
+    static func allKeywords(authToken: String) -> BMNetwork.APIRequest<AllKeywords> {
+        let endpoint = AllKeywords(authToken: authToken)
+        return BMNetwork.APIRequest(endpoint: endpoint, body: nil, authToken: authToken)
     }
 }
 

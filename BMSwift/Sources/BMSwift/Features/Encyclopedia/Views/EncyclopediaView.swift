@@ -7,11 +7,13 @@ public struct EncyclopediaView: View {
         case article(ArticlePreview)
         case skinAnalysis
         case profile
+        case keywordSearch
     }
     
     @StateObject private var viewModel: EncyclopediaViewModel
     @State private var selectedTab = 0
     @State private var path = NavigationPath()
+    @State private var showingKeywordSearch = false
     @Binding var isPresented: Bool
     private let token: String
     
@@ -120,12 +122,33 @@ public struct EncyclopediaView: View {
                     SkinAnalysisView(isPresented: $isPresented)
                 case .profile:
                     ProfileView(token: token, isPresented: $isPresented)
+                default:
+                    EmptyView()
                 }
             }
             .task {
                 print("[EncyclopediaView] Loading content with token: \(token.prefix(10))...")
                 await viewModel.loadFrontPageContent()
             }
+            .overlay {
+                if showingKeywordSearch {
+                    Color.black.opacity(0.5)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            showingKeywordSearch = false
+                        }
+                    
+                    KeywordSearchView(
+                        token: token,
+                        encyclopediaViewModel: viewModel,
+                        isPresented: $showingKeywordSearch
+                    )
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal)
+                        .transition(.move(edge: .top))
+                }
+            }
+            .animation(.easeInOut, value: showingKeywordSearch)
         }
     }
     
@@ -184,9 +207,9 @@ public struct EncyclopediaView: View {
                         .padding(.vertical, 8)
                     }
                 } else if index == 1 {
-                    Button(action: {
-                        selectedTab = index
-                    }) {
+                    Button {
+                        showingKeywordSearch = true
+                    } label: {
                         VStack {
                             Image(systemName: "magnifyingglass")
                                 .bmForegroundColor(selectedTab == index ? AppColors.primary : AppColors.secondaryText)

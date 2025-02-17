@@ -11,7 +11,7 @@ import SwiftUI
 /// View model for the encyclopedia view
 /// Manages the state and business logic for encyclopedia content
 @MainActor
-public class EncyclopediaViewModel: ObservableObject {
+public final class EncyclopediaViewModel: ObservableObject {
     // MARK: - Published Properties
     
     /// Current state of the view
@@ -38,7 +38,12 @@ public class EncyclopediaViewModel: ObservableObject {
     /// Showing skin analysis state
     @Published var showingSkinAnalysis = false
     
-    // MARK: - Private Properties
+    // Store preloaded keyword data
+    private(set) var hotKeywords: [KeywordModel] = []
+    private(set) var allKeywords: [KeywordModel] = []
+    private(set) var keywordsLoaded = false
+    
+    // MARK: - Dependencies
     private let encyclopediaService: EncyclopediaServiceProtocol
     private let authActor: AuthenticationActor
     private let token: String
@@ -76,6 +81,11 @@ public class EncyclopediaViewModel: ObservableObject {
             hotArticles = content.hotContents
             latestArticles = content.latestContents
             state = .success(content)
+            
+            // Preload keywords after content loads
+            if !keywordsLoaded {
+                await preloadKeywords()
+            }
         } catch {
             print("[Encyclopedia] Failed to load content: \(error)")
             self.error = error as? BMNetwork.APIError ?? .networkError(error)
@@ -123,6 +133,24 @@ public class EncyclopediaViewModel: ObservableObject {
         } catch {
             self.error = error as? BMNetwork.APIError ?? .networkError(error)
         }
+    }
+    
+    /// Preloads keywords
+    func preloadKeywords() async {
+        do {
+            let keywords = try await encyclopediaService.getKeywords(authToken: token)
+            self.hotKeywords = keywords.hot
+            self.allKeywords = keywords.all
+            self.keywordsLoaded = true
+        } catch {
+            print("[EncyclopediaViewModel] Failed to preload keywords: \(error)")
+        }
+    }
+    
+    /// Gets preloaded keywords
+    func getPreloadedKeywords() -> (hot: [KeywordModel], all: [KeywordModel])? {
+        guard keywordsLoaded else { return nil }
+        return (hot: hotKeywords, all: allKeywords)
     }
     
     // MARK: - View State
