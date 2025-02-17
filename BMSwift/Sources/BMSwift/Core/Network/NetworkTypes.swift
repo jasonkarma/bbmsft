@@ -85,6 +85,11 @@ public enum BMNetwork {
         var queryItems: [URLQueryItem]? { get }
     }
     
+    // Define protocol for endpoints that provide a custom body for encoding
+    public protocol HasCustomBody {
+        var customBody: Encodable { get }
+    }
+    
     // MARK: - API Request
     public struct APIRequest<E: APIEndpoint> {
         public let endpoint: E

@@ -9,7 +9,7 @@ public enum SkinAnalysisEndpoints {
     
     /// Endpoint for analyzing skin images.
     /// This endpoint sends image data to Face++ API's face analysis service and receives detailed analysis results.
-    public struct Analyze: BMNetwork.APIEndpoint, BMNetwork.RequestBodyEncodable {
+    public struct Analyze: BMNetwork.APIEndpoint, BMNetwork.RequestBodyEncodable, BMNetwork.HasCustomBody {
         // Explicitly declare conformance to RequestBodyEncodable
         public func encodeRequestBody<T>(request: T) throws -> Data where T : Encodable {
             print("DEBUG: encodeRequestBody called with type: \(type(of: request))")
@@ -40,7 +40,7 @@ public enum SkinAnalysisEndpoints {
             return headers
         }
         
-
+        public var body: Encodable { return request }
         
         public struct Request: Encodable {
             let imageUrl: String?
@@ -82,13 +82,9 @@ public enum SkinAnalysisEndpoints {
         
         public var queryItems: [URLQueryItem]? { nil }
         
-        public func encode(to encoder: Encoder) throws {}
+        public var customBody: Encodable { return request }
         
         private func encodeMultipartFormData(request: Request) throws -> Data {
-            guard let request = request as? Request else {
-                throw BMNetwork.APIError.encodingError("Invalid request type")
-            }
-            
             var formData = Data()
             
             print("DEBUG: Starting form data construction")

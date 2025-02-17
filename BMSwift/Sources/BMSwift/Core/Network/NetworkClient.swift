@@ -189,43 +189,43 @@ extension BMNetwork {
         
         // MARK: - Private Methods
         
-        private func createURLRequest<E: BMNetwork.APIEndpoint>(for request: BMNetwork.APIRequest<E>) throws -> URLRequest {
+        private func createURLRequest<E: BMNetwork.APIEndpoint>(for apiRequest: BMNetwork.APIRequest<E>) throws -> URLRequest {
             // Create URL components
             var components = URLComponents()
             
             // Always use endpoint's baseURL if provided
-            if let endpointBaseURL = request.endpoint.baseURL {
+            if let endpointBaseURL = apiRequest.endpoint.baseURL {
                 components.scheme = endpointBaseURL.scheme
                 components.host = endpointBaseURL.host
-                components.path = request.endpoint.path
+                components.path = apiRequest.endpoint.path
             } else {
                 // Fall back to configuration's baseURL
                 components.scheme = configuration.baseURL.scheme
                 components.host = configuration.baseURL.host
-                components.path = request.endpoint.path
+                components.path = apiRequest.endpoint.path
             }
-            components.queryItems = request.queryItems ?? request.endpoint.queryItems
+            components.queryItems = apiRequest.queryItems ?? apiRequest.endpoint.queryItems
             
             guard let url = components.url else {
                 throw BMNetwork.APIError.invalidURL
             }
             
             var urlRequest = URLRequest(url: url)
-            urlRequest.httpMethod = request.endpoint.method.rawValue
+            urlRequest.httpMethod = apiRequest.endpoint.method.rawValue
             
             // Set timeout and cache policy
-            urlRequest.timeoutInterval = request.endpoint.timeoutInterval ?? configuration.timeoutInterval
-            urlRequest.cachePolicy = request.endpoint.cachePolicy ?? configuration.cachePolicy
+            urlRequest.timeoutInterval = apiRequest.endpoint.timeoutInterval ?? configuration.timeoutInterval
+            urlRequest.cachePolicy = apiRequest.endpoint.cachePolicy ?? configuration.cachePolicy
             
             // If endpoint provides Content-Type, use only endpoint headers
-            if request.endpoint.headers["Content-Type"] != nil {
+            if apiRequest.endpoint.headers["Content-Type"] != nil {
                 print("DEBUG: Using endpoint-specific headers only")
-                request.endpoint.headers.forEach { key, value in
+                apiRequest.endpoint.headers.forEach { key, value in
                     urlRequest.setValue(value, forHTTPHeaderField: key)
                 }
             } else {
                 // Apply endpoint-specific headers first
-                request.endpoint.headers.forEach { key, value in
+                apiRequest.endpoint.headers.forEach { key, value in
                     urlRequest.setValue(value, forHTTPHeaderField: key)
                 }
                 
@@ -238,8 +238,8 @@ extension BMNetwork {
             }
             
             // Apply auth token if required
-            if request.endpoint.requiresAuth {
-                if let token = request.authToken {
+            if apiRequest.endpoint.requiresAuth {
+                if let token = apiRequest.authToken {
                     urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
                 } else {
                     throw BMNetwork.APIError.unauthorized
@@ -248,10 +248,10 @@ extension BMNetwork {
             
             // Add request body if present
             print("DEBUG: Preparing request body")
-            if let body = request.body {
+            if let body = apiRequest.body {
                 print("DEBUG: Request body type: \(type(of: body))")
-                print("DEBUG: Endpoint type: \(type(of: request.endpoint))")
-                if let customEncoder = request.endpoint as? RequestBodyEncodable {
+                print("DEBUG: Endpoint type: \(type(of: apiRequest.endpoint))")
+                if let customEncoder = apiRequest.endpoint as? RequestBodyEncodable {
                     print("DEBUG: Using custom request body encoder")
                     // Use endpoint's custom encoding if available
                     urlRequest.httpBody = try customEncoder.encodeRequestBody(request: body)
@@ -270,6 +270,23 @@ extension BMNetwork {
                         print("DEBUG: Request body JSON:\n\(bodyString)")
                     }
                 }
+            }
+            
+            if urlRequest.httpBody == nil || urlRequest.httpBody?.count == 0 {
+                if let customProvider = apiRequest.endpoint as? HasCustomBody, let encoder = apiRequest.endpoint as? RequestBodyEncodable {
+                    do {
+                        print("DEBUG: Endpoint conforms to HasCustomBody – performing custom encoding")
+                        let encodedBody = try encoder.encodeRequestBody(request: customProvider.customBody)
+                        urlRequest.httpBody = encodedBody
+                        print("DEBUG: Custom encoded body size: \(encodedBody.count) bytes")
+                    } catch {
+                        print("DEBUG: Error during custom encoding: \(error)")
+                    }
+                } else {
+                    print("DEBUG: Endpoint does not provide a custom body via HasCustomBody protocol – using default encoding")
+                }
+            } else {
+                print("DEBUG: Request already has a non-empty body; not performing custom encoding")
             }
             
             // Debug logging
