@@ -1,7 +1,8 @@
 import Foundation
 
 // MARK: - Encyclopedia Content Models
-public struct ArticlePreview: Codable, Hashable {
+@available(iOS 13.0, *)
+public struct ArticlePreview: Codable, Hashable, ArticleCardModel {
     public let id: Int
     public let title: String
     public let intro: String

@@ -72,7 +72,7 @@ public struct EncyclopediaView: View {
                                             LazyVStack(spacing: 8) {
                                                 ForEach(viewModel.hotArticles, id: \.id) { article in
                                                     NavigationLink(value: Route.article(article)) {
-                                                        ArticleCardView(article: article, token: token)
+                                                        ArticlePreviewCardView(article: article, token: token)
                                                             .background(AppColors.black.swiftUIColor.opacity(0.5))
                                                             .cornerRadius(12)
                                                     }

@@ -1,18 +1,21 @@
 #if canImport(SwiftUI) && os(iOS)
 import SwiftUI
 
+@available(iOS 13.0, *)
 public struct ArticleCardView: View {
-    private let article: ArticlePreview
+    private let article: ArticleCardModel
     private let token: String
+    private let onTap: () -> Void
     private let imageBaseURL: String = "https://wiki.kinglyrobot.com/media/beauty_content_banner_image/small/"
     
-    public init(article: ArticlePreview, token: String) {
+    public init(article: ArticleCardModel, token: String, onTap: @escaping () -> Void) {
         self.article = article
         self.token = token
+        self.onTap = onTap
     }
     
     public var body: some View {
-        NavigationLink(destination: ArticleDetailView(viewModel: ArticleDetailViewModel(articleId: article.id, token: token))) {
+        Button(action: onTap) {
             HStack(alignment: .top, spacing: 0) {
                 // Left side - Image
                 if let url = URL(string: imageBaseURL + article.mediaName) {
@@ -49,14 +52,29 @@ public struct ArticleCardView: View {
             }
             .frame(height: 100)
             .bmBackground(AppColors.black)
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .bmStroke(AppColors.secondaryText.opacity(0.5), lineWidth: 1.5)
-            )
-            .shadow(radius: 4)
+            .cornerRadius(8)
         }
-        .buttonStyle(.plain)
     }
 }
+
+#if DEBUG
+public struct ArticleCardView_Previews: PreviewProvider {
+    public struct PreviewArticle: ArticleCardModel {
+        public let id: Int = 1
+        public let title: String = "Preview Title"
+        public let intro: String = "This is a preview of the article card with some longer text to see how it handles multiple lines."
+        public let mediaName: String = "preview.jpg"
+    }
+    
+    public static var previews: some View {
+        ArticleCardView(
+            article: PreviewArticle(),
+            token: "preview-token",
+            onTap: {}
+        )
+        .padding()
+        .previewLayout(.sizeThatFits)
+    }
+}
+#endif
 #endif
