@@ -5,6 +5,7 @@ import SwiftUI
 internal struct KeywordSearchView: View {
     @StateObject private var viewModel: KeywordSearchViewModel
     @Binding var isPresented: Bool
+    @State private var searchText: String = ""
     
     internal init(token: String, encyclopediaViewModel: EncyclopediaViewModel, isPresented: Binding<Bool>) {
         self._viewModel = StateObject(wrappedValue: KeywordSearchViewModel(
@@ -19,7 +20,7 @@ internal struct KeywordSearchView: View {
         VStack(spacing: 0) {
             // Header with close button
             HStack {
-                Text("關鍵字搜尋")
+                Text("搜尋")
                     .font(.system(size: 16, weight: .medium))
                     .bmForegroundColor(AppColors.primary)
                 
@@ -33,6 +34,34 @@ internal struct KeywordSearchView: View {
             .padding(.horizontal)
             .padding(.vertical, 12)
             .background(AppColors.black.swiftUIColor)
+            
+            // Search bar
+            HStack {
+                TextField("輸入搜尋內容", text: $searchText)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .bmForegroundColor(AppColors.primaryText)
+                
+                Button(action: {
+                    guard !searchText.isEmpty else { return }
+                    viewModel.performTextSearch(searchText)
+                }) {
+                    Text("搜尋")
+                        .bmForegroundColor(AppColors.primaryText)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(AppColors.primary.swiftUIColor)
+                        .cornerRadius(8)
+                }
+            }
+            .padding()
+            
+            Divider()
+                .background(AppColors.gray.swiftUIColor)
+            
+            Text("或使用關鍵字搜尋")
+                .font(.system(size: 14))
+                .bmForegroundColor(AppColors.primaryText)
+                .padding(.vertical, 8)
             
             switch viewModel.state {
             case .loading:
@@ -100,7 +129,7 @@ internal struct KeywordSearchView: View {
                     Divider()
                         .background(AppColors.gray.swiftUIColor)
                     
-                    // All Keywords Section (Three lines with vertical scroll)
+                    // All Keywords Section
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text("全部關鍵字清單")
@@ -192,6 +221,13 @@ internal struct KeywordSearchView: View {
         .cornerRadius(12)
         .task {
             await viewModel.loadKeywords()
+        }
+        .onChange(of: viewModel.hasStartedSearch) { hasStarted in
+            if hasStarted {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    isPresented = false
+                }
+            }
         }
     }
 }
