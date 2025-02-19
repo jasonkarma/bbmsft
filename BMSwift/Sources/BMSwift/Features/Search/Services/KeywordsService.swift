@@ -14,14 +14,14 @@ public protocol KeywordsServiceProtocol {
 }
 
 /// Implementation of keywords service
-final class KeywordsService: KeywordsServiceProtocol {
+public final class KeywordsService: KeywordsServiceProtocol {
     private let client: BMNetwork.NetworkClient
     
     init(client: BMNetwork.NetworkClient) {
         self.client = client
     }
     
-    func getHotKeywords(authToken: String) async throws -> BMSearchV2.Keywords.HotKeywordsResponse {
+    public func getHotKeywords(authToken: String) async throws -> BMSearchV2.Keywords.HotKeywordsResponse {
         print("[Keywords] Getting hot keywords...")
         let request = BMNetwork.APIRequest(
             endpoint: BMSearchV2.Keywords.HotKeywordsEndpoint(authToken: authToken),
@@ -31,7 +31,7 @@ final class KeywordsService: KeywordsServiceProtocol {
         return try await client.send(request)
     }
     
-    func getAllKeywords(authToken: String) async throws -> BMSearchV2.Keywords.AllKeywordsResponse {
+    public func getAllKeywords(authToken: String) async throws -> BMSearchV2.Keywords.AllKeywordsResponse {
         print("[Keywords] Getting all keywords...")
         let request = BMNetwork.APIRequest(
             endpoint: BMSearchV2.Keywords.AllKeywordsEndpoint(authToken: authToken),

@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Encyclopedia Content Models
 @available(iOS 13.0, *)
-public struct ArticlePreview: Codable, Hashable, ArticleCardModel {
+public struct ArticlePreview: Codable, Hashable, Identifiable, ArticleCardModel {
     public let id: Int
     public let title: String
     public let intro: String
@@ -70,6 +70,8 @@ public struct ArticlePreview: Codable, Hashable, ArticleCardModel {
         self.clientVisit = clientVisit
         self.clientKeep = clientKeep
     }
+
+
     
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)

@@ -11,7 +11,7 @@ public extension BMSearchV2.Search {
         
         // MARK: - Published Properties
         @Published private(set) var state: ViewState = .loaded
-        @Published private(set) var searchResults: [SearchArticle] = []
+        @Published private(set) var searchResults: [BMSearchV2.Search.SearchResponse.SearchArticle] = []
         @Published private(set) var hotKeywords: [String] = []
         @Published private(set) var allKeywords: [String] = []
         @Published var selectedType: SearchType = .type1
@@ -44,13 +44,13 @@ public extension BMSearchV2.Search {
                 async let allResponse = keywordsService.getAllKeywords(authToken: token)
                 
                 let (hot, all) = try await (hotResponse, allResponse)
-                print("[KeywordSearch] Loaded \(hot.keywords.count) hot keywords and \(all.keywords.count) total keywords")
+                print("[KeywordSearch] Loaded \(hot.count) hot keywords and \(all.count) total keywords")
                 
-                hotKeywords = hot.keywords
-                allKeywords = all.keywords
+                hotKeywords = hot
+                allKeywords = all
                 
                 // Select first keyword if available
-                if let firstHot = hot.keywords.first {
+                if let firstHot = hot.first {
                     selectedKeyword = firstHot
                 }
             } catch {

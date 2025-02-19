@@ -2,12 +2,11 @@
 import SwiftUI
 
 @available(iOS 13.0, *)
-public extension BMSearchV2.Encyclopedia {
-    struct ArticlePreviewCardView: View {
-        private let article: ArticlePreview
+public struct ArticlePreviewCardView: View {
+        private let article: any ArticleCardModel
         private let token: String
         
-        public init(article: ArticlePreview, token: String) {
+        public init(article: any ArticleCardModel, token: String) {
             self.article = article
             self.token = token
         }
@@ -29,5 +28,4 @@ public extension BMSearchV2.Encyclopedia {
             .buttonStyle(.plain)
         }
     }
-}
 #endif

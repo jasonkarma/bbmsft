@@ -1,14 +1,15 @@
 #if canImport(SwiftUI) && os(iOS)
 import SwiftUI
+import Foundation
 
 @available(iOS 13.0, *)
 public struct ArticleCardView: View {
-    private let article: ArticleCardModel
+    private let article: any ArticleCardModel
     private let token: String
     private let onTap: () -> Void
     private let imageBaseURL: String = "https://wiki.kinglyrobot.com/media/beauty_content_banner_image/small/"
     
-    public init(article: ArticleCardModel, token: String, onTap: @escaping () -> Void) {
+    public init(article: any ArticleCardModel, token: String, onTap: @escaping () -> Void) {
         self.article = article
         self.token = token
         self.onTap = onTap
@@ -54,8 +55,8 @@ public struct ArticleCardView: View {
             .bmBackground(AppColors.black)
             .cornerRadius(8)
         }
+        }
     }
-}
 
 #if DEBUG
 public struct ArticleCardView_Previews: PreviewProvider {
@@ -64,6 +65,20 @@ public struct ArticleCardView_Previews: PreviewProvider {
         public let title: String = "Preview Title"
         public let intro: String = "This is a preview of the article card with some longer text to see how it handles multiple lines."
         public let mediaName: String = "preview.jpg"
+        public let visitCount: Int = 100
+        public let likeCount: Int = 50
+        public let platform: Int = 1
+        public let clientLike: Bool = false
+        public let clientVisit: Bool = false
+        public let clientKeep: Bool = false
+        
+        public func hash(into hasher: inout Hasher) {
+            hasher.combine(id)
+        }
+        
+        public static func == (lhs: PreviewArticle, rhs: PreviewArticle) -> Bool {
+            lhs.id == rhs.id
+        }
     }
     
     public static var previews: some View {

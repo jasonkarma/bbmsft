@@ -1,6 +1,9 @@
 #if canImport(SwiftUI) && os(iOS)
 import SwiftUI
 
+// Import Search namespace components
+public typealias SearchView = BMSearchV2.Search.SearchView
+
 @available(iOS 13.0, *)
 public struct EncyclopediaView: View {
     enum Route: Hashable {
@@ -138,9 +141,8 @@ public struct EncyclopediaView: View {
                             showingKeywordSearch = false
                         }
                     
-                    KeywordSearchView(
+                    SearchView(
                         token: token,
-                        encyclopediaViewModel: viewModel,
                         isPresented: $showingKeywordSearch
                     )
                     .transition(.opacity)

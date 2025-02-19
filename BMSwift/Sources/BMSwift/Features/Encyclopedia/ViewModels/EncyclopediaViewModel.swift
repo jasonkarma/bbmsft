@@ -8,6 +8,9 @@
 import Foundation
 import SwiftUI
 
+// Import Search feature types
+typealias SearchArticle = BMSearchV2.Search.SearchResponse.SearchArticle
+
 /// View model for the encyclopedia view
 /// Manages the state and business logic for encyclopedia content
 @MainActor
@@ -64,6 +67,51 @@ public final class EncyclopediaViewModel: ObservableObject {
         self.token = token
         self.encyclopediaService = EncyclopediaService(client: client)
         self.authActor = authActor
+        
+        // Observe for hot articles replacement
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleHotArticlesReplacement(_:)),
+            name: NSNotification.Name("ReplaceHotArticles"),
+            object: nil
+        )
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    @objc private func handleHotArticlesReplacement(_ notification: Notification) {
+        guard let searchArticles = notification.userInfo?["articles"] as? [SearchArticle] else {
+            return
+        }
+        
+        // Convert search articles to article previews
+        let previews = searchArticles.map { searchArticle in
+            ArticlePreview(
+                id: searchArticle.bp_subsection_id,
+                title: searchArticle.bp_subsection_title,
+                intro: searchArticle.bp_subsection_intro,
+                mediaName: searchArticle.media_name,
+                visitCount: searchArticle.visit,
+                likeCount: searchArticle.likecount,
+                platform: searchArticle.bp_subsection_type_type ?? 0,
+                clientLike: false,
+                clientVisit: false,
+                clientKeep: false
+            )
+        }
+        
+        // Update both frontPageContent and hotArticles on main thread
+        Task { @MainActor in
+            hotArticles = previews
+            if frontPageContent != nil {
+                frontPageContent = FrontPageResponse(
+                    hotContents: previews,
+                    latestContents: frontPageContent?.latestContents ?? []
+                )
+            }
+        }
     }
     
     // MARK: - Public Methods
