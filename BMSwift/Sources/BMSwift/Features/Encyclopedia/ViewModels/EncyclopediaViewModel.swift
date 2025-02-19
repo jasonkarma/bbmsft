@@ -32,6 +32,12 @@ public final class EncyclopediaViewModel: ObservableObject {
     /// Latest articles from front page
     @Published private(set) var latestArticles: [ArticlePreview] = []
     
+    /// Search results
+    @Published private(set) var searchResults: [Search.SearchArticle] = []
+    
+    /// Whether we're currently showing search results
+    @Published private(set) var isShowingSearchResults = false
+    
     /// Loading state
     @Published private(set) var isLoading: Bool = false
     
@@ -42,6 +48,21 @@ public final class EncyclopediaViewModel: ObservableObject {
     private(set) var hotKeywords: [KeywordModel] = []
     private(set) var allKeywords: [KeywordModel] = []
     private(set) var keywordsLoaded = false
+    
+    // MARK: - Search Functionality
+    
+    /// Update the view with search results
+    /// - Parameter results: Array of search results
+    public func updateWithSearchResults(_ results: [Search.SearchArticle]) {
+        self.searchResults = results
+        self.isShowingSearchResults = true
+    }
+    
+    /// Clear search results and return to normal view
+    public func clearSearchResults() {
+        self.searchResults = []
+        self.isShowingSearchResults = false
+    }
     
     // MARK: - Dependencies
     private let encyclopediaService: EncyclopediaServiceProtocol

@@ -154,8 +154,10 @@ extension BMNetwork {
                     decoder.dateDecodingStrategy = .formatted(dateFormatter)
                     
                     // Print raw JSON structure for debugging
-                    if let jsonObject = try? JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed) {
-                        print("Parsed JSON structure: \(jsonObject)")
+                    if let jsonObject = try? JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed),
+                       let jsonData = try? JSONSerialization.data(withJSONObject: jsonObject, options: .prettyPrinted),
+                       let jsonString = String(data: jsonData, encoding: .utf8) {
+                        print("[NetworkClient] Raw JSON response:\n\(jsonString)")
                     }
                     
                     return try decoder.decode(E.ResponseType.self, from: data)

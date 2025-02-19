@@ -62,7 +62,35 @@ public struct EncyclopediaView: View {
                         VStack(spacing: 0) {
                             ScrollView {
                                 VStack(spacing: 16) {
-                                    if !viewModel.hotArticles.isEmpty {
+                                    if viewModel.isShowingSearchResults {
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            HStack {
+                                                Text("搜尋結果")
+                                                    .font(.title3)
+                                                    .bmForegroundColor(AppColors.primary)
+                                                
+                                                Spacer()
+                                                
+                                                Button(action: {
+                                                    viewModel.clearSearchResults()
+                                                }) {
+                                                    Text("清除搜尋")
+                                                        .font(.subheadline)
+                                                        .bmForegroundColor(AppColors.primary)
+                                                }
+                                            }
+                                            .padding(.horizontal)
+                                            
+                                            LazyVStack(spacing: 8) {
+                                                ForEach(viewModel.searchResults, id: \.id) { article in
+                                                    ArticleCardView(article: article, token: token)
+                                                        .background(AppColors.black.swiftUIColor.opacity(0.5))
+                                                        .cornerRadius(12)
+                                                }
+                                            }
+                                            .padding(.horizontal)
+                                        }
+                                    } else if !viewModel.hotArticles.isEmpty {
                                         VStack(alignment: .leading, spacing: 8) {
                                             Text("熱門文章")
                                                 .font(.title3)
@@ -129,6 +157,7 @@ public struct EncyclopediaView: View {
             .task {
                 print("[EncyclopediaView] Loading content with token: \(token.prefix(10))...")
                 await viewModel.loadFrontPageContent()
+                await viewModel.preloadKeywords()
             }
             .overlay {
                 if showingKeywordSearch {

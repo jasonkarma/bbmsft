@@ -1,12 +1,25 @@
 #if canImport(SwiftUI) && os(iOS)
 import SwiftUI
 
+/// Protocol defining the required properties for displaying an article card
+public protocol ArticleDisplayable {
+    var id: Int { get }
+    var title: String { get }
+    var intro: String { get }
+    var mediaName: String { get }
+    var visitCount: Int { get }
+    var likeCount: Int { get }
+}
+
+// Make ArticlePreview conform to ArticleDisplayable
+extension ArticlePreview: ArticleDisplayable {}
+
 public struct ArticleCardView: View {
-    private let article: ArticlePreview
+    private let article: ArticleDisplayable
     private let token: String
     private let imageBaseURL: String = "https://wiki.kinglyrobot.com/media/beauty_content_banner_image/small/"
     
-    public init(article: ArticlePreview, token: String) {
+    public init(article: ArticleDisplayable, token: String) {
         self.article = article
         self.token = token
     }
