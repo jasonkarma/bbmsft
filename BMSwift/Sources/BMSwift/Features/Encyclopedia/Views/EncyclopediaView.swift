@@ -81,14 +81,27 @@ public struct EncyclopediaView: View {
                                             }
                                             .padding(.horizontal)
                                             
-                                            LazyVStack(spacing: 8) {
-                                                ForEach(viewModel.searchResults, id: \.id) { article in
-                                                    ArticleCardView(article: article, token: token)
-                                                        .background(AppColors.black.swiftUIColor.opacity(0.5))
-                                                        .cornerRadius(12)
+                                            if viewModel.searchResults.isEmpty {
+                                                VStack(spacing: 16) {
+                                                    Text("無搜尋結果")
+                                                        .font(.system(size: 32))
+                                                        .bmForegroundColor(AppColors.primary)
+                                                        .padding(.vertical, 32)
                                                 }
+                                                .frame(maxWidth: .infinity)
+                                                .background(AppColors.black.swiftUIColor.opacity(0.5))
+                                                .cornerRadius(12)
+                                                .padding(.horizontal)
+                                            } else {
+                                                LazyVStack(spacing: 8) {
+                                                    ForEach(viewModel.searchResults, id: \.id) { article in
+                                                        ArticleCardView(article: article, token: token)
+                                                            .background(AppColors.black.swiftUIColor.opacity(0.5))
+                                                            .cornerRadius(12)
+                                                    }
+                                                }
+                                                .padding(.horizontal)
                                             }
-                                            .padding(.horizontal)
                                         }
                                     } else if !viewModel.hotArticles.isEmpty {
                                         VStack(alignment: .leading, spacing: 8) {

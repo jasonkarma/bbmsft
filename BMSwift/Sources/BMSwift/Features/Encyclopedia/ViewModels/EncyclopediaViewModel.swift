@@ -74,10 +74,14 @@ public final class EncyclopediaViewModel: ObservableObject {
         }
     }
     
-    /// Clear search results and return to normal view
+    /// Clear search results and restore hot articles
     public func clearSearchResults() {
         self.searchResults = []
         self.isShowingSearchResults = false
+        // Restore hot articles from front page content if available
+        if let content = frontPageContent {
+            self.hotArticles = content.hotContents
+        }
     }
     
     // MARK: - Dependencies

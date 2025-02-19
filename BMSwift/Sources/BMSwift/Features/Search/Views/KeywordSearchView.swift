@@ -199,15 +199,12 @@ internal struct KeywordSearchView: View {
             }
             .onChange(of: viewModel.canSearch) { canSearch in
                 if canSearch {
+                    // Dismiss immediately when both type and keyword are selected
+                    isPresented = false
+                    // Start search in background
                     Task {
                         await viewModel.performSearch()
                     }
-                }
-            }
-            .onChange(of: viewModel.searchResults) { results in
-                if !results.isEmpty {
-                    // Dismiss the search view when we have results
-                    isPresented = false
                 }
             }
         }
