@@ -16,9 +16,7 @@ internal struct KeywordSearchView: View {
     }
     
     internal var body: some View {
-        if viewModel.canSearch && !viewModel.searchResults.isEmpty {
-            SearchResultView(viewModel: viewModel, isPresented: $isPresented)
-        } else {
+        VStack(spacing: 0) {
             VStack(spacing: 0) {
                 // Header with close button
                 HStack {
@@ -204,6 +202,12 @@ internal struct KeywordSearchView: View {
                     Task {
                         await viewModel.performSearch()
                     }
+                }
+            }
+            .onChange(of: viewModel.searchResults) { results in
+                if !results.isEmpty {
+                    // Dismiss the search view when we have results
+                    isPresented = false
                 }
             }
         }

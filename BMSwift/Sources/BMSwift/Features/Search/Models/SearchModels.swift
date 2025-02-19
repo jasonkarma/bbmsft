@@ -27,7 +27,7 @@ public enum Search {
         }
     
         /// Article data from search response
-        public struct SearchArticle: Codable, ArticleDisplayable {
+        public struct SearchArticle: Codable, ArticleDisplayable, Equatable {
             public let id: Int
             public let title: String
             public let intro: String
@@ -58,7 +58,7 @@ public enum Search {
     }
     
     /// Hashtag data
-        public struct Hashtag: Codable {
+        public struct Hashtag: Codable, Equatable {
             public let id: Int
             public let hashtag: String
         

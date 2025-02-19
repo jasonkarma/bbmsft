@@ -49,6 +49,7 @@ public final class EncyclopediaViewModel: ObservableObject {
     private(set) var allKeywords: [KeywordModel] = []
     private(set) var keywordsLoaded = false
     
+
     // MARK: - Search Functionality
     
     /// Update the view with search results
@@ -56,6 +57,21 @@ public final class EncyclopediaViewModel: ObservableObject {
     public func updateWithSearchResults(_ results: [Search.SearchArticle]) {
         self.searchResults = results
         self.isShowingSearchResults = true
+        // Convert search articles to article previews for the hot articles section
+        self.hotArticles = results.map { searchArticle in
+            ArticlePreview(
+                id: searchArticle.id,
+                title: searchArticle.title,
+                intro: searchArticle.intro,
+                mediaName: searchArticle.mediaName,
+                visitCount: searchArticle.visitCount,
+                likeCount: searchArticle.likeCount,
+                platform: 0,  // Default platform
+                clientLike: false,
+                clientVisit: false,
+                clientKeep: false
+            )
+        }
     }
     
     /// Clear search results and return to normal view
