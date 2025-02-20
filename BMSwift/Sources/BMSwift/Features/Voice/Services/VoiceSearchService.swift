@@ -41,8 +41,8 @@ final class VoiceSearchService: VoiceSearchServiceProtocol {
             )
         }
         
-        // Extract keyword after 'api'
-        guard let keyword = knnResponse.text.range(of: "api").map({ String(knnResponse.text[knnResponse.text.index(after: $0.upperBound)...]) }) else {
+        // Extract keyword using KNNResponse's property
+        guard let keyword = knnResponse.extractedKeyword else {
             print("DEBUG: Could not extract keyword after 'api' from: \(knnResponse.text)")
             return VoiceEndpoints.SearchResponse(
                 currentPage: 1,

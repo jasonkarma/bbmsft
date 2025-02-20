@@ -85,24 +85,25 @@ import AVFoundation
             // Perform voice search with transcribed text
             let searchResults = try await voiceSearchService.searchByVoice(voiceText: speechText)
             
-            // Convert search articles to article previews for hot articles
-            let articlePreviews = searchResults.contents.data.map { searchArticle in
-                ArticlePreview(
-                    id: searchArticle.id,
-                    title: searchArticle.title,
-                    intro: searchArticle.intro,
-                    mediaName: searchArticle.mediaName,
-                    visitCount: searchArticle.visitCount,
-                    likeCount: searchArticle.likeCount,
-                    platform: 0,  // Default platform
-                    clientLike: false,
-                    clientVisit: false,
-                    clientKeep: false
+            // Convert voice search articles to regular search articles
+            let searchArticles = searchResults.contents.data.map { voiceArticle in
+                Search.SearchArticle(
+                    id: voiceArticle.id,
+                    title: voiceArticle.title,
+                    intro: voiceArticle.intro,
+                    mediaName: voiceArticle.mediaName,
+                    visitCount: voiceArticle.visitCount,
+                    likeCount: voiceArticle.likeCount,
+                    firstEnabledAt: voiceArticle.firstEnabledAt,
+                    hashtags: [],  // Voice search doesn't provide hashtags
+                    typeType: nil,
+                    typeTitle: nil,
+                    typeContent: nil
                 )
             }
             
-            // Update hot articles directly
-            encyclopediaViewModel.hotArticles = articlePreviews
+            // Update encyclopedia view model with converted search results
+            encyclopediaViewModel.updateWithSearchResults(searchArticles)
             state = .idle
             
         } catch {

@@ -14,10 +14,9 @@ public struct KNNResponse: Codable {
     
     /// Extract the keyword after 'api' from the text
     public var extractedKeyword: String? {
-        if let range = text.range(of: "api") {
-            return String(text[range.upperBound...]).trimmingCharacters(in: .whitespaces)
-        }
-        return nil
+        let parts = text.split(separator: "api", maxSplits: 1, omittingEmptySubsequences: false)
+        guard parts.count > 1 else { return nil }
+        return String(parts[1]).trimmingCharacters(in: .whitespaces)
     }
 }
 
