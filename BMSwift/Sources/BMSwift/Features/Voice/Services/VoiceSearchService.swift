@@ -25,13 +25,39 @@ final class VoiceSearchService: VoiceSearchServiceProtocol {
         if knnResponse.confidence < 0.7 {
             print("DEBUG: Low confidence score \(knnResponse.confidence), returning no results")
             // Return empty response for low confidence
-            return VoiceEndpoints.SearchResponse(contents: .init(data: []))
+            return VoiceEndpoints.SearchResponse(
+                currentPage: 1,
+                data: [],
+                firstPageUrl: "",
+                from: 1,
+                lastPage: 1,
+                lastPageUrl: "",
+                nextPageUrl: nil,
+                path: "",
+                perPage: 10,
+                prevPageUrl: nil,
+                to: 0,
+                total: 0
+            )
         }
         
         // Extract keyword after 'api'
         guard let keyword = knnResponse.text.range(of: "api").map({ String(knnResponse.text[knnResponse.text.index(after: $0.upperBound)...]) }) else {
             print("DEBUG: Could not extract keyword after 'api' from: \(knnResponse.text)")
-            return VoiceEndpoints.SearchResponse(contents: .init(data: []))
+            return VoiceEndpoints.SearchResponse(
+                currentPage: 1,
+                data: [],
+                firstPageUrl: "",
+                from: 1,
+                lastPage: 1,
+                lastPageUrl: "",
+                nextPageUrl: nil,
+                path: "",
+                perPage: 10,
+                prevPageUrl: nil,
+                to: 0,
+                total: 0
+            )
         }
         
         print("DEBUG: Extracted keyword: \(keyword)")

@@ -27,7 +27,7 @@ public final class EncyclopediaViewModel: ObservableObject {
     @Published var currentArticle: ArticleResponse?
     
     /// Hot articles from front page
-    @Published public var hotArticles: [ArticlePreview] = []
+    @Published public var hotArticles: [ArticlePreview] = [] 
     
     /// Latest articles from front page
     @Published private(set) var latestArticles: [ArticlePreview] = []
