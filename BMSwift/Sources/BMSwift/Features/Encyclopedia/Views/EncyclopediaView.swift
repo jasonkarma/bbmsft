@@ -20,7 +20,12 @@ public struct EncyclopediaView: View {
     public init(isPresented: Binding<Bool>, token: String) {
         self._isPresented = isPresented
         self.token = token
-        self._viewModel = StateObject(wrappedValue: EncyclopediaViewModel(token: token))
+        let encyclopediaVM = EncyclopediaViewModel(token: token)
+        self._viewModel = StateObject(wrappedValue: encyclopediaVM)
+        self._voiceSearchViewModel = StateObject(wrappedValue: VoiceSearchViewModel(
+            encyclopediaViewModel: encyclopediaVM,
+            token: token
+        ))
     }
     
     public var body: some View {
@@ -192,15 +197,59 @@ public struct EncyclopediaView: View {
         }
     }
     
+    @StateObject private var voiceSearchViewModel: VoiceSearchViewModel
+    
     private var voiceCommandArea: some View {
         HStack {
-            Image(systemName: "mic.fill")
-                .font(.system(size: 24))
-                .bmForegroundColor(AppColors.primary)
-            
-            Text("語音指令")
-                .font(.headline)
-                .bmForegroundColor(AppColors.primaryText)
+            switch voiceSearchViewModel.state {
+            case .idle:
+                Button(action: {
+                    Task {
+                        try? await voiceSearchViewModel.startRecording()
+                    }
+                }) {
+                    Image(systemName: "mic.fill")
+                        .font(.system(size: 24))
+                        .bmForegroundColor(AppColors.primary)
+                }
+                
+                Text("語音指令")
+                    .font(.headline)
+                    .bmForegroundColor(AppColors.primaryText)
+                
+            case .recording:
+                Button(action: {
+                    Task {
+                        await voiceSearchViewModel.stopRecordingAndSearch()
+                    }
+                }) {
+                    Image(systemName: "mic.fill")
+                        .font(.system(size: 24))
+                        .bmForegroundColor(AppColors.warning)
+                }
+                
+                Text("正在錄音...")
+                    .font(.headline)
+                    .bmForegroundColor(AppColors.warning)
+                
+            case .processing:
+                Image(systemName: "mic.fill")
+                    .font(.system(size: 24))
+                    .bmForegroundColor(AppColors.primary)
+                
+                Text("處理中...")
+                    .font(.headline)
+                    .bmForegroundColor(AppColors.primaryText)
+                
+            case .error(let error):
+                Image(systemName: "mic.fill")
+                    .font(.system(size: 24))
+                    .bmForegroundColor(AppColors.warning)
+                
+                Text(error.localizedDescription)
+                    .font(.headline)
+                    .bmForegroundColor(AppColors.warning)
+            }
             
             Spacer()
             
