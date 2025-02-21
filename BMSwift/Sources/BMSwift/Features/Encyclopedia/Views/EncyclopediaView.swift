@@ -217,9 +217,26 @@ public struct EncyclopediaView: View {
         HStack {
             switch voiceSearchViewModel.state {
             case .idle:
-                Text(viewModel.searchResults.isEmpty ? "請說出您想搜尋的關鍵字" : "取得美容百科文章\(viewModel.totalArticles)篇")
-                    .font(.headline)
-                    .bmForegroundColor(AppColors.white)
+                if let response = voiceSearchViewModel.conversationResponse {
+                    VStack(alignment: .leading) {
+                        Text(response)
+                            .font(.headline)
+                            .bmForegroundColor(AppColors.white)
+                            .lineLimit(voiceSearchViewModel.isExpandedResponse ? nil : 2)
+                        
+                        if !voiceSearchViewModel.isExpandedResponse {
+                            Button(action: { voiceSearchViewModel.toggleResponseExpansion() }) {
+                                Text("展開")
+                                    .font(.subheadline)
+                                    .bmForegroundColor(AppColors.primary)
+                            }
+                        }
+                    }
+                } else {
+                    Text("請說出您想搜尋的關鍵字")
+                        .font(.headline)
+                        .bmForegroundColor(AppColors.white)
+                }
                 
                 Spacer()
                 
