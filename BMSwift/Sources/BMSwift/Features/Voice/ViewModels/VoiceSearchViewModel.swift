@@ -117,6 +117,24 @@ import AVFoundation
             let speechText = try await transcriptionService.transcribe(audioURL: recordingURL, authToken: token)
             print("DEBUG: Got speech text: \(speechText)")
             
+            // If no speech was detected, reset state and show error
+            if speechText.isEmpty {
+                state = .error(NSError(
+                    domain: "kAFAssistantErrorDomain",
+                    code: 1110,
+                    userInfo: [NSLocalizedDescriptionKey: "無法辨識您的語音"]
+                ))
+                
+                // Reset after a short delay to allow error to be shown
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+                    if case .error = state {
+                        state = .idle
+                    }
+                }
+                return
+            }
+            
             // Store search text for pagination
             lastSearchText = speechText
             currentPage = 1  // Start at page 1 to match API
@@ -127,6 +145,13 @@ import AVFoundation
             
             // Update encyclopedia view model with converted search results
         } catch {
+            // Reset state after a short delay for any error
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+                if case .error = state {
+                    state = .idle
+                }
+            }
             state = .error(error)
         }
     }

@@ -217,7 +217,7 @@ public struct EncyclopediaView: View {
         HStack {
             switch voiceSearchViewModel.state {
             case .idle:
-                Text(viewModel.searchResults.isEmpty ? "語音指令" : "取得美容百科文章\(viewModel.totalArticles)篇")
+                Text(viewModel.searchResults.isEmpty ? "請說出您想搜尋的關鍵字" : "取得美容百科文章\(viewModel.totalArticles)篇")
                     .font(.headline)
                     .bmForegroundColor(AppColors.white)
                 
@@ -234,7 +234,7 @@ public struct EncyclopediaView: View {
                 }
                 
             case .recording:
-                Text("正在錄音...")
+                Text("正在聆聽您的語音...")
                     .font(.headline)
                     .bmForegroundColor(AppColors.warning)
                 
@@ -251,7 +251,7 @@ public struct EncyclopediaView: View {
                 }
                 
             case .processing:
-                Text("正在處理...")
+                Text("正在處理您的語音...")
                     .font(.headline)
                     .bmForegroundColor(AppColors.primaryText)
                 
@@ -262,7 +262,7 @@ public struct EncyclopediaView: View {
                     .bmForegroundColor(AppColors.primary)
                 
             case .searching:
-                Text("搜尋中...")
+                Text("正在搜尋相關文章...")
                     .font(.headline)
                     .bmForegroundColor(AppColors.primaryText)
                 

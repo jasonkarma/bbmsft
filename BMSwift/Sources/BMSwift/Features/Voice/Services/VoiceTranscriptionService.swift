@@ -31,13 +31,23 @@ final class VoiceTranscriptionService: VoiceTranscriptionServiceProtocol {
             recognizer.recognitionTask(with: request) { result, error in
                 if let error = error {
                     print("DEBUG: Speech recognition error: \(error)")
-                    continuation.resume(throwing: error)
+                    
+                    // Check for no speech detected error
+                    if (error as NSError).domain == "kAFAssistantErrorDomain" && (error as NSError).code == 1110 {
+                        continuation.resume(throwing: NSError(
+                            domain: "kAFAssistantErrorDomain",
+                            code: 1110,
+                            userInfo: [NSLocalizedDescriptionKey: "無法辨識您的語音"]
+                        ))
+                    } else {
+                        continuation.resume(throwing: error)
+                    }
                     return
                 }
                 
                 guard let result = result else {
                     print("DEBUG: No speech recognition result available")
-                    continuation.resume(throwing: NSError(domain: "VoiceTranscription", code: -2, userInfo: [NSLocalizedDescriptionKey: "No result available"]))
+                    continuation.resume(throwing: NSError(domain: "VoiceTranscription", code: -1, userInfo: [NSLocalizedDescriptionKey: "No result available"]))
                     return
                 }
                 
