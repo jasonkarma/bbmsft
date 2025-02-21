@@ -2,12 +2,46 @@ import Foundation
 import AVFoundation
 
 @MainActor final class VoiceSearchViewModel: NSObject, ObservableObject {
-    enum VoiceSearchState {
+    enum VoiceSearchState: Equatable {
         case idle
         case recording
         case processing
         case searching
-        case error(Error)
+        case error(VoiceError)
+        
+        static func == (lhs: VoiceSearchState, rhs: VoiceSearchState) -> Bool {
+            switch (lhs, rhs) {
+            case (.idle, .idle),
+                 (.recording, .recording),
+                 (.processing, .processing),
+                 (.searching, .searching):
+                return true
+            case (.error(let l), .error(let r)):
+                return l.localizedDescription == r.localizedDescription
+            default:
+                return false
+            }
+        }
+    }
+    
+    enum VoiceError: LocalizedError {
+        case recordingFailed(Error)
+        case transcriptionFailed(Error)
+        case searchFailed(Error)
+        case noSpeechDetected
+        
+        var errorDescription: String? {
+            switch self {
+            case .recordingFailed(let error):
+                return "錄音失敗: \(error.localizedDescription)"
+            case .transcriptionFailed(let error):
+                return "語音辨識失敗: \(error.localizedDescription)"
+            case .searchFailed(let error):
+                return "搜尋失敗: \(error.localizedDescription)"
+            case .noSpeechDetected:
+                return "無法辨識您的語音"
+            }
+        }
     }
     
     // MARK: - Pagination State
@@ -21,21 +55,27 @@ import AVFoundation
     }
     
     @Published private(set) var state: VoiceSearchState = .idle
+    @Published private(set) var transcribedText: String?
+    
     private let voiceSearchService: VoiceSearchServiceProtocol
     private let transcriptionService: VoiceTranscriptionServiceProtocol
+    private let conversationService: ConversationServiceProtocol
     private let encyclopediaViewModel: EncyclopediaViewModel
     private var audioRecorder: AVAudioRecorder?
     private var recordingURL: URL?
     private let token: String
+    private let speechSynthesizer = AVSpeechSynthesizer()
     
     init(
         service: VoiceSearchServiceProtocol = VoiceSearchService(),
         transcriptionService: VoiceTranscriptionServiceProtocol = VoiceTranscriptionService(),
+        conversationService: ConversationServiceProtocol = ConversationService(),
         encyclopediaViewModel: EncyclopediaViewModel,
         token: String
     ) {
         self.voiceSearchService = service
         self.transcriptionService = transcriptionService
+        self.conversationService = conversationService
         self.encyclopediaViewModel = encyclopediaViewModel
         self.token = token
         super.init()
@@ -62,7 +102,11 @@ import AVFoundation
         // Handle the load more request
         print("[VoiceSearch] Loading more results")
         Task {
-            await performSearch(loadMore: true)
+            do {
+                try await performSearch(loadMore: true)
+            } catch {
+                state = .error(.searchFailed(error))
+            }
         }
     }
     
@@ -72,8 +116,18 @@ import AVFoundation
             try session.setCategory(.playAndRecord, mode: .default)
             try session.setActive(true)
         } catch {
-            state = .error(error)
+            state = .error(.recordingFailed(error))
         }
+    }
+    
+    private func speakResponse(_ response: String) {
+        let utterance = AVSpeechUtterance(string: response)
+        utterance.voice = AVSpeechSynthesisVoice(language: "zh-TW")
+        utterance.rate = 0.5
+        utterance.pitchMultiplier = 1.0
+        utterance.volume = 1.0
+        
+        speechSynthesizer.speak(utterance)
     }
     
     @MainActor func startRecording() async throws {
@@ -96,14 +150,15 @@ import AVFoundation
             recordingURL = audioFilename
             state = .recording
         } catch {
-            state = .error(error)
-            throw error
+            let voiceError = VoiceError.recordingFailed(error)
+            state = .error(voiceError)
+            throw voiceError
         }
     }
     
     @MainActor func stopRecordingAndSearch() async {
         guard let recorder = audioRecorder, let recordingURL = recordingURL else {
-            state = .error(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "No recording available"]))
+            state = .error(.noSpeechDetected)
             return
         }
         
@@ -117,23 +172,33 @@ import AVFoundation
             let speechText = try await transcriptionService.transcribe(audioURL: recordingURL, authToken: token)
             print("DEBUG: Got speech text: \(speechText)")
             
+            // Update transcribed text
+            self.transcribedText = speechText
+            
             // Store search text for pagination
             lastSearchText = speechText
-            currentPage = 1  // Start at page 1 to match API
+            currentPage = 1
             lastPage = 1
             
-            // Perform initial voice search
-            await performSearch(loadMore: false)
+            // First get conversation response and speak it
+            do {
+                let response = try await conversationService.getResponse(for: speechText)
+                speakResponse(response.ans)
+            } catch {
+                print("Failed to get conversation response: \(error)")
+                // Continue even if conversation fails
+            }
             
-            // Update encyclopedia view model with converted search results
+            // Then perform search
+            try await performSearch(loadMore: false)
         } catch {
-            state = .error(error)
+            state = .error(.transcriptionFailed(error))
         }
     }
     
-    @MainActor func performSearch(loadMore: Bool = false) async {
+    @MainActor func performSearch(loadMore: Bool = false) async throws {
         guard let searchText = lastSearchText else {
-            state = .error(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "No search text available"]))
+            state = .error(.noSpeechDetected)
             return
         }
         
@@ -190,7 +255,7 @@ import AVFoundation
             state = .idle
             isLoadingMore = false
         } catch {
-            state = .error(error)
+            state = .error(.searchFailed(error))
             isLoadingMore = false
         }
         }
@@ -200,7 +265,7 @@ extension VoiceSearchViewModel: AVAudioRecorderDelegate {
     nonisolated func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
         if !flag {
             Task { @MainActor in
-                state = .error(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Recording failed"]))
+                state = .error(.recordingFailed(NSError(domain: "VoiceSearch", code: -1, userInfo: [NSLocalizedDescriptionKey: "Recording failed"])))
             }
         }
     }
@@ -208,7 +273,7 @@ extension VoiceSearchViewModel: AVAudioRecorderDelegate {
     nonisolated func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
         if let error = error {
             Task { @MainActor in
-                state = .error(error)
+                state = .error(.recordingFailed(error))
             }
         }
     }
