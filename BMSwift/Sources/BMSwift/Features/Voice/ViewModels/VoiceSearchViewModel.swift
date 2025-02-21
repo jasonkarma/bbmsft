@@ -183,7 +183,8 @@ import AVFoundation
                 searchArticles,
                 page: searchResults.contents.currentPage,
                 lastPage: searchResults.contents.lastPage,
-                append: loadMore
+                append: loadMore,
+                totalArticles: searchResults.contents.total
             )
             
             state = .idle

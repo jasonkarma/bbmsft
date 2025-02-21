@@ -217,6 +217,12 @@ public struct EncyclopediaView: View {
         HStack {
             switch voiceSearchViewModel.state {
             case .idle:
+                Text(viewModel.searchResults.isEmpty ? "語音指令" : "取得美容百科文章\(viewModel.totalArticles)篇")
+                    .font(.headline)
+                    .bmForegroundColor(AppColors.white)
+                
+                Spacer()
+                
                 Button(action: {
                     Task {
                         try? await voiceSearchViewModel.startRecording()
@@ -227,11 +233,13 @@ public struct EncyclopediaView: View {
                         .bmForegroundColor(AppColors.primary)
                 }
                 
-                Text("語音指令")
-                    .font(.headline)
-                    .bmForegroundColor(AppColors.primaryText)
-                
             case .recording:
+                Text("正在錄音...")
+                    .font(.headline)
+                    .bmForegroundColor(AppColors.warning)
+                
+                Spacer()
+                
                 Button(action: {
                     Task {
                         await voiceSearchViewModel.stopRecordingAndSearch()
@@ -242,43 +250,39 @@ public struct EncyclopediaView: View {
                         .bmForegroundColor(AppColors.warning)
                 }
                 
-                Text("正在錄音...")
-                    .font(.headline)
-                    .bmForegroundColor(AppColors.warning)
-                
             case .processing:
-                Image(systemName: "mic.fill")
-                    .font(.system(size: 24))
-                    .bmForegroundColor(AppColors.primary)
-                
-                Text("處理中...")
+                Text("正在處理...")
                     .font(.headline)
                     .bmForegroundColor(AppColors.primaryText)
                 
-            case .searching:
+                Spacer()
+                
                 Image(systemName: "mic.fill")
                     .font(.system(size: 24))
                     .bmForegroundColor(AppColors.primary)
                 
+            case .searching:
                 Text("搜尋中...")
                     .font(.headline)
                     .bmForegroundColor(AppColors.primaryText)
                 
-            case .error(let error):
+                Spacer()
+                
                 Image(systemName: "mic.fill")
                     .font(.system(size: 24))
-                    .bmForegroundColor(AppColors.warning)
+                    .bmForegroundColor(AppColors.primary)
                 
+            case .error(let error):
                 Text(error.localizedDescription)
                     .font(.headline)
                     .bmForegroundColor(AppColors.warning)
+                
+                Spacer()
+                
+                Image(systemName: "mic.fill")
+                    .font(.system(size: 24))
+                    .bmForegroundColor(AppColors.warning)
             }
-            
-            Spacer()
-            
-            Image(systemName: "chevron.right")
-                .font(.system(size: 16))
-                .bmForegroundColor(AppColors.primaryText)
         }
         .padding()
     }

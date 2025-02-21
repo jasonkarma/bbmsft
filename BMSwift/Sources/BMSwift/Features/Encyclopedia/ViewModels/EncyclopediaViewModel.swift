@@ -39,6 +39,9 @@ public final class EncyclopediaViewModel: ObservableObject {
     /// Search results
     @Published private(set) var searchResults: [Search.SearchArticle] = []
     
+    /// Total number of articles in search results
+    @Published private(set) var totalArticles: Int = 0
+    
     /// Whether we're currently showing search results
     @Published private(set) var isShowingSearchResults = false
     
@@ -112,10 +115,16 @@ public final class EncyclopediaViewModel: ObservableObject {
         _ results: [Search.SearchArticle],
         page: Int,
         lastPage: Int,
-        append: Bool = false
+        append: Bool = false,
+        totalArticles: Int? = nil
     ) {
         print("[Encyclopedia] Updating search results - page: \(page), lastPage: \(lastPage), append: \(append), results count: \(results.count)")
         print("[Encyclopedia] Current state - currentPage: \(currentPage), lastPage: \(lastPage), searchResults count: \(searchResults.count)")
+        
+        if let total = totalArticles {
+            self.totalArticles = total
+            print("取得美容百科文章\(total)篇")
+        }
         
         // Update pagination state
         self.currentPage = page

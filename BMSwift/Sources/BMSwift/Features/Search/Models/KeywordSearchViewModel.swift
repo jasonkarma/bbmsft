@@ -188,7 +188,8 @@ final class KeywordSearchViewModel: ObservableObject {
                     response.contents.data,
                     page: response.contents.currentPage,
                     lastPage: response.contents.lastPage,
-                    append: loadMore
+                    append: loadMore,
+                    totalArticles: response.contents.total
                 )
                 
                 // Update local state
