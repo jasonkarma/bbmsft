@@ -54,6 +54,9 @@ public final class EncyclopediaViewModel: ObservableObject {
     /// Current search source
     private(set) var currentSearchSource: SearchSource = .none
     
+    /// Current search keyword
+    @Published private(set) var currentSearchKeyword: String = ""
+    
     /// Load more search results when scrolling
     public func loadMoreResults() async {
         print("[Encyclopedia] Requesting to load more results from source: \(currentSearchSource)")
@@ -116,7 +119,8 @@ public final class EncyclopediaViewModel: ObservableObject {
         page: Int,
         lastPage: Int,
         append: Bool = false,
-        totalArticles: Int? = nil
+        totalArticles: Int? = nil,
+        searchKeyword: String? = nil
     ) {
         print("[Encyclopedia] Updating search results - page: \(page), lastPage: \(lastPage), append: \(append), results count: \(results.count)")
         print("[Encyclopedia] Current state - currentPage: \(currentPage), lastPage: \(lastPage), searchResults count: \(searchResults.count)")
@@ -124,6 +128,10 @@ public final class EncyclopediaViewModel: ObservableObject {
         if let total = totalArticles {
             self.totalArticles = total
             print("取得美容百科文章\(total)篇")
+        }
+        
+        if let keyword = searchKeyword {
+            self.currentSearchKeyword = keyword
         }
         
         // Update pagination state

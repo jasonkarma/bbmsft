@@ -217,7 +217,7 @@ public struct EncyclopediaView: View {
         HStack {
             switch voiceSearchViewModel.state {
             case .idle:
-                Text("請說出您想搜尋的關鍵字")
+                Text(viewModel.searchResults.isEmpty ? "請說出您想搜尋的關鍵字" : "取得\(viewModel.currentSearchKeyword)相關文章\(viewModel.totalArticles)篇")
                     .font(.headline)
                     .bmForegroundColor(AppColors.white)
                 
