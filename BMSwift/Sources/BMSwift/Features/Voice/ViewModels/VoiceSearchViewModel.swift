@@ -6,16 +6,17 @@ import AVFoundation
         case idle
         case recording
         case processing
-        case searching
+        case searching(isLoadingMore: Bool)
         case error(VoiceError)
         
         static func == (lhs: VoiceSearchState, rhs: VoiceSearchState) -> Bool {
             switch (lhs, rhs) {
             case (.idle, .idle),
                  (.recording, .recording),
-                 (.processing, .processing),
-                 (.searching, .searching):
+                 (.processing, .processing):
                 return true
+            case (.searching(let l), .searching(let r)):
+                return l == r
             case (.error(let l), .error(let r)):
                 return l.localizedDescription == r.localizedDescription
             default:
@@ -192,13 +193,20 @@ import AVFoundation
             // Then perform search
             try await performSearch(loadMore: false)
         } catch {
-            state = .error(.transcriptionFailed(error))
+            let nsError = error as NSError
+            if nsError.domain == "kAFAssistantErrorDomain" && nsError.code == 1110 {
+                print("[VoiceSearch] No speech detected in transcription, resetting to idle state")
+                state = .idle
+            } else {
+                state = .error(.transcriptionFailed(error))
+            }
         }
     }
     
     @MainActor func performSearch(loadMore: Bool = false) async throws {
         guard let searchText = lastSearchText else {
-            state = .error(.noSpeechDetected)
+            print("[VoiceSearch] No speech text available, resetting to idle state")
+            state = .idle
             return
         }
         
@@ -224,7 +232,7 @@ import AVFoundation
         
         let nextPage = currentPage + 1
         print("[VoiceSearch] Requesting page \(nextPage)")
-        state = .searching
+        state = .searching(isLoadingMore: loadMore)
         isLoadingMore = true
         
         do {

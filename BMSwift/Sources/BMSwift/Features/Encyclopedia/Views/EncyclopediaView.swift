@@ -261,16 +261,34 @@ public struct EncyclopediaView: View {
                     .font(.system(size: 24))
                     .bmForegroundColor(AppColors.primary)
                 
-            case .searching:
-                Text("正在搜尋相關文章...")
-                    .font(.headline)
-                    .bmForegroundColor(AppColors.primaryText)
-                
-                Spacer()
-                
-                Image(systemName: "mic.fill")
-                    .font(.system(size: 24))
-                    .bmForegroundColor(AppColors.primary)
+            case .searching(let isLoadingMore):
+                if !isLoadingMore {
+                    Text("正在搜尋相關文章...")
+                        .font(.headline)
+                        .bmForegroundColor(AppColors.primaryText)
+                    
+                    Spacer()
+                    
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 24))
+                        .bmForegroundColor(AppColors.warning)
+                } else {
+                    Text("取得\(viewModel.currentSearchKeyword)相關文章\(viewModel.totalArticles)篇")
+                        .font(.headline)
+                        .bmForegroundColor(AppColors.white)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        Task {
+                            try? await voiceSearchViewModel.startRecording()
+                        }
+                    }) {
+                        Image(systemName: "mic.fill")
+                            .font(.system(size: 24))
+                            .bmForegroundColor(AppColors.primary)
+                    }
+                }
                 
             case .error(let error):
                 Text(error.localizedDescription)
@@ -279,9 +297,15 @@ public struct EncyclopediaView: View {
                 
                 Spacer()
                 
-                Image(systemName: "mic.fill")
-                    .font(.system(size: 24))
-                    .bmForegroundColor(AppColors.warning)
+                Button(action: {
+                    Task {
+                        try? await voiceSearchViewModel.startRecording()
+                    }
+                }) {
+                    Image(systemName: "mic.fill")
+                        .font(.system(size: 24))
+                        .bmForegroundColor(AppColors.warning)
+                }
             }
         }
         .padding()
