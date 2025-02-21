@@ -6,7 +6,18 @@ import AVFoundation
         case idle
         case recording
         case processing
+        case searching
         case error(Error)
+    }
+    
+    // MARK: - Pagination State
+    private var currentPage = 0
+    private var lastPage = 1
+    private var isLoadingMore = false
+    private var lastSearchText: String?
+    
+    public var canLoadMore: Bool {
+        currentPage < lastPage && lastSearchText != nil
     }
     
     @Published private(set) var state: VoiceSearchState = .idle
@@ -29,6 +40,30 @@ import AVFoundation
         self.token = token
         super.init()
         setupAudioSession()
+        
+        // Observe load more notification
+        NotificationCenter.default.addObserver(self, selector: #selector(handleLoadMore), name: .loadMoreResults, object: nil)
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    @objc private func handleLoadMore(_ notification: Notification) {
+        // Extract source from notification
+        let source = notification.userInfo?["source"] as? EncyclopediaViewModel.SearchSource
+        
+        // Only proceed if this is a voice search notification
+        guard source == .voice else {
+            print("[VoiceSearch] Skipping notification: source=\(source?.description ?? "none")")
+            return
+        }
+        
+        // Handle the load more request
+        print("[VoiceSearch] Loading more results")
+        Task {
+            await performSearch(loadMore: true)
+        }
     }
     
     @MainActor private func setupAudioSession() {
@@ -82,35 +117,83 @@ import AVFoundation
             let speechText = try await transcriptionService.transcribe(audioURL: recordingURL, authToken: token)
             print("DEBUG: Got speech text: \(speechText)")
             
-            // Perform voice search with transcribed text
-            let searchResults = try await voiceSearchService.searchByVoice(voiceText: speechText)
+            // Store search text for pagination
+            lastSearchText = speechText
+            currentPage = 1  // Start at page 1 to match API
+            lastPage = 1
             
-            // Convert voice search articles to regular search articles
-            let searchArticles = searchResults.contents.data.map { voiceArticle in
-                Search.SearchArticle(
-                    id: voiceArticle.id,
-                    title: voiceArticle.title,
-                    intro: voiceArticle.intro,
-                    mediaName: voiceArticle.mediaName,
-                    visitCount: voiceArticle.visitCount,
-                    likeCount: voiceArticle.likeCount,
-                    firstEnabledAt: voiceArticle.firstEnabledAt,
-                    hashtags: [],  // Voice search doesn't provide hashtags
-                    typeType: nil,
-                    typeTitle: nil,
-                    typeContent: nil
-                )
-            }
+            // Perform initial voice search
+            await performSearch(loadMore: false)
             
             // Update encyclopedia view model with converted search results
-            encyclopediaViewModel.updateWithSearchResults(searchArticles)
-            state = .idle
-            
         } catch {
             state = .error(error)
         }
     }
-}
+    
+    @MainActor func performSearch(loadMore: Bool = false) async {
+        guard let searchText = lastSearchText else {
+            state = .error(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "No search text available"]))
+            return
+        }
+        
+        print("[VoiceSearch] Starting search - text: \(searchText), loadMore: \(loadMore)")
+        print("[VoiceSearch] Current state - page: \(currentPage), lastPage: \(lastPage), isLoadingMore: \(isLoadingMore)")
+        
+        // Don't allow concurrent loading
+        guard !isLoadingMore else {
+            print("[VoiceSearch] Already loading more results")
+            return
+        }
+        
+        // Only reset pagination for new searches
+        if !loadMore {
+            print("[VoiceSearch] New search - resetting pagination")
+            currentPage = 1  // Start at page 1 to match API
+            lastPage = 1
+            encyclopediaViewModel.clearSearchResults()
+            encyclopediaViewModel.updateSearchSource(.voice)
+        } else {
+            print("[VoiceSearch] Loading more - keeping pagination state")
+        }
+        
+        let nextPage = currentPage + 1
+        print("[VoiceSearch] Requesting page \(nextPage)")
+        state = .searching
+        isLoadingMore = true
+        
+        do {
+            // Perform voice search with transcribed text
+            let searchResults = try await voiceSearchService.searchByVoice(
+                voiceText: searchText,
+                type: 0,  // Default to all types
+                page: nextPage,
+                authToken: token
+            )
+            
+            // Update pagination state
+            currentPage = searchResults.contents.currentPage
+            lastPage = searchResults.contents.lastPage
+            
+            // Get search articles directly from response
+            let searchArticles = searchResults.contents.data
+            
+            // Update encyclopedia view model
+            encyclopediaViewModel.updateWithSearchResults(
+                searchArticles,
+                page: searchResults.contents.currentPage,
+                lastPage: searchResults.contents.lastPage,
+                append: loadMore
+            )
+            
+            state = .idle
+            isLoadingMore = false
+        } catch {
+            state = .error(error)
+            isLoadingMore = false
+        }
+        }
+    }
 
 extension VoiceSearchViewModel: AVAudioRecorderDelegate {
     nonisolated func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {

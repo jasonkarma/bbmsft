@@ -69,8 +69,39 @@ public enum VoiceEndpoints {
         public let to: Int?
         public let total: Int
         
-        // For compatibility with existing code
-        public var contents: Contents { Contents(data: data) }
+        public var contents: VoiceSearch.SearchResponse.Contents {
+            VoiceSearch.SearchResponse.Contents(
+                currentPage: currentPage,
+                data: data.map { article in
+                    Search.SearchArticle(
+                        id: article.id,
+                        title: article.title,
+                        intro: article.intro,
+                        mediaName: article.mediaName,
+                        visitCount: article.visitCount,
+                        likeCount: article.likeCount,
+                        firstEnabledAt: article.firstEnabledAt,
+                        hashtags: article.hashtags.map { hashtag in
+                            Search.Hashtag(id: hashtag.id, hashtag: hashtag.tag)
+                        },
+                        typeType: article.contentTypes?.first?.type,
+                        typeTitle: article.contentTypes?.first?.title,
+                        typeContent: article.contentTypes?.first?.content
+                    )
+                },
+                firstPageUrl: firstPageUrl,
+                from: from,
+                lastPage: lastPage,
+                lastPageUrl: lastPageUrl,
+                links: [],
+                nextPageUrl: nextPageUrl,
+                path: path,
+                perPage: perPage,
+                prevPageUrl: prevPageUrl,
+                to: to ?? 0,
+                total: total
+            )
+        }
         
         private enum CodingKeys: String, CodingKey {
             case currentPage = "current_page"
@@ -85,10 +116,6 @@ public enum VoiceEndpoints {
             case prevPageUrl = "prev_page_url"
             case to
             case total
-        }
-        
-        public struct Contents {
-            public let data: [SearchArticle]
         }
         
         public struct SearchArticle: Codable {
@@ -156,14 +183,19 @@ public enum VoiceEndpoints {
         public var baseURL: URL? { URL(string: "https://wiki.kinglyrobot.com") }
         public let path: String = "/api/beauty/searchContent"
         public let method: BMNetwork.HTTPMethod = .get
-        public let requiresAuth: Bool = false
-        public let headers: [String: String] = [:]
+        public let requiresAuth: Bool = true
+        public let headers: [String: String]
         public let queryItems: [URLQueryItem]?
         
-        public init(searchText: String) {
+        public init(searchText: String, type: Int, page: Int, authToken: String) {
+            self.headers = [
+                "Accept": "application/json",
+                "Authorization": "Bearer \(authToken)"
+            ]
             self.queryItems = [
-                URLQueryItem(name: "type", value: "0"),
-                URLQueryItem(name: "input", value: searchText)
+                URLQueryItem(name: "type", value: String(type)),
+                URLQueryItem(name: "input", value: searchText),
+                URLQueryItem(name: "page", value: String(page))
             ]
         }
     }

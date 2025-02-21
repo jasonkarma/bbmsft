@@ -3,6 +3,17 @@ import Foundation
 @MainActor
 @dynamicMemberLookup
 final class KeywordSearchViewModel: ObservableObject {
+    // MARK: - Published State
+    @Published private(set) var isLoading = false
+    @Published private(set) var error: Error?
+    
+    // MARK: - Pagination State
+    private var currentPage = 1  // Start at page 1 to match API
+    private var lastPage = 1
+    
+    public var canLoadMore: Bool {
+        currentPage < lastPage && !isLoading && !searchResults.isEmpty
+    }
     // Content types
     enum ContentType: Int, CaseIterable {
         case problem = 1     // 問題
@@ -41,11 +52,49 @@ final class KeywordSearchViewModel: ObservableObject {
     private let encyclopediaViewModel: EncyclopediaViewModel
     let token: String
     
-    init(service: EncyclopediaServiceProtocol, token: String, encyclopediaViewModel: EncyclopediaViewModel) {
-        self.encyclopediaService = service
-        self.searchService = SearchService(client: .shared)
-        self.token = token
+    private func setupNotificationObserver() {
+        // Observe load more notification
+        NotificationCenter.default.addObserver(self, selector: #selector(handleLoadMore), name: .loadMoreResults, object: nil)
+    }
+    
+    init(
+        encyclopediaViewModel: EncyclopediaViewModel,
+        token: String,
+        encyclopediaService: EncyclopediaServiceProtocol = EncyclopediaService(client: .shared),
+        searchService: SearchServiceProtocol = SearchService(client: .shared)
+    ) {
         self.encyclopediaViewModel = encyclopediaViewModel
+        self.token = token
+        self.encyclopediaService = encyclopediaService
+        self.searchService = searchService
+        setupNotificationObserver()
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    @objc private func handleLoadMore(_ notification: Notification) {
+        // Extract source from notification
+        let source = notification.userInfo?["source"] as? EncyclopediaViewModel.SearchSource
+        
+        // Only proceed if this is a keyword search notification
+        guard source == .keyword else {
+            print("[KeywordSearch] Skipping notification: source=\(source?.description ?? "none")")
+            return
+        }
+        
+        // Check if we can load more
+        guard !isLoading && currentPage < lastPage else {
+            print("[KeywordSearch] Cannot load more: page=\(currentPage)/\(lastPage), isLoading=\(isLoading)")
+            return
+        }
+        
+        // Handle the load more request
+        print("[KeywordSearch] Loading more results (page \(currentPage + 1))")
+        Task {
+            await performSearch(loadMore: true)
+        }
     }
     
     func loadKeywords() async {
@@ -93,31 +142,73 @@ final class KeywordSearchViewModel: ObservableObject {
         }
     }
     
-    func performSearch() async {
+    func performSearch(loadMore: Bool = false) async {
         guard let hashtag = selectedHashtag,
               let type = selectedType,
               let keyword = allKeywords.first(where: { $0.bp_hashtag == hashtag }) else {
-            print("[KeywordSearchViewModel] Cannot search: hashtag=\(selectedHashtag ?? "nil"), type=\(selectedType ?? -1)")
+            print("[KeywordSearch] Cannot search: hashtag=\(selectedHashtag ?? "nil"), type=\(selectedType ?? -1)")
+            error = NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing search parameters"])
             return
         }
-        print("[KeywordSearchViewModel] Performing search with hashtag=\(hashtag), type=\(type), tagId=\(keyword.bp_tag_id)")
         
-        state = .loading
+        // Thread-safe state update
+        await MainActor.run {
+            isLoading = true
+            error = nil
+        }
+        
+        // Only reset pagination for new searches
+        if !loadMore {
+            print("[KeywordSearch] New search - resetting pagination")
+            currentPage = 1
+            lastPage = 1
+            encyclopediaViewModel.clearSearchResults()
+            encyclopediaViewModel.updateSearchSource(.keyword)
+        }
+        
+        let nextPage = loadMore ? currentPage + 1 : 1
+        print("[KeywordSearch] Requesting page \(nextPage) with tagId=\(keyword.bp_tag_id)")
+        
         do {
             let response = try await searchService.searchContent(
                 tagId: keyword.bp_tag_id,
                 type: type,
+                page: nextPage,
                 authToken: token
             )
             
-            // Update encyclopedia view model with search results
-            print("[KeywordSearchViewModel] Search successful with \(response.contents.data.count) results")
-            self.searchResults = response.contents.data
-            encyclopediaViewModel.updateWithSearchResults(response.contents.data)
-            state = .loaded
+            await MainActor.run {
+                // Update pagination state
+                currentPage = response.contents.currentPage
+                lastPage = response.contents.lastPage
+                
+                // Update encyclopedia view model with search results
+                print("[KeywordSearchViewModel] Search successful with \(response.contents.data.count) results")
+                encyclopediaViewModel.updateWithSearchResults(
+                    response.contents.data,
+                    page: response.contents.currentPage,
+                    lastPage: response.contents.lastPage,
+                    append: loadMore
+                )
+                
+                // Update local state
+                if loadMore {
+                    self.searchResults.append(contentsOf: response.contents.data)
+                } else {
+                    self.searchResults = response.contents.data
+                }
+                
+                state = .loaded
+                isLoading = false
+                error = nil
+            }
         } catch {
             print("[KeywordSearchViewModel] Search failed: \(error)")
-            state = .error(error)
+            await MainActor.run {
+                state = .error(error)
+                isLoading = false
+                self.error = error
+            }
         }
     }
 

@@ -7,15 +7,17 @@ public enum Search {
             public let currentPage: Int
             public let data: [SearchArticle]
             public let total: Int
+            public let lastPage: Int
             
             private enum CodingKeys: String, CodingKey {
                 case currentPage = "current_page"
                 case data
                 case total
+                case lastPage = "last_page"
             }
             
             var contents: SearchContents {
-                .init(currentPage: currentPage, data: data, total: total)
+                .init(currentPage: currentPage, data: data, total: total, lastPage: lastPage)
             }
         }
     
@@ -24,6 +26,7 @@ public enum Search {
             public let currentPage: Int
             public let data: [SearchArticle]
             public let total: Int
+            public let lastPage: Int
         }
     
         /// Article data from search response

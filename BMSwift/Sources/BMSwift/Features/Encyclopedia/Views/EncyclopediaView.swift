@@ -26,6 +26,10 @@ public struct EncyclopediaView: View {
             encyclopediaViewModel: encyclopediaVM,
             token: token
         ))
+        self._keywordSearchViewModel = StateObject(wrappedValue: KeywordSearchViewModel(
+            encyclopediaViewModel: encyclopediaVM,
+            token: token
+        ))
     }
     
     public var body: some View {
@@ -99,10 +103,20 @@ public struct EncyclopediaView: View {
                                                 .padding(.horizontal)
                                             } else {
                                                 LazyVStack(spacing: 8) {
-                                                    ForEach(viewModel.searchResults, id: \.id) { article in
+                                                    ForEach(viewModel.searchResults.indices, id: \.self) { index in
+                                                        let article = viewModel.searchResults[index]
                                                         ArticleCardView(article: article, token: token)
                                                             .background(AppColors.black.swiftUIColor.opacity(0.5))
                                                             .cornerRadius(12)
+                                                            .onAppear {
+                                                                // If this is the last item and we can load more
+                                                                if index == viewModel.searchResults.count - 1 {
+                                                                    print("[EncyclopediaView] Reached last item, loading more...")
+                                                                    Task {
+                                                                        await viewModel.loadMoreResults()
+                                                                    }
+                                                                }
+                                                            }
                                                     }
                                                 }
                                                 .padding(.horizontal)
@@ -186,8 +200,7 @@ public struct EncyclopediaView: View {
                         }
                     
                     KeywordSearchView(
-                        token: token,
-                        encyclopediaViewModel: viewModel,
+                        viewModel: keywordSearchViewModel,
                         isPresented: $showingKeywordSearch
                     )
                     .transition(.opacity)
@@ -198,6 +211,7 @@ public struct EncyclopediaView: View {
     }
     
     @StateObject private var voiceSearchViewModel: VoiceSearchViewModel
+    @StateObject private var keywordSearchViewModel: KeywordSearchViewModel
     
     private var voiceCommandArea: some View {
         HStack {
@@ -238,6 +252,15 @@ public struct EncyclopediaView: View {
                     .bmForegroundColor(AppColors.primary)
                 
                 Text("處理中...")
+                    .font(.headline)
+                    .bmForegroundColor(AppColors.primaryText)
+                
+            case .searching:
+                Image(systemName: "mic.fill")
+                    .font(.system(size: 24))
+                    .bmForegroundColor(AppColors.primary)
+                
+                Text("搜尋中...")
                     .font(.headline)
                     .bmForegroundColor(AppColors.primaryText)
                 

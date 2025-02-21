@@ -8,6 +8,10 @@
 import Foundation
 import SwiftUI
 
+extension Notification.Name {
+    static let loadMoreResults = Notification.Name("loadMoreResults")
+}
+
 /// View model for the encyclopedia view
 /// Manages the state and business logic for encyclopedia content
 @MainActor
@@ -44,6 +48,36 @@ public final class EncyclopediaViewModel: ObservableObject {
     /// Showing skin analysis state
     @Published var showingSkinAnalysis = false
     
+    /// Current search source
+    private(set) var currentSearchSource: SearchSource = .none
+    
+    /// Load more search results when scrolling
+    public func loadMoreResults() async {
+        print("[Encyclopedia] Requesting to load more results from source: \(currentSearchSource)")
+        NotificationCenter.default.post(name: .loadMoreResults, object: nil, userInfo: ["source": currentSearchSource])
+    }
+    
+    /// Update the current search source
+    public func updateSearchSource(_ source: SearchSource) {
+        print("[Encyclopedia] Updating search source to: \(source)")
+        currentSearchSource = source
+    }
+    
+    /// Search source enum
+    public enum SearchSource: CustomStringConvertible {
+        case keyword
+        case voice
+        case none
+        
+        public var description: String {
+            switch self {
+            case .keyword: return "keyword"
+            case .voice: return "voice"
+            case .none: return "none"
+            }
+        }
+    }
+    
     // Store preloaded keyword data
     private(set) var hotKeywords: [KeywordModel] = []
     private(set) var allKeywords: [KeywordModel] = []
@@ -52,13 +86,56 @@ public final class EncyclopediaViewModel: ObservableObject {
 
     // MARK: - Search Functionality
     
+    // MARK: - Pagination State
+    
+    /// Current page number for search results
+    @Published private(set) var currentPage: Int = 1
+    
+    /// Last available page number
+    @Published private(set) var lastPage: Int = 1
+    
+    /// Whether we can load more pages
+    public var canLoadMore: Bool {
+        currentPage < lastPage && !searchResults.isEmpty
+    }
+    
+    /// Whether we're currently loading more results
+    @Published private(set) var isLoadingMore = false
+    
     /// Update the view with search results
-    /// - Parameter results: Array of search results
-    public func updateWithSearchResults(_ results: [Search.SearchArticle]) {
-        self.searchResults = results
+    /// - Parameters:
+    ///   - results: Array of search results
+    ///   - page: Current page number
+    ///   - lastPage: Last available page
+    ///   - append: Whether to append results or replace existing ones
+    public func updateWithSearchResults(
+        _ results: [Search.SearchArticle],
+        page: Int,
+        lastPage: Int,
+        append: Bool = false
+    ) {
+        print("[Encyclopedia] Updating search results - page: \(page), lastPage: \(lastPage), append: \(append), results count: \(results.count)")
+        print("[Encyclopedia] Current state - currentPage: \(currentPage), lastPage: \(lastPage), searchResults count: \(searchResults.count)")
+        
+        // Update pagination state
+        self.currentPage = page
+        self.lastPage = lastPage
+        self.isLoadingMore = false
+        
+        // Update results
+        if append {
+            print("[Encyclopedia] Appending \(results.count) results to existing \(searchResults.count) results")
+            self.searchResults.append(contentsOf: results)
+        } else {
+            print("[Encyclopedia] Replacing results with \(results.count) new results")
+            self.searchResults = results
+        }
+        
+        print("[Encyclopedia] Final state - searchResults count: \(searchResults.count), canLoadMore: \(canLoadMore)")
         self.isShowingSearchResults = true
+        
         // Convert search articles to article previews for the hot articles section
-        self.hotArticles = results.map { searchArticle in
+        let articlePreviews = results.map { searchArticle in
             ArticlePreview(
                 id: searchArticle.id,
                 title: searchArticle.title,
@@ -71,6 +148,12 @@ public final class EncyclopediaViewModel: ObservableObject {
                 clientVisit: false,
                 clientKeep: false
             )
+        }
+        
+        if append {
+            self.hotArticles.append(contentsOf: articlePreviews)
+        } else {
+            self.hotArticles = articlePreviews
         }
     }
     

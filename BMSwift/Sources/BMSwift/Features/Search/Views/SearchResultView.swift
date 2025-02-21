@@ -107,9 +107,10 @@ struct SearchResultView_Previews: PreviewProvider {
     static var previews: some View {
         SearchResultView(
             viewModel: KeywordSearchViewModel(
-                service: EncyclopediaService(client: .shared),
+                encyclopediaViewModel: EncyclopediaViewModel(token: "preview-token"),
                 token: "preview-token",
-                encyclopediaViewModel: EncyclopediaViewModel(token: "preview-token")
+                encyclopediaService: EncyclopediaService(client: .shared),
+                searchService: SearchService(client: .shared)
             ),
             isPresented: .constant(true)
         )

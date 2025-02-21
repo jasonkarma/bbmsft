@@ -3,15 +3,11 @@ import SwiftUI
 
 @available(iOS 13.0, *)
 internal struct KeywordSearchView: View {
-    @StateObject private var viewModel: KeywordSearchViewModel
+    @ObservedObject var viewModel: KeywordSearchViewModel
     @Binding var isPresented: Bool
     
-    internal init(token: String, encyclopediaViewModel: EncyclopediaViewModel, isPresented: Binding<Bool>) {
-        self._viewModel = StateObject(wrappedValue: KeywordSearchViewModel(
-            service: EncyclopediaService(client: .shared),
-            token: token,
-            encyclopediaViewModel: encyclopediaViewModel
-        ))
+    internal init(viewModel: KeywordSearchViewModel, isPresented: Binding<Bool>) {
+        self.viewModel = viewModel
         self._isPresented = isPresented
     }
     
@@ -266,9 +262,13 @@ internal struct KeywordSearchView: View {
 @available(iOS 13.0, *)
 struct KeywordSearchView_Previews: PreviewProvider {
     static var previews: some View {
-        KeywordSearchView(
-            token: "preview-token",
-            encyclopediaViewModel: EncyclopediaViewModel(token: "preview-token"),
+        let encyclopediaVM = EncyclopediaViewModel(token: "preview-token")
+        let keywordVM = KeywordSearchViewModel(
+            encyclopediaViewModel: encyclopediaVM,
+            token: "preview-token"
+        )
+        return KeywordSearchView(
+            viewModel: keywordVM,
             isPresented: .constant(true)
         )
     }

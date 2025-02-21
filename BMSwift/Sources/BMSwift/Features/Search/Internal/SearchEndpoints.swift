@@ -18,16 +18,26 @@ public enum SearchEndpoints {
             public let headers: [String: String]
             public let baseURL: URL? = nil
         
-            public init(tagId: Int, type: Int, authToken: String) {
-                self.path = "/api/contentHashtag/\(tagId)?type=\(type)"
+            public init(tagId: Int, type: Int, page: Int, authToken: String) {
+                self.path = "/api/contentHashtag/\(tagId)?type=\(type)&page=\(page)"
                 self.headers = [
-                    "Accept": "application/json"
+                    "Accept": "application/json",
+                    "Authorization": "Bearer \(authToken)"
+                ]
+            }
+            
+            public init(searchText: String, type: Int, page: Int, authToken: String) {
+                self.path = "/api/contentHashtag/\(searchText)?type=\(type)&page=\(page)"
+                self.headers = [
+                    "Accept": "application/json",
+                    "Authorization": "Bearer \(authToken)"
                 ]
             }
     }
     
     // MARK: - Factory Methods
-    public static func contentSearch(tagId: Int, type: Int, authToken: String) -> BMNetwork.APIRequest<ContentSearch> {
-        .init(endpoint: ContentSearch(tagId: tagId, type: type, authToken: authToken), authToken: authToken)
+    public static func contentSearch(tagId: Int, type: Int, page: Int, authToken: String) -> BMNetwork.APIRequest<ContentSearch> {
+        let endpoint = ContentSearch(tagId: tagId, type: type, page: page, authToken: authToken)
+        return BMNetwork.APIRequest(endpoint: endpoint, body: nil, authToken: authToken)
     }
 }
