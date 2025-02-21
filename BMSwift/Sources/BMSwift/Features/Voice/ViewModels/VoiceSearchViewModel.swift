@@ -21,29 +21,21 @@ import AVFoundation
     }
     
     @Published private(set) var state: VoiceSearchState = .idle
-    @Published private(set) var conversationResponse: String?
-    @Published private(set) var isExpandedResponse: Bool = false
-    
     private let voiceSearchService: VoiceSearchServiceProtocol
     private let transcriptionService: VoiceTranscriptionServiceProtocol
-    private let conversationService: ConversationServiceProtocol
     private let encyclopediaViewModel: EncyclopediaViewModel
     private var audioRecorder: AVAudioRecorder?
     private var recordingURL: URL?
     private let token: String
     
-    private let speechSynthesizer = AVSpeechSynthesizer()
-    
     init(
         service: VoiceSearchServiceProtocol = VoiceSearchService(),
         transcriptionService: VoiceTranscriptionServiceProtocol = VoiceTranscriptionService(),
-        conversationService: ConversationServiceProtocol = ConversationService(),
         encyclopediaViewModel: EncyclopediaViewModel,
         token: String
     ) {
         self.voiceSearchService = service
         self.transcriptionService = transcriptionService
-        self.conversationService = conversationService
         self.encyclopediaViewModel = encyclopediaViewModel
         self.token = token
         super.init()
@@ -125,48 +117,16 @@ import AVFoundation
             let speechText = try await transcriptionService.transcribe(audioURL: recordingURL, authToken: token)
             print("DEBUG: Got speech text: \(speechText)")
             
-            // Stop any ongoing speech
-            speechSynthesizer.stopSpeaking(at: .immediate)
-            
-            // If no speech was detected, reset state and show error
-            if speechText.isEmpty {
-                state = .error(NSError(
-                    domain: "kAFAssistantErrorDomain",
-                    code: 1110,
-                    userInfo: [NSLocalizedDescriptionKey: "無法辨識您的語音"]
-                ))
-                
-                // Reset after a short delay to allow error to be shown
-                Task { @MainActor in
-                    try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
-                    if case .error = state {
-                        state = .idle
-                    }
-                }
-                return
-            }
-            
             // Store search text for pagination
             lastSearchText = speechText
             currentPage = 1  // Start at page 1 to match API
             lastPage = 1
             
-            // Start both conversation and search tasks
-            async let searchTask = performSearch(loadMore: false)
-            await getConversationResponse(for: speechText)
-            
-            // Wait for search to complete
-            try await searchTask
+            // Perform initial voice search
+            await performSearch(loadMore: false)
             
             // Update encyclopedia view model with converted search results
         } catch {
-            // Reset state after a short delay for any error
-            Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
-                if case .error = state {
-                    state = .idle
-                }
-            }
             state = .error(error)
         }
     }
@@ -235,33 +195,6 @@ import AVFoundation
         }
         }
     }
-
-    @MainActor private func getConversationResponse(for text: String) async {
-        do {
-            // Get conversation response
-            let response = try await conversationService.getResponse(for: text)
-            conversationResponse = response.ans
-            
-            // Configure speech synthesis
-            let utterance = AVSpeechUtterance(string: response.ans)
-            if let voice = AVSpeechSynthesisVoice(language: "zh-TW") {
-                utterance.voice = voice
-                utterance.rate = 0.45  // Slower rate for better clarity
-                utterance.pitchMultiplier = 1.2 // Slightly higher pitch for female voice
-                
-                // Speak the response
-                speechSynthesizer.speak(utterance)
-            }
-        } catch {
-            print("Conversation error: \(error)")
-            // Don't throw the error as we want search to continue even if conversation fails
-        }
-    }
-    
-    func toggleResponseExpansion() {
-        isExpandedResponse.toggle()
-    }
-
 
 extension VoiceSearchViewModel: AVAudioRecorderDelegate {
     nonisolated func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
