@@ -172,6 +172,29 @@ public struct EncyclopediaView: View {
                         Spacer()
                     }
                     .ignoresSafeArea()
+                    
+                    // Toast message for spoken text
+                    if let spokenText = voiceSearchViewModel.spokenText {
+                        VStack {
+                            Spacer()
+                                .frame(height: geometry.size.height * 0.35)
+                            
+                            Text(spokenText)
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 24)
+                                .padding(.vertical, 14)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 25)
+                                        .fill(AppColors.black.swiftUIColor.opacity(0.85))
+                                )
+                                .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
+                                .transition(.move(edge: .top).combined(with: .opacity))
+                                .multilineTextAlignment(.center)
+                            
+                            Spacer()
+                        }
+                    }
                 }
             }
             .navigationDestination(for: Route.self) { route in
@@ -207,6 +230,7 @@ public struct EncyclopediaView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.2), value: showingKeywordSearch)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: voiceSearchViewModel.spokenText)
         }
     }
     

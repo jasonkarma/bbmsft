@@ -57,6 +57,7 @@ import AVFoundation
     
     @Published private(set) var state: VoiceSearchState = .idle
     @Published private(set) var transcribedText: String?
+    @Published private(set) var spokenText: String?
     
     private let voiceSearchService: VoiceSearchServiceProtocol
     private let transcriptionService: VoiceTranscriptionServiceProtocol
@@ -128,7 +129,18 @@ import AVFoundation
         utterance.pitchMultiplier = 1.0
         utterance.volume = 1.0
         
+        // Show toast while speaking
+        spokenText = response
+        
         speechSynthesizer.speak(utterance)
+        
+        // Clear toast when done speaking
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(Double(response.count) * 0.2 * 1_000_000_000))
+            if spokenText == response { // Only clear if it's still showing this response
+                spokenText = nil
+            }
+        }
     }
     
     @MainActor func startRecording() async throws {
